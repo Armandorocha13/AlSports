@@ -37,39 +37,39 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
   ).slice(0, 8)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Breadcrumb */}
-      <div className="bg-white border-b">
+      <div className="bg-gray-900 border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center space-x-2 text-sm">
-            <Link href="/" className="text-gray-500 hover:text-primary-600">
+            <Link href="/" className="text-gray-400 hover:text-primary-400">
               Início
             </Link>
-            <span className="text-gray-400">/</span>
-            <Link href={`/categoria/${category.slug}`} className="text-gray-500 hover:text-primary-600">
+            <span className="text-gray-600">/</span>
+            <Link href={`/categoria/${category.slug}`} className="text-gray-400 hover:text-primary-400">
               {category.name}
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium">{subcategory.name}</span>
+            <span className="text-gray-600">/</span>
+            <span className="text-white font-medium">{subcategory.name}</span>
           </nav>
         </div>
       </div>
 
       {/* Subcategory Header */}
-      <div className="bg-white">
+      <div className="bg-gray-900">
         <div className="container mx-auto px-4 py-12">
           <div className="flex items-center gap-4 mb-6">
             <Link 
               href={`/categoria/${category.slug}`}
-              className="p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200"
+              className="p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
             >
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+              <h1 className="text-3xl md:text-4xl font-bold text-white">
                 {subcategory.name}
               </h1>
-              <p className="text-lg text-gray-600 mt-2">
+              <p className="text-lg text-gray-400 mt-2">
                 {displayProducts.length} produtos encontrados
               </p>
             </div>
@@ -78,26 +78,26 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
       </div>
 
       {/* Filters and Controls */}
-      <div className="bg-white border-b">
+      <div className="bg-gray-900 border-b border-gray-800">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
                 <Filter size={16} />
                 Filtros
               </button>
               <div className="flex items-center gap-2">
-                <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                <button className="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
                   <Grid size={16} />
                 </button>
-                <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                <button className="p-2 border border-gray-700 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
                   <List size={16} />
                 </button>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+              <select className="px-4 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                 <option>Ordenar por</option>
                 <option>Menor Preço</option>
                 <option>Maior Preço</option>
@@ -121,25 +121,25 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
 
             {/* Load More Button */}
             <div className="text-center mt-12">
-              <button className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200">
+              <button className="bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200">
                 Carregar Mais Produtos
               </button>
             </div>
           </>
         ) : (
           <div className="text-center py-16">
-            <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="bg-gray-800 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="text-4xl">📦</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-2xl font-bold text-white mb-4">
               Nenhum produto encontrado
             </h3>
-            <p className="text-lg text-gray-600 mb-8">
+            <p className="text-lg text-gray-400 mb-8">
               Não encontramos produtos nesta subcategoria no momento.
             </p>
             <Link 
               href={`/categoria/${category.slug}`}
-              className="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200"
+              className="inline-flex items-center bg-primary-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
             >
               <ArrowLeft className="mr-2" size={16} />
               Voltar para {category.name}
@@ -149,9 +149,9 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
       </div>
 
       {/* Related Categories */}
-      <div className="bg-white border-t">
+      <div className="bg-gray-900 border-t border-gray-800">
         <div className="container mx-auto px-4 py-12">
-          <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+          <h3 className="text-2xl font-bold text-white mb-8 text-center">
             Outras Subcategorias de {category.name}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -162,14 +162,14 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
                 <Link
                   key={relatedSub.id}
                   href={`/categoria/${category.slug}/${relatedSub.slug}`}
-                  className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                  className="text-center p-4 border border-gray-700 rounded-lg hover:border-primary-400 hover:bg-gray-800 transition-all duration-200"
                 >
-                  <div className="bg-primary-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <span className="text-primary-600 font-bold">
+                  <div className="bg-primary-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-black font-bold">
                       {relatedSub.name.charAt(0)}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                  <p className="text-sm font-medium text-white line-clamp-2">
                     {relatedSub.name}
                   </p>
                 </Link>

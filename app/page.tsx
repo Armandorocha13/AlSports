@@ -16,9 +16,8 @@ export default function HomePage() {
       <section className="relative bg-gradient-to-r from-gray-900 to-black text-white">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              AL Sports
-            </h1>
+            
+           
             <p className="text-xl md:text-2xl mb-8 text-primary-400">
               Loja de Atacado de Roupas Esportivas
             </p>
@@ -44,34 +43,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Truck className="text-black" size={24} />
+
+        {/* Features Section */}
+        <section className="py-16 bg-gray-900">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Truck className="text-black" size={24} />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-white">Entrega Rápida</h3>
+                <p className="text-gray-400">Tenha seu pedido nas suas mãos no menor prazo possível</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">Frete Grátis</h3>
-              <p className="text-gray-400">Para pedidos acima de R$ 500,00</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="text-black" size={24} />
+              <div className="text-center">
+                <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="text-black" size={24} />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-white">Garantia</h3>
+                <p className="text-gray-400">Produtos originais com garantia</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">Garantia</h3>
-              <p className="text-gray-400">Produtos originais com garantia</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <RotateCcw className="text-black" size={24} />
+              <div className="text-center">
+                <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <RotateCcw className="text-black" size={24} />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-white">Trocas</h3>
+                <p className="text-gray-400">Política de trocas facilitada</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">Trocas</h3>
-              <p className="text-gray-400">Política de trocas facilitada</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* Categories Section */}
       <section className="py-16 bg-black">
@@ -111,39 +111,31 @@ export default function HomePage() {
             ))}
           </div>
           
-          <div className="text-center mt-12">
-            <Link 
-              href="/produtos" 
-              className="inline-flex items-center bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
-            >
-              Ver Todos os Produtos
-              <ArrowRight className="ml-2" size={20} />
-            </Link>
-          </div>
+         
         </div>
       </section>
 
-      {/* Promotional Banner */}
-      <section className="py-16 bg-gradient-to-r from-gray-800 to-black text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            🎉 Promoção Especial
-          </h2>
-          <p className="text-xl mb-6 text-primary-400">
-            Até 50% de desconto em produtos selecionados
-          </p>
-          <p className="text-lg mb-8 text-gray-300">
-            Aproveite nossa promoção de fim de temporada e garante os melhores preços
-          </p>
-          <Link 
-            href="/categoria/futebol?promocao=true" 
-            className="inline-flex items-center bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
-          >
-            Ver Promoções
-            <ArrowRight className="ml-2" size={20} />
-          </Link>
-        </div>
-      </section>
+        {/* Promotional Banner */}
+        <section className="py-16 bg-gradient-to-r from-gray-800 to-black text-white">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              🎉 Promoção Especial
+            </h2>
+            <p className="text-xl mb-6 text-primary-400">
+              Até 50% de desconto em produtos selecionados
+            </p>
+            <p className="text-lg mb-8 text-gray-300">
+              Aproveite nossa promoção de fim de temporada e garante os melhores preços
+            </p>
+            <Link 
+              href="/categoria/futebol?promocao=true" 
+              className="inline-flex items-center bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
+            >
+              Ver Promoções
+              <ArrowRight className="ml-2" size={20} />
+            </Link>
+          </div>
+        </section>
 
       {/* Newsletter Section */}
       <section className="py-16 bg-black">

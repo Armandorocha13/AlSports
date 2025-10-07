@@ -20,8 +20,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
   } = useCart()
 
   const getShipping = () => {
-    const subtotal = getSubtotal()
-    return subtotal >= 500 ? 0 : 25
+    return 25 // Frete fixo para atacado
   }
 
   const getTotal = () => {
@@ -139,15 +138,8 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                 </div>
                 <div className="flex justify-between text-sm text-white">
                   <span>Frete:</span>
-                  <span className={getShipping() === 0 ? 'text-green-400' : 'text-white'}>
-                    {getShipping() === 0 ? 'Grátis' : `R$ ${getShipping().toFixed(2)}`}
-                  </span>
+                  <span>R$ {getShipping().toFixed(2)}</span>
                 </div>
-                {getSubtotal() < 500 && (
-                  <p className="text-xs text-gray-400">
-                    Adicione mais R$ {(500 - getSubtotal()).toFixed(2)} para frete grátis
-                  </p>
-                )}
                 <div className="flex justify-between font-bold text-lg border-t border-gray-800 pt-2 text-white">
                   <span>Total:</span>
                   <span>R$ {getTotal().toFixed(2)}</span>

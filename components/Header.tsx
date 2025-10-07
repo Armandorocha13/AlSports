@@ -32,13 +32,9 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="bg-primary-500 text-black p-2 rounded-lg">
-              <span className="font-bold text-xl">AL</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">AL Sports</h1>
-              <p className="text-sm text-gray-400">Atacado Esportivo</p>
+          <Link href="/" className="flex items-center">
+            <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
+              <span className="font-bold text-black text-lg">AL</span>
             </div>
           </Link>
 
@@ -48,7 +44,7 @@ export default function Header() {
               <Link
                 key={category.id}
                 href={`/categoria/${category.slug}`}
-                className="text-gray-300 hover:text-primary-400 font-medium transition-colors duration-200"
+                className="text-gray-300 hover:text-primary-400 font-medium text-sm transition-colors duration-200"
               >
                 {category.name}
               </Link>
@@ -110,7 +106,7 @@ export default function Header() {
                 <Link
                   key={category.id}
                   href={`/categoria/${category.slug}`}
-                  className="block py-2 text-gray-300 hover:text-primary-400 font-medium transition-colors duration-200"
+                  className="block py-2 text-gray-300 hover:text-primary-400 font-medium text-sm transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {category.name}

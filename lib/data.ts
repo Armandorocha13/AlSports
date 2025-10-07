@@ -99,6 +99,16 @@ export const categories: Category[] = [
       { id: 'short-masculino', name: 'Short Masculino', slug: 'short-masculino', image: '/images/shorts/short-masculino.jpg' },
       { id: 'short-feminino', name: 'Short Feminino', slug: 'short-feminino', image: '/images/shorts/short-feminino.jpg' }
     ]
+  },
+  {
+    id: 'tabela-medidas',
+    name: 'TABELA DE MEDIDAS',
+    slug: 'tabela-medidas',
+    subcategories: [
+      { id: 'medidas-camisas', name: 'Medidas de Camisas', slug: 'medidas-camisas', image: '/images/medidas/camisas.jpg' },
+      { id: 'medidas-shorts', name: 'Medidas de Shorts', slug: 'medidas-shorts', image: '/images/medidas/shorts.jpg' },
+      { id: 'medidas-bones', name: 'Medidas de Bonés', slug: 'medidas-bones', image: '/images/medidas/bones.jpg' }
+    ]
   }
 ];
 
@@ -110,7 +120,7 @@ export const sampleProducts: Product[] = [
     price: 299.90,
     wholesalePrice: 89.90,
     image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
-    description: 'Camisa oficial do Flamengo temporada 2024/25, versão jogador com tecnologia de alta performance.',
+    description: 'Camisa tailandesa do Flamengo temporada 2024/25, versão jogador com tecnologia de alta performance.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'futebol',
     subcategory: 'versao-jogador',
@@ -122,7 +132,7 @@ export const sampleProducts: Product[] = [
     price: 199.90,
     wholesalePrice: 59.90,
     image: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=400&fit=crop',
-    description: 'Conjunto completo para treino com tecnologia Dri-FIT que mantém o corpo seco durante o exercício.',
+    description: 'Conjunto tailandês completo para treino com tecnologia Dri-FIT que mantém o corpo seco durante o exercício.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'camisa-short',
@@ -134,7 +144,7 @@ export const sampleProducts: Product[] = [
     price: 249.90,
     wholesalePrice: 79.90,
     image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&h=400&fit=crop',
-    description: 'Camisa oficial do Los Angeles Lakers com o número 23 do LeBron James.',
+    description: 'Camisa tailandesa do Los Angeles Lakers com o número 23 do LeBron James.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nba',
     subcategory: 'nba-silk',
@@ -146,7 +156,7 @@ export const sampleProducts: Product[] = [
     price: 149.90,
     wholesalePrice: 49.90,
     image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=400&fit=crop',
-    description: 'Kit completo infantil do Barcelona temporada 2024/25, ideal para os pequenos torcedores.',
+    description: 'Kit tailandês completo infantil do Barcelona temporada 2024/25, ideal para os pequenos torcedores.',
     sizes: ['4', '6', '8', '10', '12'],
     category: 'conjuntos-infantis',
     subcategory: 'kit-infantil-24-25',
@@ -158,7 +168,7 @@ export const sampleProducts: Product[] = [
     price: 89.90,
     wholesalePrice: 29.90,
     image: 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=400&fit=crop',
-    description: 'Boné oficial New Era do New York Yankees, modelo 59FIFTY.',
+    description: 'Boné tailandês New Era do New York Yankees, modelo 59FIFTY.',
     sizes: ['Único'],
     category: 'acessorios',
     subcategory: 'bones-times',
@@ -170,7 +180,7 @@ export const sampleProducts: Product[] = [
     price: 79.90,
     wholesalePrice: 24.90,
     image: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-    description: 'Short masculino Nike com tecnologia Dri-FIT, ideal para treinos e atividades físicas.',
+    description: 'Short tailandês masculino Nike com tecnologia Dri-FIT, ideal para treinos e atividades físicas.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'bermudas-shorts',
     subcategory: 'short-masculino',

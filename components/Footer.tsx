@@ -8,13 +8,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="bg-primary-500 text-black p-2 rounded-lg">
-                <span className="font-bold text-xl">AL</span>
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
+                <span className="font-bold text-black text-sm">AL</span>
               </div>
               <div>
                 <h3 className="text-xl font-bold">AL Sports</h3>
-                <p className="text-sm text-gray-400">Atacado Esportivo</p>
+                <p className="text-sm text-gray-400">Mundo da Bola</p>
               </div>
             </div>
             <p className="text-gray-400 mb-4">
@@ -109,7 +109,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Phone size={16} className="text-primary-400" />
-                <span className="text-gray-400">(11) 99999-9999</span>
+                <span className="text-gray-400">(21) 99459-5532</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail size={16} className="text-primary-400" />
@@ -118,8 +118,8 @@ export default function Footer() {
               <div className="flex items-start space-x-3">
                 <MapPin size={16} className="text-primary-400 mt-1" />
                 <span className="text-gray-400">
-                  Rua das Esportivas, 123<br />
-                  São Paulo - SP, 01234-567
+                Cidade da Moda, 13900<br />
+                  Nova iguacu - RJ - Brasil - 26015-005
                 </span>
               </div>
             </div>

@@ -126,7 +126,7 @@ al-sports-ecommerce/
 - Ajustar quantidades
 - Cálculo automático de frete
 - Persistência no localStorage
-- Frete grátis para pedidos acima de R$ 500
+- Entrega rápida e segura
 
 ### Design Responsivo
 - Mobile-first approach

@@ -182,7 +182,7 @@ export default function ProductPage({ params }: ProductPageProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Truck className="text-primary-600" size={20} />
-                <span className="text-sm text-gray-600">Frete grátis para pedidos acima de R$ 500</span>
+                <span className="text-sm text-gray-600"></span>
               </div>
               <div className="flex items-center gap-3">
                 <Shield className="text-primary-600" size={20} />
