@@ -10,6 +10,11 @@ export interface Product {
   subcategory: string;
   featured?: boolean;
   onSale?: boolean;
+  priceRanges?: {
+    min: number;
+    max?: number;
+    price: number;
+  }[];
 }
 
 export interface Category {
@@ -124,7 +129,14 @@ export const sampleProducts: Product[] = [
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'futebol',
     subcategory: 'versao-jogador',
-    featured: true
+    featured: true,
+    onSale: true,
+    priceRanges: [
+      { min: 1, max: 4, price: 89.90 },
+      { min: 5, max: 9, price: 85.00 },
+      { min: 10, max: 19, price: 80.00 },
+      { min: 20, price: 75.00 }
+    ]
   },
   {
     id: '2',

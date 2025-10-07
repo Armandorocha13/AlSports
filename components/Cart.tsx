@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react'
+import { X, Plus, Minus, ShoppingCart, Trash2, MessageCircle } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 
 interface CartProps {
@@ -16,7 +16,10 @@ export default function Cart({ isOpen, onClose }: CartProps) {
     removeItem, 
     updateQuantity, 
     getTotalItems, 
-    getSubtotal 
+    getSubtotal,
+    getItemPrice,
+    generateOrderCode,
+    clearCart
   } = useCart()
 
   const getShipping = () => {
@@ -27,12 +30,54 @@ export default function Cart({ isOpen, onClose }: CartProps) {
     return getSubtotal() + getShipping()
   }
 
+  const getTotalPieces = () => {
+    return items.reduce((total, item) => total + item.quantity, 0)
+  }
+
   const handleCheckout = async () => {
     setIsLoading(true)
-    // Simular processo de checkout
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    alert('Redirecionando para o checkout...')
+    
+    // Gerar código único do pedido
+    const orderCode = generateOrderCode()
+    
+    // Criar mensagem para WhatsApp
+    const totalPieces = getTotalPieces()
+    const shippingMethod = totalPieces >= 20 ? 'Transportadora' : 'Super Frete'
+    
+    let message = `🛒 *PEDIDO AL SPORTS - ${orderCode}*\n\n`
+    message += `📋 *RESUMO DO PEDIDO:*\n`
+    
+    items.forEach((item, index) => {
+      const price = getItemPrice(item.product, item.quantity)
+      message += `${index + 1}. ${item.product.name}\n`
+      message += `   Tamanho: ${item.selectedSize}\n`
+      message += `   Quantidade: ${item.quantity}x\n`
+      message += `   Preço unit.: R$ ${price.toFixed(2)}\n`
+      message += `   Subtotal: R$ ${(price * item.quantity).toFixed(2)}\n\n`
+    })
+    
+    message += `💰 *VALORES:*\n`
+    message += `Subtotal: R$ ${getSubtotal().toFixed(2)}\n`
+    message += `Frete: R$ ${getShipping().toFixed(2)}\n`
+    message += `*TOTAL: R$ ${getTotal().toFixed(2)}*\n\n`
+    message += `🚚 *ENVIO:* ${shippingMethod}\n`
+    message += `📦 Total de peças: ${totalPieces}\n\n`
+    message += `✅ Confirme os dados e finalize o pagamento via PIX.`
+    
+    // Simular processamento
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Abrir WhatsApp
+    const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
+    
+    // Limpar carrinho
+    clearCart()
     setIsLoading(false)
+    onClose()
+    
+    // Mostrar alerta com instruções
+    alert(`🚨 Atenção! Anote o número do pedido (${orderCode}) e envie no WhatsApp para a finalização do mesmo. Certifique-se que a seleção dos produtos está correta.`)
   }
 
   if (!isOpen) return null
@@ -95,9 +140,9 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                       <p className="text-xs text-gray-400">
                         Tamanho: {item.selectedSize}
                       </p>
-                      <p className="text-sm font-semibold text-primary-400">
-                        R$ {item.product.wholesalePrice.toFixed(2)}
-                      </p>
+                        <p className="text-sm font-semibold text-primary-400">
+                          R$ {getItemPrice(item.product, item.quantity).toFixed(2)}
+                        </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <button
@@ -140,6 +185,13 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                   <span>Frete:</span>
                   <span>R$ {getShipping().toFixed(2)}</span>
                 </div>
+                <div className="text-xs text-gray-400">
+                  {getTotalPieces() >= 20 ? (
+                    <span className="text-green-400">✓ Envio por transportadora (20+ peças)</span>
+                  ) : (
+                    <span>Envio via Super Frete (abaixo de 20 peças)</span>
+                  )}
+                </div>
                 <div className="flex justify-between font-bold text-lg border-t border-gray-800 pt-2 text-white">
                   <span>Total:</span>
                   <span>R$ {getTotal().toFixed(2)}</span>
@@ -149,9 +201,16 @@ export default function Cart({ isOpen, onClose }: CartProps) {
               <button
                 onClick={handleCheckout}
                 disabled={isLoading}
-                className="w-full bg-primary-500 text-black py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Processando...' : 'Finalizar Compra'}
+                {isLoading ? (
+                  'Processando...'
+                ) : (
+                  <>
+                    <MessageCircle size={20} />
+                    Finalizar via WhatsApp
+                  </>
+                )}
               </button>
             </div>
           )}

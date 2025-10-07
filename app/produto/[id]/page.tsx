@@ -3,8 +3,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState } from 'react'
 import { ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Star } from 'lucide-react'
 import { sampleProducts, categories } from '@/lib/data'
+import { useCart } from '@/hooks/useCart'
 
 interface ProductPageProps {
   params: {
@@ -14,9 +16,40 @@ interface ProductPageProps {
 
 export default function ProductPage({ params }: ProductPageProps) {
   const product = sampleProducts.find(p => p.id === params.id)
+  const { addItem, getItemPrice } = useCart()
+  const [selectedSize, setSelectedSize] = useState<string>('')
+  const [quantity, setQuantity] = useState(1)
   
   if (!product) {
     notFound()
+  }
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert('Por favor, selecione um tamanho')
+      return
+    }
+    
+    for (let i = 0; i < quantity; i++) {
+      addItem(product, selectedSize)
+    }
+    
+    alert(`${quantity} unidade(s) adicionada(s) ao carrinho!`)
+  }
+
+  const getPriceRange = () => {
+    if (!product.priceRanges || product.priceRanges.length === 0) {
+      return `R$ ${product.wholesalePrice.toFixed(2)}`
+    }
+    
+    const minPrice = Math.min(...product.priceRanges.map(range => range.price))
+    const maxPrice = Math.max(...product.priceRanges.map(range => range.price))
+    
+    if (minPrice === maxPrice) {
+      return `R$ ${minPrice.toFixed(2)}`
+    }
+    
+    return `R$ ${minPrice.toFixed(2)} - R$ ${maxPrice.toFixed(2)}`
   }
 
   const category = categories.find(cat => cat.id === product.category)
@@ -109,20 +142,30 @@ export default function ProductPage({ params }: ProductPageProps) {
             <div className="bg-gray-50 p-6 rounded-lg">
               <div className="flex items-center gap-4 mb-2">
                 <span className="text-3xl font-bold text-primary-600">
-                  R$ {product.wholesalePrice.toFixed(2)}
+                  {getPriceRange()}
                 </span>
                 <span className="text-xl text-gray-500 line-through">
                   R$ {product.price.toFixed(2)}
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Preço de atacado - Economia de R$ {(product.price - product.wholesalePrice).toFixed(2)}
+                {product.priceRanges ? 'Preço por faixa de quantidade' : 'Preço de atacado'}
               </p>
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <span className="bg-green-100 px-2 py-1 rounded">
-                  {Math.round(((product.price - product.wholesalePrice) / product.price) * 100)}% OFF
-                </span>
-              </div>
+              {product.priceRanges && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Tabela de Preços:</h4>
+                  <div className="space-y-1">
+                    {product.priceRanges.map((range, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>
+                          {range.min}{range.max ? `-${range.max}` : '+'} peças:
+                        </span>
+                        <span className="font-semibold">R$ {range.price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Sizes */}
@@ -134,12 +177,22 @@ export default function ProductPage({ params }: ProductPageProps) {
                 {product.sizes.map((size) => (
                   <button
                     key={size}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors duration-200"
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-4 py-2 border rounded-lg transition-colors duration-200 ${
+                      selectedSize === size
+                        ? 'border-primary-500 bg-primary-500 text-white'
+                        : 'border-gray-300 hover:border-primary-500 hover:bg-primary-50'
+                    }`}
                   >
                     {size}
                   </button>
                 ))}
               </div>
+              {selectedSize && (
+                <p className="text-sm text-green-600 mt-2">
+                  ✓ Tamanho {selectedSize} selecionado
+                </p>
+              )}
             </div>
 
             {/* Quantity */}
@@ -149,19 +202,39 @@ export default function ProductPage({ params }: ProductPageProps) {
               </h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button className="px-3 py-2 hover:bg-gray-50">-</button>
-                  <span className="px-4 py-2 border-x border-gray-300">1</span>
-                  <button className="px-3 py-2 hover:bg-gray-50">+</button>
+                  <button 
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-3 py-2 hover:bg-gray-50"
+                  >
+                    -
+                  </button>
+                  <span className="px-4 py-2 border-x border-gray-300 min-w-[60px] text-center">
+                    {quantity}
+                  </span>
+                  <button 
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="px-3 py-2 hover:bg-gray-50"
+                  >
+                    +
+                  </button>
                 </div>
                 <span className="text-sm text-gray-600">
                   Mínimo: 1 unidade
                 </span>
               </div>
+              {product.priceRanges && (
+                <p className="text-sm text-primary-600 mt-2">
+                  Preço atual: R$ {getItemPrice(product, quantity).toFixed(2)} por unidade
+                </p>
+              )}
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-4">
-              <button className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 flex items-center justify-center gap-2">
+              <button 
+                onClick={handleAddToCart}
+                className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 flex items-center justify-center gap-2"
+              >
                 <ShoppingCart size={20} />
                 Adicionar ao Carrinho
               </button>
