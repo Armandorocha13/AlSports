@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
-import { ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Star } from 'lucide-react'
+import { ArrowLeft, Heart, Share2, Truck, Shield, RotateCcw, Star } from 'lucide-react'
 import { sampleProducts, categories } from '@/lib/data'
-import { useCart } from '@/hooks/useCart'
+import ProductCard from '@/components/ProductCard'
 
 interface ProductPageProps {
   params: {
@@ -16,25 +16,11 @@ interface ProductPageProps {
 
 export default function ProductPage({ params }: ProductPageProps) {
   const product = sampleProducts.find(p => p.id === params.id)
-  const { addItem, getItemPrice } = useCart()
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
   
   if (!product) {
     notFound()
-  }
-
-  const handleAddToCart = () => {
-    if (!selectedSize) {
-      alert('Por favor, selecione um tamanho')
-      return
-    }
-    
-    for (let i = 0; i < quantity; i++) {
-      addItem(product, selectedSize)
-    }
-    
-    alert(`${quantity} unidade(s) adicionada(s) ao carrinho!`)
   }
 
   const getPriceRange = () => {
@@ -50,6 +36,22 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
     
     return `R$ ${minPrice.toFixed(2)} - R$ ${maxPrice.toFixed(2)}`
+  }
+
+  const getCurrentPrice = () => {
+    if (!product.priceRanges || product.priceRanges.length === 0) {
+      return product.wholesalePrice
+    }
+    
+    const priceRange = product.priceRanges.find(range => {
+      if (range.max) {
+        return quantity >= range.min && quantity <= range.max
+      } else {
+        return quantity >= range.min
+      }
+    })
+    
+    return priceRange ? priceRange.price : product.wholesalePrice
   }
 
   const category = categories.find(cat => cat.id === product.category)
@@ -224,7 +226,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               </div>
               {product.priceRanges && (
                 <p className="text-sm text-primary-600 mt-2">
-                  Preço atual: R$ {getItemPrice(product, quantity).toFixed(2)} por unidade
+                  Preço atual: R$ {getCurrentPrice().toFixed(2)} por unidade
                 </p>
               )}
             </div>
@@ -232,11 +234,9 @@ export default function ProductPage({ params }: ProductPageProps) {
             {/* Action Buttons */}
             <div className="space-y-4">
               <button 
-                onClick={handleAddToCart}
                 className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 flex items-center justify-center gap-2"
               >
-                <ShoppingCart size={20} />
-                Adicionar ao Carrinho
+                Entre em Contato para Comprar
               </button>
               
               <div className="flex gap-4">

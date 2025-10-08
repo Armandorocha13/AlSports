@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, Heart } from 'lucide-react'
 import { Product } from '@/lib/data'
-import ProductModal from './ProductModal'
+import ProductViewModal from './ProductViewModal'
 
 interface ProductCardProps {
   product: Product
@@ -125,8 +125,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
 
-      {/* Modal de Simulação de Compra */}
-      <ProductModal
+      {/* Modal de Visualização do Produto */}
+      <ProductViewModal
         product={product}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

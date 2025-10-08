@@ -2,16 +2,19 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ShoppingCart, Menu, X, Search } from 'lucide-react'
+import { Menu, X, Search, User, LogOut, ShoppingCart } from 'lucide-react'
 import { categories } from '@/lib/data'
-import Cart from './Cart'
+import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/hooks/useCart'
+import Cart from './Cart'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
-  const { getTotalItems } = useCart()
+  const { user, profile, signOut } = useAuth()
+  const { getTotalItems, getTotal, getShippingInfo } = useCart()
 
   return (
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-800">
@@ -51,7 +54,7 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Search and Cart */}
+          {/* Search, Cart and User Menu */}
           <div className="flex items-center space-x-4">
             {/* Search */}
             <button
@@ -62,15 +65,104 @@ export default function Header() {
             </button>
 
             {/* Cart */}
-            <button 
+            <button
               onClick={() => setIsCartOpen(true)}
               className="relative p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
+              title={`Carrinho: ${getTotalItems()} item(s) - R$ ${getTotal().toFixed(2)}`}
             >
               <ShoppingCart size={20} />
-              <span className="absolute -top-1 -right-1 bg-primary-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {getTotalItems()}
-              </span>
+              {getTotalItems() > 0 && (
+                <>
+                  <span className="absolute -top-1 -right-1 bg-primary-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
+                    {getTotalItems()}
+                  </span>
+                  {/* Tooltip */}
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div className="p-3 space-y-1">
+                      <div className="font-semibold text-primary-400">Carrinho</div>
+                      <div className="text-gray-300">
+                        {getTotalItems()} item(s) no carrinho
+                      </div>
+                      <div className="text-gray-300">
+                        Total: R$ {getTotal().toFixed(2)}
+                      </div>
+                      <div className="text-gray-400 text-xs">
+                        {getShippingInfo().method === 'transportadora' ? '🚛 Transportadora' : '📦 Super Frete'}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </button>
+
+            {/* User Menu */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
+                >
+                  <User size={20} />
+                  <span className="hidden md:block text-sm">
+                    {profile?.full_name || user.email}
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    <Link
+                      href="/minha-conta"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      Minha Conta
+                    </Link>
+                    <Link
+                      href="/minha-conta/pedidos"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      Meus Pedidos
+                    </Link>
+                    <Link
+                      href="/minha-conta/enderecos"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      Endereços
+                    </Link>
+                    <hr className="my-1" />
+                    <button
+                      onClick={() => {
+                        signOut()
+                        setIsUserMenuOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <LogOut size={16} className="inline mr-2" />
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link
+                  href="/auth/login"
+                  className="text-gray-400 hover:text-primary-400 transition-colors duration-200 text-sm"
+                >
+                  Entrar
+                </Link>
+                <span className="text-gray-600">|</span>
+                <Link
+                  href="/auth/register"
+                  className="text-gray-400 hover:text-primary-400 transition-colors duration-200 text-sm"
+                >
+                  Cadastrar
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -119,6 +211,25 @@ export default function Header() {
 
       {/* Cart Component */}
       <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Floating Cart Button for Mobile */}
+      {getTotalItems() > 0 && (
+        <div className="fixed bottom-6 right-6 z-40 lg:hidden">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="bg-primary-500 hover:bg-primary-400 text-black p-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105"
+          >
+            <div className="flex flex-col items-center">
+              <ShoppingCart size={24} />
+              <span className="text-xs font-semibold mt-1">
+                {getTotalItems()}
+              </span>
+            </div>
+            {/* Pulse animation */}
+            <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
+          </button>
+        </div>
+      )}
     </header>
   )
 }

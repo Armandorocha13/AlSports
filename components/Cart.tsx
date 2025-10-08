@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Plus, Minus, ShoppingCart, Trash2, MessageCircle } from 'lucide-react'
+import { X, Plus, Minus, ShoppingCart, Trash2, MessageCircle, Package, Truck } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 interface CartProps {
   isOpen: boolean
@@ -11,73 +13,105 @@ interface CartProps {
 
 export default function Cart({ isOpen, onClose }: CartProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { 
-    items, 
-    removeItem, 
-    updateQuantity, 
-    getTotalItems, 
+  const { user } = useAuth()
+  const router = useRouter()
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    getTotalItems,
     getSubtotal,
+    getTotal,
     getItemPrice,
-    generateOrderCode,
-    clearCart
+    getShippingInfo,
+    getShippingCost,
+    canUseTransportadora,
+    getMissingForTransportadora,
+    createOrder,
+    clearCart,
+    getCartSummary
   } = useCart()
 
-  const getShipping = () => {
-    return 25 // Frete fixo para atacado
-  }
-
-  const getTotal = () => {
-    return getSubtotal() + getShipping()
-  }
+  const shippingInfo = getShippingInfo()
+  const cartSummary = getCartSummary()
 
   const getTotalPieces = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
 
-  const handleCheckout = async () => {
-    setIsLoading(true)
+  const handleCheckout = () => {
+    if (!user) {
+      router.push('/auth/login?redirectTo=/checkout')
+      return
+    }
     
-    // Gerar código único do pedido
-    const orderCode = generateOrderCode()
-    
-    // Criar mensagem para WhatsApp
+    router.push('/checkout')
+    onClose()
+  }
+
+  const generateWhatsAppMessage = () => {
+    const order = createOrder()
     const totalPieces = getTotalPieces()
-    const shippingMethod = totalPieces >= 20 ? 'Transportadora' : 'Super Frete'
     
-    let message = `🛒 *PEDIDO AL SPORTS - ${orderCode}*\n\n`
+    let message = `🛒 *NOVO PEDIDO - ${order.code}*\n\n`
     message += `📋 *RESUMO DO PEDIDO:*\n`
+    message += `• Total de itens: ${order.totalItems}\n`
+    message += `• Total de peças: ${totalPieces}\n`
+    message += `• Subtotal: R$ ${order.subtotal.toFixed(2)}\n`
+    message += `• Frete: R$ ${order.shipping.toFixed(2)}\n`
+    message += `• *TOTAL: R$ ${order.total.toFixed(2)}*\n\n`
     
+    message += `🚚 *FRETE:*\n`
+    if (shippingInfo.method === 'transportadora') {
+      message += `• Método: Transportadora (GRÁTIS)\n`
+      message += `• Prazo: ${shippingInfo.estimatedDays}\n`
+    } else {
+      message += `• Método: Super Frete\n`
+      message += `• Valor: R$ ${shippingInfo.cost.toFixed(2)}\n`
+      message += `• Prazo: ${shippingInfo.estimatedDays}\n`
+      message += `• Faltam ${getMissingForTransportadora()} peças para frete grátis\n`
+    }
+    
+    message += `\n📦 *ITENS DO PEDIDO:*\n`
     items.forEach((item, index) => {
       const price = getItemPrice(item.product, item.quantity)
       message += `${index + 1}. ${item.product.name}\n`
-      message += `   Tamanho: ${item.selectedSize}\n`
-      message += `   Quantidade: ${item.quantity}x\n`
-      message += `   Preço unit.: R$ ${price.toFixed(2)}\n`
-      message += `   Subtotal: R$ ${(price * item.quantity).toFixed(2)}\n\n`
+      message += `   • Tamanho: ${item.selectedSize}\n`
+      if (item.selectedColor) {
+        message += `   • Cor: ${item.selectedColor}\n`
+      }
+      message += `   • Quantidade: ${item.quantity}x\n`
+      message += `   • Preço unit.: R$ ${price.toFixed(2)}\n`
+      message += `   • Subtotal: R$ ${(price * item.quantity).toFixed(2)}\n\n`
     })
     
-    message += `💰 *VALORES:*\n`
-    message += `Subtotal: R$ ${getSubtotal().toFixed(2)}\n`
-    message += `Frete: R$ ${getShipping().toFixed(2)}\n`
-    message += `*TOTAL: R$ ${getTotal().toFixed(2)}*\n\n`
-    message += `🚚 *ENVIO:* ${shippingMethod}\n`
-    message += `📦 Total de peças: ${totalPieces}\n\n`
-    message += `✅ Confirme os dados e finalize o pagamento via PIX.`
+    message += `\n👤 *DADOS DO CLIENTE:*\n`
+    message += `• Nome: [NOME DO CLIENTE]\n`
+    message += `• Email: [EMAIL DO CLIENTE]\n`
+    message += `• Telefone: [TELEFONE DO CLIENTE]\n`
+    message += `• Endereço: [ENDEREÇO COMPLETO]\n\n`
     
-    // Simular processamento
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    message += `💳 *FORMA DE PAGAMENTO:*\n`
+    message += `• [PIX/CARTÃO/BOLETO]\n\n`
     
-    // Abrir WhatsApp
-    const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`
+    message += `📝 *OBSERVAÇÕES:*\n`
+    message += `• [OBSERVAÇÕES DO CLIENTE]\n\n`
+    
+    message += `✅ *CONFIRMAÇÃO:*\n`
+    message += `• Cliente confirma o pedido\n`
+    message += `• Dados de entrega corretos\n`
+    message += `• Forma de pagamento escolhida\n\n`
+    
+    message += `_Pedido gerado em ${new Date().toLocaleString('pt-BR')}_`
+    
+    return encodeURIComponent(message)
+  }
+
+  const handleWhatsAppOrder = () => {
+    const message = generateWhatsAppMessage()
+    const whatsappNumber = '5511999999999' // Substitua pelo número real
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`
     window.open(whatsappUrl, '_blank')
-    
-    // Limpar carrinho
-    clearCart()
-    setIsLoading(false)
-    onClose()
-    
-    // Mostrar alerta com instruções
-    alert(`🚨 Atenção! Anote o número do pedido (${orderCode}) e envie no WhatsApp para a finalização do mesmo. Certifique-se que a seleção dos produtos está correta.`)
   }
 
   if (!isOpen) return null
@@ -90,83 +124,110 @@ export default function Cart({ isOpen, onClose }: CartProps) {
         onClick={onClose}
       />
       
-      {/* Cart Panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-gray-900 shadow-xl border-l border-gray-800">
-        <div className="flex flex-col h-full">
+      {/* Cart Sidebar */}
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+        <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
-            <h2 className="text-xl font-bold text-white">
-              Carrinho ({getTotalItems()})
-            </h2>
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center">
+              <ShoppingCart className="h-6 w-6 text-primary-600" />
+              <h2 className="ml-2 text-lg font-semibold text-gray-900">
+                Carrinho ({getTotalItems()})
+              </h2>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-300 transition-colors duration-200"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* Items */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Cart Items */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {items.length === 0 ? (
-              <div className="text-center py-12">
-                <ShoppingCart size={48} className="mx-auto text-gray-500 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <ShoppingCart className="h-16 w-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Seu carrinho está vazio
                 </h3>
-                <p className="text-gray-400 mb-6">
+                <p className="text-gray-500 mb-6">
                   Adicione alguns produtos para começar sua compra
                 </p>
                 <button
                   onClick={onClose}
-                  className="bg-primary-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200"
+                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200"
                 >
                   Continuar Comprando
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
-                {items.map((item) => (
-                  <div key={`${item.product.id}-${item.selectedSize}`} className="flex gap-4 p-4 border border-gray-700 rounded-lg bg-gray-800">
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-medium text-white text-sm line-clamp-2">
+                {items.map((item, index) => (
+                  <div key={`${item.product.id}-${item.selectedSize}-${item.selectedColor || 'default'}`} className="flex items-center space-x-4 border-b border-gray-100 pb-4">
+                    <div className="flex-shrink-0">
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="h-16 w-16 object-cover rounded-lg"
+                      />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
                         {item.product.name}
                       </h4>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm text-gray-500">
                         Tamanho: {item.selectedSize}
                       </p>
-                        <p className="text-sm font-semibold text-primary-400">
-                          R$ {getItemPrice(item.product, item.quantity).toFixed(2)}
+                      {item.selectedColor && (
+                        <p className="text-sm text-gray-500">
+                          Cor: {item.selectedColor}
                         </p>
+                      )}
+                      <p className="text-sm font-medium text-primary-600">
+                        R$ {getItemPrice(item.product, item.quantity).toFixed(2)} cada
+                      </p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => removeItem(item.product.id, item.selectedSize)}
-                        className="text-gray-400 hover:text-red-400 transition-colors duration-200"
+                        onClick={() => updateQuantity(
+                          item.product.id, 
+                          item.selectedSize, 
+                          item.quantity - 1,
+                          item.selectedColor
+                        )}
+                        className="p-1 text-gray-400 hover:text-gray-600"
                       >
-                        <Trash2 size={16} />
+                        <Minus size={16} />
                       </button>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity - 1)}
-                          className="w-6 h-6 flex items-center justify-center border border-gray-600 rounded hover:bg-gray-700 text-white"
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <span className="w-8 text-center text-sm text-white">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity + 1)}
-                          className="w-6 h-6 flex items-center justify-center border border-gray-600 rounded hover:bg-gray-700 text-white"
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
+                      <span className="w-8 text-center text-sm font-medium">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(
+                          item.product.id, 
+                          item.selectedSize, 
+                          item.quantity + 1,
+                          item.selectedColor
+                        )}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <Plus size={16} />
+                      </button>
                     </div>
+                    
+                    <button
+                      onClick={() => removeItem(
+                        item.product.id, 
+                        item.selectedSize,
+                        item.selectedColor
+                      )}
+                      className="p-1 text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -175,43 +236,69 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
           {/* Footer */}
           {items.length > 0 && (
-            <div className="border-t border-gray-800 p-6 space-y-4">
+            <div className="border-t border-gray-200 px-6 py-4 space-y-4">
+              {/* Shipping Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    {shippingInfo.method === 'transportadora' ? (
+                      <Truck className="h-5 w-5 text-green-600 mr-2" />
+                    ) : (
+                      <Package className="h-5 w-5 text-blue-600 mr-2" />
+                    )}
+                    <span className="text-sm font-medium text-gray-900">
+                      {shippingInfo.method === 'transportadora' ? 'Transportadora' : 'Super Frete'}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {shippingInfo.method === 'transportadora' ? 'GRÁTIS' : `R$ ${shippingInfo.cost.toFixed(2)}`}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {shippingInfo.estimatedDays}
+                </p>
+                {!canUseTransportadora() && (
+                  <p className="text-xs text-primary-600 mt-1">
+                    Faltam {getMissingForTransportadora()} peças para frete grátis
+                  </p>
+                )}
+              </div>
+
+              {/* Order Summary */}
               <div className="space-y-2">
-                <div className="flex justify-between text-sm text-white">
-                  <span>Subtotal:</span>
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal ({getTotalItems()} itens)</span>
                   <span>R$ {getSubtotal().toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm text-white">
-                  <span>Frete:</span>
-                  <span>R$ {getShipping().toFixed(2)}</span>
+                <div className="flex justify-between text-sm">
+                  <span>Frete</span>
+                  <span>
+                    {shippingInfo.method === 'transportadora' ? 'GRÁTIS' : `R$ ${getShippingCost().toFixed(2)}`}
+                  </span>
                 </div>
-                <div className="text-xs text-gray-400">
-                  {getTotalPieces() >= 20 ? (
-                    <span className="text-green-400">✓ Envio por transportadora (20+ peças)</span>
-                  ) : (
-                    <span>Envio via Super Frete (abaixo de 20 peças)</span>
-                  )}
-                </div>
-                <div className="flex justify-between font-bold text-lg border-t border-gray-800 pt-2 text-white">
-                  <span>Total:</span>
+                <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
+                  <span>Total</span>
                   <span>R$ {getTotal().toFixed(2)}</span>
                 </div>
               </div>
-              
-              <button
-                onClick={handleCheckout}
-                disabled={isLoading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  'Processando...'
-                ) : (
-                  <>
-                    <MessageCircle size={20} />
-                    Finalizar via WhatsApp
-                  </>
-                )}
-              </button>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200"
+                >
+                  Finalizar Compra
+                </button>
+                
+                <button
+                  onClick={handleWhatsAppOrder}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center"
+                >
+                  <MessageCircle size={20} className="mr-2" />
+                  Pedir pelo WhatsApp
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -10,6 +10,10 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.74.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

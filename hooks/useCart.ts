@@ -7,6 +7,27 @@ export interface CartItem {
   product: Product
   quantity: number
   selectedSize: string
+  selectedColor?: string
+  addedAt: Date
+}
+
+export interface ShippingInfo {
+  method: 'super-frete' | 'transportadora'
+  cost: number
+  minQuantity: number
+  estimatedDays: string
+}
+
+export interface OrderInfo {
+  id: string
+  code: string
+  createdAt: Date
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered'
+  totalItems: number
+  subtotal: number
+  shipping: number
+  total: number
+  shippingMethod: string
 }
 
 export function useCart() {
@@ -18,7 +39,13 @@ export function useCart() {
       const savedItems = localStorage.getItem('cart-items')
       if (savedItems) {
         try {
-          setItems(JSON.parse(savedItems))
+          const parsedItems = JSON.parse(savedItems)
+          // Converter strings de data de volta para objetos Date
+          const itemsWithDates = parsedItems.map((item: any) => ({
+            ...item,
+            addedAt: new Date(item.addedAt)
+          }))
+          setItems(itemsWithDates)
         } catch (error) {
           console.error('Erro ao carregar carrinho:', error)
         }
@@ -37,57 +64,77 @@ export function useCart() {
     }
   }, [items])
 
-  const addItem = (product: Product, size: string) => {
-    console.log('useCart addItem chamado:', product.name, size)
+  const addItem = (product: Product, size: string, quantity: number = 1, color?: string) => {
     setItems(prev => {
-      console.log('Items anteriores:', prev.length)
-      const existingItem = prev.find(item => 
-        item.product.id === product.id && item.selectedSize === size
+      const existingItem = prev.find(item =>
+        item.product.id === product.id && 
+        item.selectedSize === size && 
+        item.selectedColor === color
       )
-      
+
       if (existingItem) {
-        console.log('Item existente encontrado, incrementando quantidade')
         return prev.map(item =>
-          item.product.id === product.id && item.selectedSize === size
-            ? { ...item, quantity: item.quantity + 1 }
+          item.product.id === product.id && 
+          item.selectedSize === size && 
+          item.selectedColor === color
+            ? { ...item, quantity: item.quantity + quantity, addedAt: new Date() }
             : item
         )
       } else {
-        console.log('Novo item sendo adicionado')
-        return [...prev, { product, quantity: 1, selectedSize: size }]
+        return [...prev, {
+          product,
+          quantity,
+          selectedSize: size,
+          selectedColor: color,
+          addedAt: new Date()
+        }]
       }
     })
   }
 
-  const removeItem = (productId: string, size: string) => {
-    setItems(prev => prev.filter(item => 
-      !(item.product.id === productId && item.selectedSize === size)
+  const removeItem = (productId: string, size: string, color?: string) => {
+    setItems(prev => prev.filter(item =>
+      !(item.product.id === productId && 
+        item.selectedSize === size && 
+        item.selectedColor === color)
     ))
   }
 
-  const updateQuantity = (productId: string, size: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItem(productId, size)
+  const updateQuantity = (productId: string, size: string, quantity: number, color?: string) => {
+    if (quantity <= 0) {
+      removeItem(productId, size, color)
       return
     }
-    
+
     setItems(prev => prev.map(item =>
-      item.product.id === productId && item.selectedSize === size
-        ? { ...item, quantity: newQuantity }
+      item.product.id === productId && 
+      item.selectedSize === size && 
+      item.selectedColor === color
+        ? { ...item, quantity, addedAt: new Date() }
         : item
     ))
+  }
+
+  const clearCart = () => {
+    setItems([])
   }
 
   const getTotalItems = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
 
-  const getItemPrice = (product: Product, quantity: number): number => {
+  const getSubtotal = () => {
+    return items.reduce((total, item) => {
+      const price = getItemPrice(item.product, item.quantity)
+      return total + (price * item.quantity)
+    }, 0)
+  }
+
+  const getItemPrice = (product: Product, quantity: number) => {
     if (!product.priceRanges || product.priceRanges.length === 0) {
       return product.wholesalePrice
     }
-
-    // Encontrar a faixa de preço apropriada
+    
     const priceRange = product.priceRanges.find(range => {
       if (range.max) {
         return quantity >= range.min && quantity <= range.max
@@ -95,24 +142,85 @@ export function useCart() {
         return quantity >= range.min
       }
     })
-
+    
     return priceRange ? priceRange.price : product.wholesalePrice
   }
 
-  const getSubtotal = () => {
-    return items.reduce((total, item) => 
-      total + (getItemPrice(item.product, item.quantity) * item.quantity), 0
-    )
+  const getShippingInfo = (): ShippingInfo => {
+    const totalPieces = getTotalPieces()
+    
+    if (totalPieces >= 50) {
+      return {
+        method: 'transportadora',
+        cost: 0,
+        minQuantity: 50,
+        estimatedDays: '5-7 dias úteis'
+      }
+    } else {
+      return {
+        method: 'super-frete',
+        cost: 15.00,
+        minQuantity: 1,
+        estimatedDays: '3-5 dias úteis'
+      }
+    }
   }
 
-  const generateOrderCode = (): string => {
-    const timestamp = Date.now().toString()
+  const getShippingCost = () => {
+    return getShippingInfo().cost
+  }
+
+  const getTotal = () => {
+    return getSubtotal() + getShippingCost()
+  }
+
+  const getTotalPieces = () => {
+    return items.reduce((total, item) => total + item.quantity, 0)
+  }
+
+  const canUseTransportadora = () => {
+    return getTotalPieces() >= 50
+  }
+
+  const getMissingForTransportadora = () => {
+    const totalPieces = getTotalPieces()
+    return Math.max(0, 50 - totalPieces)
+  }
+
+  const generateOrderCode = () => {
+    const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8).toUpperCase()
-    return `AL${timestamp.slice(-6)}${random}`
+    return `ALS-${timestamp}-${random}`
   }
 
-  const clearCart = () => {
-    setItems([])
+  const createOrder = (): OrderInfo => {
+    const shippingInfo = getShippingInfo()
+    
+    return {
+      id: generateOrderCode(),
+      code: generateOrderCode(),
+      createdAt: new Date(),
+      status: 'pending',
+      totalItems: getTotalItems(),
+      subtotal: getSubtotal(),
+      shipping: getShippingCost(),
+      total: getTotal(),
+      shippingMethod: shippingInfo.method
+    }
+  }
+
+  const getCartSummary = () => {
+    return {
+      items: items,
+      totalItems: getTotalItems(),
+      totalPieces: getTotalPieces(),
+      subtotal: getSubtotal(),
+      shipping: getShippingCost(),
+      total: getTotal(),
+      shippingInfo: getShippingInfo(),
+      canUseTransportadora: canUseTransportadora(),
+      missingForTransportadora: getMissingForTransportadora()
+    }
   }
 
   return {
@@ -120,10 +228,17 @@ export function useCart() {
     addItem,
     removeItem,
     updateQuantity,
+    clearCart,
     getTotalItems,
     getSubtotal,
+    getTotal,
     getItemPrice,
-    generateOrderCode,
-    clearCart
+    getShippingInfo,
+    getShippingCost,
+    getTotalPieces,
+    canUseTransportadora,
+    getMissingForTransportadora,
+    createOrder,
+    getCartSummary
   }
 }

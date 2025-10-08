@@ -2,47 +2,54 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { X, ShoppingCart, Minus, Plus, Heart } from 'lucide-react'
+import { X, Heart, Share2, ShoppingCart } from 'lucide-react'
 import { Product } from '@/lib/data'
 import { useCart } from '@/hooks/useCart'
 
-interface ProductModalProps {
+interface ProductViewModalProps {
   product: Product | null
   isOpen: boolean
   onClose: () => void
 }
 
-export default function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
-  const { addItem, getItemPrice } = useCart()
+export default function ProductViewModal({ product, isOpen, onClose }: ProductViewModalProps) {
+  const { addItem } = useCart()
   const [selectedSize, setSelectedSize] = useState<string>('')
+  const [selectedColor, setSelectedColor] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
 
   if (!isOpen || !product) return null
 
-  const handleAddToCart = async () => {
-    if (!selectedSize) {
-      alert('Por favor, selecione um tamanho')
-      return
+  const getPriceRange = () => {
+    if (!product.priceRanges || product.priceRanges.length === 0) {
+      return `R$ ${product.wholesalePrice.toFixed(2)}`
     }
     
-    setIsAdding(true)
+    const minPrice = Math.min(...product.priceRanges.map(range => range.price))
+    const maxPrice = Math.max(...product.priceRanges.map(range => range.price))
     
-    // Simular delay de adição
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // Adicionar múltiplas unidades
-    for (let i = 0; i < quantity; i++) {
-      addItem(product, selectedSize)
+    if (minPrice === maxPrice) {
+      return `R$ ${minPrice.toFixed(2)}`
     }
     
-    setIsAdding(false)
-    alert(`${quantity} unidade(s) de ${product.name} (${selectedSize}) adicionada(s) ao carrinho!`)
-    onClose()
+    return `R$ ${minPrice.toFixed(2)} - R$ ${maxPrice.toFixed(2)}`
   }
 
   const getCurrentPrice = () => {
-    return getItemPrice(product, quantity)
+    if (!product.priceRanges || product.priceRanges.length === 0) {
+      return product.wholesalePrice
+    }
+    
+    const priceRange = product.priceRanges.find(range => {
+      if (range.max) {
+        return quantity >= range.min && quantity <= range.max
+      } else {
+        return quantity >= range.min
+      }
+    })
+    
+    return priceRange ? priceRange.price : product.wholesalePrice
   }
 
   const getTotalPrice = () => {
@@ -58,6 +65,25 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
     const currentPrice = getCurrentPrice()
     const discount = ((originalPrice - currentPrice) / originalPrice) * 100
     return Math.round(discount)
+  }
+
+  const handleAddToCart = async () => {
+    if (!selectedSize) {
+      alert('Por favor, selecione um tamanho')
+      return
+    }
+
+    setIsAdding(true)
+
+    // Simular delay de adição
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Adicionar ao carrinho
+    addItem(product, selectedSize, quantity, selectedColor || undefined)
+
+    setIsAdding(false)
+    alert(`${quantity} unidade(s) de ${product.name} (${selectedSize}) adicionada(s) ao carrinho!`)
+    onClose()
   }
 
   const getPriceRangeInfo = () => {
@@ -89,7 +115,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">Simulação de Compra</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Detalhes do Produto</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
@@ -165,7 +191,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-3xl font-bold text-primary-600">
-                      R$ {getCurrentPrice().toFixed(2)}
+                      {getPriceRange()}
                     </span>
                     <span className="text-lg text-gray-500 line-through">
                       R$ {product.price.toFixed(2)}
@@ -187,7 +213,7 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
 
                 {/* Seleção de Tamanho */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tamanho:</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tamanhos Disponíveis:</h3>
                   <div className="flex flex-wrap gap-3">
                     {product.sizes.map((size) => (
                       <button
@@ -208,34 +234,6 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
                       ✓ Tamanho {selectedSize} selecionado
                     </p>
                   )}
-                </div>
-
-                {/* Controle de Quantidade */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Quantidade:</h3>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center border-2 border-gray-300 rounded-lg">
-                      <button 
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="p-3 hover:bg-gray-50 transition-colors duration-200"
-                        disabled={quantity <= 1}
-                      >
-                        <Minus size={20} className={quantity <= 1 ? 'text-gray-400' : 'text-gray-600'} />
-                      </button>
-                      <span className="px-6 py-3 border-x-2 border-gray-300 min-w-[80px] text-center font-semibold text-lg">
-                        {quantity}
-                      </span>
-                      <button 
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="p-3 hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <Plus size={20} className="text-gray-600" />
-                      </button>
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      Mínimo: 1 unidade
-                    </span>
-                  </div>
                 </div>
 
                 {/* Simulação de Preço */}
@@ -263,28 +261,39 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
                   </div>
                 )}
 
+                {/* Informações Adicionais */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Informações do Produto:</h4>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Categoria:</span>
+                      <span className="font-semibold capitalize">{product.category}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Subcategoria:</span>
+                      <span className="font-semibold capitalize">{product.subcategory}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tamanhos:</span>
+                      <span className="font-semibold">{product.sizes.join(', ')}</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Botões de Ação */}
                 <div className="space-y-3">
                   <button 
                     onClick={handleAddToCart}
                     disabled={!selectedSize || isAdding}
-                    className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isAdding ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Adicionando...
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart size={20} />
-                        Adicionar ao Carrinho
-                      </>
-                    )}
+                    <ShoppingCart size={20} />
+                    {isAdding ? 'Adicionando...' : 'Adicionar ao Carrinho'}
                   </button>
                   
-                  <button className="w-full border-2 border-primary-600 text-primary-600 py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-600 hover:text-white transition-colors duration-200">
-                    Ver Detalhes Completos
+                  <button className="w-full border-2 border-primary-600 text-primary-600 py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2">
+                    <Share2 size={20} />
+                    Compartilhar Produto
                   </button>
                 </div>
               </div>
@@ -295,4 +304,3 @@ export default function ProductModal({ product, isOpen, onClose }: ProductModalP
     </div>
   )
 }
-
