@@ -6,6 +6,7 @@ import { ArrowRight, Star, Truck, Shield, RotateCcw } from 'lucide-react'
 import { sampleProducts, categories } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
 import CategoryCard from '@/components/CategoryCard'
+import AdminBanner from '@/components/AdminBanner'
 
 export default function HomePage() {
   const featuredProducts = sampleProducts.filter(product => product.featured)
@@ -43,6 +44,10 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Admin Banner */}
+      <div className="container mx-auto px-4">
+        <AdminBanner />
+      </div>
 
         {/* Features Section */}
         <section className="py-16 bg-gray-900">

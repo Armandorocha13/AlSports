@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Search, User, LogOut, ShoppingCart } from 'lucide-react'
+import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield } from 'lucide-react'
 import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -130,6 +130,24 @@ export default function Header() {
                     >
                       Endereços
                     </Link>
+                    
+                    {/* Admin Panel Button */}
+                    {profile?.user_type === 'admin' && (
+                      <>
+                        <hr className="my-1" />
+                        <Link
+                          href="/admin"
+                          className="block px-4 py-2 text-sm text-white bg-primary-500 hover:bg-primary-600 font-medium"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <div className="flex items-center">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Painel Admin
+                          </div>
+                        </Link>
+                      </>
+                    )}
+                    
                     <hr className="my-1" />
                     <button
                       onClick={() => {

@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Calendar,
   DollarSign,
-  Truck
+  Truck,
+  Shield
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase-client'
@@ -284,6 +285,17 @@ export default function MyAccountPage() {
                     <Settings className="h-5 w-5 mr-3" />
                     <span>Configurações</span>
                   </Link>
+                  
+                  {/* Admin Panel Button */}
+                  {profile?.user_type === 'admin' && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center p-3 text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors duration-200 font-medium"
+                    >
+                      <Shield className="h-5 w-5 mr-3" />
+                      <span>Painel Admin</span>
+                    </Link>
+                  )}
                 </nav>
               </div>
             </div>
