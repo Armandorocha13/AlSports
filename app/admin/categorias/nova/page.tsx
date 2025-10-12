@@ -1,57 +1,63 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
-import { 
-  Save, 
-  ArrowLeft,
-  Upload,
-  X
-} from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Save, Upload, X } from 'lucide-react'
 
-interface CategoryForm {
-  name: string
-  slug: string
-  description: string
-  image_url: string
-  is_active: boolean
-}
-
-export default function NewCategory() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<CategoryForm>({
+export default function NovaCategoria() {
+  const [formData, setFormData] = useState({
     name: '',
-    slug: '',
     description: '',
-    image_url: '',
     is_active: true
   })
+  const [loading, setLoading] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>('')
   const supabase = createClient()
+  const router = useRouter()
 
-  const handleInputChange = (field: keyof CategoryForm, value: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }))
+  }
 
-    // Auto-generate slug from name
-    if (field === 'name') {
-      const slug = value
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim()
-      
-      setFormData(prev => ({
-        ...prev,
-        slug
-      }))
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `categories/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage
+        .from('category-images')
+        .getPublicUrl(filePath)
+
+      return data.publicUrl
+    } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error)
+      return null
     }
   }
 
@@ -60,21 +66,30 @@ export default function NewCategory() {
     setLoading(true)
 
     try {
+      let imageUrl = ''
+      
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile)
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl
+        }
+      }
+
       const { error } = await supabase
         .from('categories')
-        .insert([{
+        .insert({
           name: formData.name,
-          slug: formData.slug,
           description: formData.description,
-          image_url: formData.image_url,
-          is_active: formData.is_active
-        }])
+          is_active: formData.is_active,
+          image_url: imageUrl
+        })
 
       if (error) throw error
 
+      alert('Categoria criada com sucesso!')
       router.push('/admin/categorias')
     } catch (error) {
-      console.error('Error creating category:', error)
+      console.error('Erro ao criar categoria:', error)
       alert('Erro ao criar categoria')
     } finally {
       setLoading(false)
@@ -82,157 +97,138 @@ export default function NewCategory() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center mb-6">
           <Link
             href="/admin/categorias"
-            className="text-gray-400 hover:text-white transition-colors duration-200"
+            className="mr-4 p-2 text-gray-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-white">Nova Categoria</h1>
-            <p className="text-gray-400 mt-2">Adicione uma nova categoria ao catálogo</p>
+            <h1 className="text-2xl font-bold">Nova Categoria</h1>
+            <p className="text-gray-400">Crie uma nova categoria para organizar produtos</p>
           </div>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="bg-primary-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center disabled:opacity-50"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {loading ? 'Salvando...' : 'Salvar Categoria'}
-        </button>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Info */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Informações Básicas</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Nome da Categoria *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Ex: Futebol"
-                  />
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Informações Básicas */}
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-lg font-semibold mb-4">Informações da Categoria</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nome da Categoria *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                  placeholder="Ex: Camisetas de Futebol"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Slug *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.slug}
-                    onChange={(e) => handleInputChange('slug', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="ex: futebol"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    URL amigável para a categoria (gerada automaticamente)
-                  </p>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Descrição
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                  placeholder="Descreva a categoria..."
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Descrição *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Descreva a categoria..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    URL da Imagem
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => handleInputChange('image_url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="https://exemplo.com/imagem.jpg"
-                  />
-                </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={formData.is_active}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-primary-500 bg-gray-700 border-gray-600 rounded focus:ring-primary-500"
+                />
+                <label className="ml-2 text-sm text-gray-300">
+                  Categoria ativa
+                </label>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Status */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Status</h3>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Categoria Ativa</span>
-                <button
-                  type="button"
-                  onClick={() => handleInputChange('is_active', !formData.is_active)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                    formData.is_active ? 'bg-primary-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                      formData.is_active ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+          {/* Upload de Imagem */}
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-lg font-semibold mb-4">Imagem da Categoria</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Selecione uma imagem
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-500 file:text-black hover:file:bg-primary-600"
+                />
               </div>
-            </div>
 
-            {/* Preview */}
-            {formData.image_url && (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Preview</h3>
-                <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
+              {imagePreview && (
+                <div className="relative inline-block">
                   <img
-                    src={formData.image_url}
+                    src={imagePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    className="h-32 w-32 object-cover rounded-lg"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreview('')
+                      setImageFile(null)
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-              </div>
-            )}
-
-            {/* Category Info */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Informações</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">URL:</span>
-                  <span className="text-white">/categoria/{formData.slug}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Status:</span>
-                  <span className={`${formData.is_active ? 'text-green-400' : 'text-red-400'}`}>
-                    {formData.is_active ? 'Ativa' : 'Inativa'}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
-        </div>
-      </form>
+
+          {/* Botões */}
+          <div className="flex justify-end space-x-4">
+            <Link
+              href="/admin/categorias"
+              className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-primary-500 text-black rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Categoria
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

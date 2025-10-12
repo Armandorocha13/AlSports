@@ -1,56 +1,68 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
-import { 
-  Save, 
-  ArrowLeft,
-  Upload,
-  Calendar,
-  ExternalLink
-} from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Save, Upload, X, ExternalLink } from 'lucide-react'
 
-interface BannerForm {
-  title: string
-  description: string
-  image_url: string
-  link_url: string
-  position: string
-  is_active: boolean
-  start_date: string
-  end_date: string
-}
-
-const bannerPositions = [
-  { value: 'hero', label: 'Hero (Principal)' },
-  { value: 'top', label: 'Topo' },
-  { value: 'middle', label: 'Meio' },
-  { value: 'bottom', label: 'Rodapé' },
-  { value: 'sidebar', label: 'Sidebar' }
-]
-
-export default function NewBanner() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<BannerForm>({
+export default function NovoBanner() {
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
-    image_url: '',
     link_url: '',
     position: 'hero',
     is_active: true,
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
+    start_date: '',
+    end_date: ''
   })
+  const [loading, setLoading] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>('')
   const supabase = createClient()
+  const router = useRouter()
 
-  const handleInputChange = (field: keyof BannerForm, value: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }))
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `banners/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('banner-images')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage
+        .from('banner-images')
+        .getPublicUrl(filePath)
+
+      return data.publicUrl
+    } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error)
+      return null
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,286 +70,242 @@ export default function NewBanner() {
     setLoading(true)
 
     try {
+      let imageUrl = ''
+      
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile)
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl
+        }
+      }
+
       const { error } = await supabase
         .from('banners')
-        .insert([{
+        .insert({
           title: formData.title,
           description: formData.description,
-          image_url: formData.image_url,
           link_url: formData.link_url,
           position: formData.position,
           is_active: formData.is_active,
-          start_date: formData.start_date,
-          end_date: formData.end_date
-        }])
+          start_date: formData.start_date || null,
+          end_date: formData.end_date || null,
+          image_url: imageUrl
+        })
 
       if (error) throw error
 
+      alert('Banner criado com sucesso!')
       router.push('/admin/banners')
     } catch (error) {
-      console.error('Error creating banner:', error)
+      console.error('Erro ao criar banner:', error)
       alert('Erro ao criar banner')
     } finally {
       setLoading(false)
     }
   }
 
-  const isBannerActive = () => {
-    const now = new Date()
-    const startDate = new Date(formData.start_date)
-    const endDate = new Date(formData.end_date)
-    
-    return formData.is_active && now >= startDate && now <= endDate
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center mb-6">
           <Link
             href="/admin/banners"
-            className="text-gray-400 hover:text-white transition-colors duration-200"
+            className="mr-4 p-2 text-gray-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-white">Novo Banner</h1>
-            <p className="text-gray-400 mt-2">Adicione um novo banner ao site</p>
+            <h1 className="text-2xl font-bold">Novo Banner</h1>
+            <p className="text-gray-400">Crie um novo banner promocional</p>
           </div>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="bg-primary-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center disabled:opacity-50"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {loading ? 'Salvando...' : 'Salvar Banner'}
-        </button>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Info */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Informações Básicas</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Informações Básicas */}
+            <div className="bg-gray-800 p-6 rounded-lg">
+              <h2 className="text-lg font-semibold mb-4">Informações do Banner</h2>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Título do Banner *
                   </label>
                   <input
                     type="text"
-                    required
+                    name="title"
                     value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
                     placeholder="Ex: Promoção de Verão"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Descrição
                   </label>
                   <textarea
-                    rows={3}
+                    name="description"
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Descrição do banner..."
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                    placeholder="Descreva o banner..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    URL da Imagem *
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    value={formData.image_url}
-                    onChange={(e) => handleInputChange('image_url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="https://exemplo.com/banner.jpg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Link de Destino
                   </label>
-                  <input
-                    type="url"
-                    value={formData.link_url}
-                    onChange={(e) => handleInputChange('link_url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="https://exemplo.com/promocao"
-                  />
+                  <div className="relative">
+                    <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="url"
+                      name="link_url"
+                      value={formData.link_url}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                      placeholder="https://exemplo.com"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Posição no Site *
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Posição do Banner *
                   </label>
                   <select
-                    required
+                    name="position"
                     value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                   >
-                    {bannerPositions.map(position => (
-                      <option key={position.value} value={position.value}>
-                        {position.label}
-                      </option>
-                    ))}
+                    <option value="hero">Hero Section (Principal)</option>
+                    <option value="sidebar">Sidebar</option>
+                    <option value="footer">Footer</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Schedule */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Agendamento</h2>
+            {/* Configurações */}
+            <div className="bg-gray-800 p-6 rounded-lg">
+              <h2 className="text-lg font-semibold mb-4">Configurações</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Data de Início *
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Data de Início
                   </label>
                   <input
-                    type="date"
-                    required
+                    type="datetime-local"
+                    name="start_date"
                     value={formData.start_date}
-                    onChange={(e) => handleInputChange('start_date', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Data de Fim *
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Data de Fim
                   </label>
                   <input
-                    type="date"
-                    required
+                    type="datetime-local"
+                    name="end_date"
                     value={formData.end_date}
-                    onChange={(e) => handleInputChange('end_date', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                   />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    checked={formData.is_active}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-primary-500 bg-gray-700 border-gray-600 rounded focus:ring-primary-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-300">
+                    Banner ativo
+                  </label>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Status */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Status</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Banner Ativo</span>
+          {/* Upload de Imagem */}
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-lg font-semibold mb-4">Imagem do Banner</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Selecione uma imagem
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-500 file:text-black hover:file:bg-primary-600"
+                />
+              </div>
+
+              {imagePreview && (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-48 w-full object-cover rounded-lg"
+                  />
                   <button
                     type="button"
-                    onClick={() => handleInputChange('is_active', !formData.is_active)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                      formData.is_active ? 'bg-primary-500' : 'bg-gray-600'
-                    }`}
+                    onClick={() => {
+                      setImagePreview('')
+                      setImageFile(null)
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                   >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                        formData.is_active ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-                
-                <div className="p-3 rounded-lg bg-gray-700/50">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Calendar className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm font-medium text-white">Status Atual</span>
-                  </div>
-                  <div className="text-sm">
-                    {isBannerActive() ? (
-                      <span className="text-green-400">Banner ativo e visível</span>
-                    ) : (
-                      <span className="text-gray-400">Banner inativo ou fora do período</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Preview */}
-            {formData.image_url && (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Preview</h3>
-                <div className="aspect-video bg-gray-700 rounded-lg overflow-hidden">
-                  <img
-                    src={formData.image_url}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {formData.link_url && (
-                  <div className="mt-3 flex items-center space-x-2 text-sm">
-                    <ExternalLink className="w-4 h-4 text-primary-400" />
-                    <span className="text-gray-400">Link:</span>
-                    <a 
-                      href={formData.link_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary-400 hover:text-primary-300 truncate"
-                    >
-                      {formData.link_url}
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Banner Info */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Informações</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Posição:</span>
-                  <span className="text-white">
-                    {bannerPositions.find(p => p.value === formData.position)?.label}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Período:</span>
-                  <span className="text-white">
-                    {new Date(formData.start_date).toLocaleDateString('pt-BR')} - {new Date(formData.end_date).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Duração:</span>
-                  <span className="text-white">
-                    {Math.ceil((new Date(formData.end_date).getTime() - new Date(formData.start_date).getTime()) / (1000 * 60 * 60 * 24))} dias
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tips */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-              <h4 className="text-blue-400 font-medium mb-2">Dicas</h4>
-              <ul className="text-gray-300 text-sm space-y-1">
-                <li>• Use imagens de alta qualidade</li>
-                <li>• Mantenha o texto legível</li>
-                <li>• Teste em diferentes dispositivos</li>
-                <li>• Defina períodos apropriados</li>
-              </ul>
+              )}
             </div>
           </div>
-        </div>
-      </form>
+
+          {/* Botões */}
+          <div className="flex justify-end space-x-4">
+            <Link
+              href="/admin/banners"
+              className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-primary-500 text-black rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Banner
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
