@@ -45,19 +45,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Verificar se o usuário é admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.user_type !== 'admin') {
-      // Redirecionar para página inicial se não for admin
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
+    // Verificação de admin será feita no layout do admin
+    // para evitar consultas desnecessárias no middleware
   }
 
   // Proteger área do cliente
