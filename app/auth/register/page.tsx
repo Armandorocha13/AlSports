@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { validateCPF, formatCPF, formatPhone, validateEmail, validatePassword, validatePhone } from '@/lib/validations'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -23,10 +24,21 @@ export default function RegisterPage() {
   const { signUp } = useAuth()
   const router = useRouter()
 
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let formattedValue = value
+
+    if (name === 'cpf') {
+      formattedValue = formatCPF(value)
+    } else if (name === 'phone') {
+      formattedValue = formatPhone(value)
+    }
+
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: formattedValue
     }))
   }
 
@@ -36,29 +48,77 @@ export default function RegisterPage() {
     setError('')
 
     // Validações
+    if (!formData.fullName.trim()) {
+      setError('Nome completo é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.trim()) {
+      setError('Email é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError('Email inválido')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.phone.trim()) {
+      setError('Telefone é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!validatePhone(formData.phone)) {
+      setError('Telefone inválido')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.cpf.trim()) {
+      setError('CPF é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!validateCPF(formData.cpf)) {
+      setError('CPF inválido')
+      setLoading(false)
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('As senhas não coincidem')
       setLoading(false)
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
+    const passwordValidation = validatePassword(formData.password)
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message || 'Senha inválida')
       setLoading(false)
       return
     }
 
-    const { error } = await signUp(formData.email, formData.password, {
-      full_name: formData.fullName,
-      phone: formData.phone,
-      cpf: formData.cpf
-    })
+    try {
+      const { error } = await signUp(formData.email, formData.password, {
+        full_name: formData.fullName,
+        phone: formData.phone,
+        cpf: formData.cpf.replace(/[^\d]/g, '') // Remove formatação do CPF
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message || 'Erro ao criar conta')
+        setLoading(false)
+      } else {
+        router.push('/auth/login?message=Conta criada com sucesso! Verifique seu email para confirmar.')
+      }
+    } catch (error) {
+      setError('Erro interno do servidor')
       setLoading(false)
-    } else {
-      router.push('/auth/login?message=Conta criada com sucesso! Verifique seu email para confirmar.')
     }
   }
 
@@ -152,6 +212,7 @@ export default function RegisterPage() {
                   name="phone"
                   type="tel"
                   autoComplete="tel"
+                  maxLength={15}
                   value={formData.phone}
                   onChange={handleChange}
                   className="appearance-none block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
@@ -169,6 +230,7 @@ export default function RegisterPage() {
                   id="cpf"
                   name="cpf"
                   type="text"
+                  maxLength={14}
                   value={formData.cpf}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"

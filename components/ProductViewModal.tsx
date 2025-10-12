@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { X, Heart, Share2, ShoppingCart } from 'lucide-react'
 import { Product } from '@/lib/data'
-import { useCart } from '@/hooks/useCart'
+import { useCart } from '@/contexts/CartContext'
+import { useRouter } from 'next/navigation'
 
 interface ProductViewModalProps {
   product: Product | null
@@ -14,6 +15,7 @@ interface ProductViewModalProps {
 
 export default function ProductViewModal({ product, isOpen, onClose }: ProductViewModalProps) {
   const { addItem } = useCart()
+  const router = useRouter()
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
@@ -82,8 +84,10 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
     addItem(product, selectedSize, quantity, selectedColor || undefined)
 
     setIsAdding(false)
-    alert(`${quantity} unidade(s) de ${product.name} (${selectedSize}) adicionada(s) ao carrinho!`)
     onClose()
+    
+    // Redirecionar para a página do carrinho
+    router.push('/carrinho')
   }
 
   const getPriceRangeInfo = () => {

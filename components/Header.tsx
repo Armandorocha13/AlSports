@@ -5,14 +5,12 @@ import Link from 'next/link'
 import { Menu, X, Search, User, LogOut, ShoppingCart } from 'lucide-react'
 import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
-import { useCart } from '@/hooks/useCart'
-import Cart from './Cart'
+import { useCart } from '@/contexts/CartContext'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isCartOpen, setIsCartOpen] = useState(false)
   const { user, profile, signOut } = useAuth()
   const { getTotalItems, getTotal, getShippingInfo } = useCart()
 
@@ -64,10 +62,10 @@ export default function Header() {
               <Search size={20} />
             </button>
 
-            {/* Cart */}
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
+            {/* Cart Link */}
+            <a
+              href="/carrinho"
+              className="relative p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200 group"
               title={`Carrinho: ${getTotalItems()} item(s) - R$ ${getTotal().toFixed(2)}`}
             >
               <ShoppingCart size={20} />
@@ -93,7 +91,7 @@ export default function Header() {
                   </div>
                 </>
               )}
-            </button>
+            </a>
 
             {/* User Menu */}
             {user ? (
@@ -209,15 +207,12 @@ export default function Header() {
         </div>
       )}
 
-      {/* Cart Component */}
-      <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
       {/* Floating Cart Button for Mobile */}
       {getTotalItems() > 0 && (
         <div className="fixed bottom-6 right-6 z-40 lg:hidden">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="bg-primary-500 hover:bg-primary-400 text-black p-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105"
+          <a
+            href="/carrinho"
+            className="bg-primary-500 hover:bg-primary-400 text-black p-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 block"
           >
             <div className="flex flex-col items-center">
               <ShoppingCart size={24} />
@@ -227,7 +222,7 @@ export default function Header() {
             </div>
             {/* Pulse animation */}
             <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
-          </button>
+          </a>
         </div>
       )}
     </header>

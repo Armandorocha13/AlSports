@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Product } from '@/lib/data'
+import { shippingService } from '@/lib/shipping'
+import { orderGenerator, OrderData } from '@/lib/order-generator'
 
 export interface CartItem {
   product: Product
@@ -24,48 +26,50 @@ export interface OrderInfo {
   createdAt: Date
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered'
   totalItems: number
+  totalPieces: number
   subtotal: number
   shipping: number
   total: number
   shippingMethod: string
+  customerInfo?: {
+    name: string
+    email: string
+    phone: string
+  }
+  shippingAddress?: {
+    name: string
+    street: string
+    number: string
+    complement?: string
+    neighborhood: string
+    city: string
+    state: string
+    zip_code: string
+  }
+  paymentMethod?: string
+  notes?: string
+  items: Array<{
+    productName: string
+    size: string
+    color?: string
+    quantity: number
+    unitPrice: number
+    totalPrice: number
+  }>
 }
 
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([])
 
-  // Carregar itens do localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedItems = localStorage.getItem('cart-items')
-      if (savedItems) {
-        try {
-          const parsedItems = JSON.parse(savedItems)
-          // Converter strings de data de volta para objetos Date
-          const itemsWithDates = parsedItems.map((item: any) => ({
-            ...item,
-            addedAt: new Date(item.addedAt)
-          }))
-          setItems(itemsWithDates)
-        } catch (error) {
-          console.error('Erro ao carregar carrinho:', error)
-        }
-      }
-    }
-  }, [])
-
-  // Salvar itens no localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('cart-items', JSON.stringify(items))
-      } catch (error) {
-        console.error('Erro ao salvar carrinho:', error)
-      }
-    }
-  }, [items])
+  // Carrinho agora funciona apenas em memória (sem localStorage)
+  // Isso garante que funcione corretamente em qualquer ambiente
 
   const addItem = (product: Product, size: string, quantity: number = 1, color?: string) => {
+    console.log('🛒 Adicionando ao carrinho:', { product: product.name, size, quantity, color })
+    
     setItems(prev => {
+      console.log('🛒 Itens anteriores:', prev.length)
+      
       const existingItem = prev.find(item =>
         item.product.id === product.id && 
         item.selectedSize === size && 
@@ -73,6 +77,7 @@ export function useCart() {
       )
 
       if (existingItem) {
+        console.log('🛒 Item existente encontrado, atualizando quantidade')
         return prev.map(item =>
           item.product.id === product.id && 
           item.selectedSize === size && 
@@ -81,13 +86,16 @@ export function useCart() {
             : item
         )
       } else {
-        return [...prev, {
+        console.log('🛒 Novo item, adicionando ao carrinho')
+        const newItem = {
           product,
           quantity,
           selectedSize: size,
           selectedColor: color,
           addedAt: new Date()
-        }]
+        }
+        console.log('🛒 Novo item criado:', newItem)
+        return [...prev, newItem]
       }
     })
   }
@@ -148,22 +156,7 @@ export function useCart() {
 
   const getShippingInfo = (): ShippingInfo => {
     const totalPieces = getTotalPieces()
-    
-    if (totalPieces >= 50) {
-      return {
-        method: 'transportadora',
-        cost: 0,
-        minQuantity: 50,
-        estimatedDays: '5-7 dias úteis'
-      }
-    } else {
-      return {
-        method: 'super-frete',
-        cost: 15.00,
-        minQuantity: 1,
-        estimatedDays: '3-5 dias úteis'
-      }
-    }
+    return shippingService.calculateShippingByQuantity(totalPieces)
   }
 
   const getShippingCost = () => {
@@ -187,26 +180,47 @@ export function useCart() {
     return Math.max(0, 50 - totalPieces)
   }
 
-  const generateOrderCode = () => {
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase()
-    return `ALS-${timestamp}-${random}`
-  }
-
-  const createOrder = (): OrderInfo => {
+  const createOrder = (customerInfo?: {
+    name: string
+    email: string
+    phone: string
+  }, shippingAddress?: {
+    name: string
+    street: string
+    number: string
+    complement?: string
+    neighborhood: string
+    city: string
+    state: string
+    zip_code: string
+  }, paymentMethod?: string, notes?: string): OrderInfo => {
     const shippingInfo = getShippingInfo()
     
-    return {
-      id: generateOrderCode(),
-      code: generateOrderCode(),
-      createdAt: new Date(),
-      status: 'pending',
+    const orderItems = items.map(item => {
+      const unitPrice = getItemPrice(item.product, item.quantity)
+      return {
+        productName: item.product.name,
+        size: item.selectedSize,
+        color: item.selectedColor,
+        quantity: item.quantity,
+        unitPrice: unitPrice,
+        totalPrice: unitPrice * item.quantity
+      }
+    })
+
+    return orderGenerator.createOrder({
       totalItems: getTotalItems(),
+      totalPieces: getTotalPieces(),
       subtotal: getSubtotal(),
       shipping: getShippingCost(),
       total: getTotal(),
-      shippingMethod: shippingInfo.method
-    }
+      shippingMethod: shippingInfo.method,
+      customerInfo,
+      shippingAddress,
+      paymentMethod,
+      notes,
+      items: orderItems
+    })
   }
 
   const getCartSummary = () => {
@@ -221,6 +235,19 @@ export function useCart() {
       canUseTransportadora: canUseTransportadora(),
       missingForTransportadora: getMissingForTransportadora()
     }
+  }
+
+  const generateWhatsAppMessage = (order: OrderInfo): string => {
+    return orderGenerator.formatOrderForWhatsApp(order)
+  }
+
+  const generateWhatsAppUrl = (order: OrderInfo, phoneNumber: string = '5511999999999'): string => {
+    return orderGenerator.generateWhatsAppUrl(order, phoneNumber)
+  }
+
+  const openWhatsAppOrder = (order: OrderInfo, phoneNumber: string = '5511999999999') => {
+    const url = generateWhatsAppUrl(order, phoneNumber)
+    window.open(url, '_blank')
   }
 
   return {
@@ -239,6 +266,9 @@ export function useCart() {
     canUseTransportadora,
     getMissingForTransportadora,
     createOrder,
-    getCartSummary
+    getCartSummary,
+    generateWhatsAppMessage,
+    generateWhatsAppUrl,
+    openWhatsAppOrder
   }
 }

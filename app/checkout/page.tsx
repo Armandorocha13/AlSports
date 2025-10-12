@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CreditCard, Smartphone, Barcode, Truck, Package, CheckCircle } from 'lucide-react'
+import { ArrowLeft, CreditCard, Smartphone, Barcode, Truck, Package, CheckCircle, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useCart } from '@/hooks/useCart'
+import { useCart } from '@/contexts/CartContext'
 import { createClient } from '@/lib/supabase-client'
 import { Order, OrderItem, Address } from '@/lib/types/database'
 
@@ -19,7 +19,9 @@ export default function CheckoutPage() {
     getTotalItems,
     getSubtotal,
     getTotal,
-    getShippingCost
+    getShippingCost,
+    createOrder,
+    openWhatsAppOrder
   } = useCart()
   
   const [step, setStep] = useState(1)
@@ -72,7 +74,7 @@ export default function CheckoutPage() {
     setLoading(true)
 
     try {
-      // Criar pedido
+      // Criar pedido no banco de dados
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -106,7 +108,7 @@ export default function CheckoutPage() {
         order_id: order.id,
         product_id: item.product.id,
         product_name: item.product.name,
-        product_sku: item.product.sku,
+        product_sku: item.product.sku || '',
         product_image_url: item.product.image,
         size: item.selectedSize,
         color: item.selectedColor,
@@ -147,6 +149,37 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleWhatsAppOrder = () => {
+    if (!user || !selectedAddress) {
+      alert('Por favor, selecione um endereço de entrega')
+      return
+    }
+
+    // Criar pedido com todos os dados
+    const order = createOrder(
+      {
+        name: profile?.full_name || user.user_metadata?.full_name || 'Cliente',
+        email: user.email || '',
+        phone: profile?.phone || user.user_metadata?.phone || ''
+      },
+      {
+        name: selectedAddress.name,
+        street: selectedAddress.street,
+        number: selectedAddress.number,
+        complement: selectedAddress.complement,
+        neighborhood: selectedAddress.neighborhood,
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        zip_code: selectedAddress.zip_code
+      },
+      paymentMethod,
+      orderNotes
+    )
+
+    // Abrir WhatsApp com o pedido completo
+    openWhatsAppOrder(order)
   }
 
   if (!user) {
@@ -195,6 +228,16 @@ export default function CheckoutPage() {
             <p className="text-lg text-gray-600 mb-6">
               Seu pedido <span className="font-semibold text-primary-600">{orderData.order_number}</span> foi criado e está aguardando pagamento.
             </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-yellow-800 mb-2">📝 Instruções Importantes:</h4>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• <strong>Anote o número do pedido:</strong> {orderData.order_number}</li>
+                <li>• Envie o comprovante de pagamento junto com este número</li>
+                <li>• Aguarde a confirmação do pagamento</li>
+                <li>• Você receberá atualizações por email</li>
+              </ul>
+            </div>
             
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo do Pedido</h3>
@@ -400,19 +443,29 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <div className="mt-6 flex space-x-4">
+                <div className="mt-6 space-y-3">
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      onClick={handleCreateOrder}
+                      disabled={loading}
+                      className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Processando...' : 'Finalizar Pedido'}
+                    </button>
+                  </div>
+                  
                   <button
-                    onClick={() => setStep(1)}
-                    className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
+                    onClick={handleWhatsAppOrder}
+                    className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center"
                   >
-                    Voltar
-                  </button>
-                  <button
-                    onClick={handleCreateOrder}
-                    disabled={loading}
-                    className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Processando...' : 'Finalizar Pedido'}
+                    <MessageCircle size={20} className="mr-2" />
+                    Finalizar pelo WhatsApp
                   </button>
                 </div>
               </div>

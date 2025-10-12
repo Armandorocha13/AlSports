@@ -81,6 +81,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, userData: Partial<Profile>) => {
     try {
+      // Verificar se o email já existe
+      const { data: existingUser } = await supabase.auth.getUser()
+      
+      // Verificar se já existe um perfil com este email
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .single()
+
+      if (existingProfile) {
+        return { error: { message: 'Este email já está cadastrado' } }
+      }
+
+      // Verificar se já existe um perfil com este CPF
+      if (userData.cpf) {
+        const { data: existingCpf } = await supabase
+          .from('profiles')
+          .select('cpf')
+          .eq('cpf', userData.cpf)
+          .single()
+
+        if (existingCpf) {
+          return { error: { message: 'Este CPF já está cadastrado' } }
+        }
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -93,10 +120,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        return { error }
+        // Tratar erros específicos do Supabase
+        let errorMessage = error.message
+        
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+          errorMessage = 'Este email já está cadastrado'
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'Email inválido'
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'A senha deve ter pelo menos 6 caracteres'
+        } else if (error.message.includes('Unable to validate email address')) {
+          errorMessage = 'Não foi possível validar o email'
+        }
+        
+        return { error: { ...error, message: errorMessage } }
       }
 
-      // Criar perfil do usuário
+      // Criar perfil do usuário apenas se o usuário foi criado com sucesso
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -112,13 +152,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (profileError) {
           console.error('Erro ao criar perfil:', profileError)
-          return { error: profileError }
+          // Se falhou ao criar o perfil, tentar deletar o usuário criado
+          await supabase.auth.admin.deleteUser(data.user.id)
+          return { error: { message: 'Erro ao criar perfil do usuário' } }
         }
       }
 
       return { error: null }
     } catch (error) {
-      return { error }
+      console.error('Erro no signUp:', error)
+      return { error: { message: 'Erro interno do servidor' } }
     }
   }
 
