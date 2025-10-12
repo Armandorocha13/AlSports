@@ -117,13 +117,13 @@ export const categories: Category[] = [
   }
 ];
 
-// Dados de exemplo para produtos
+// Dados de exemplo para produtos com nova política de precificação
 export const sampleProducts: Product[] = [
   {
     id: '1',
     name: 'Camisa Flamengo 2024/25 - Versão Jogador',
-    price: 299.90,
-    wholesalePrice: 89.90,
+    price: 100.00, // Preço de varejo
+    wholesalePrice: 100.00,
     image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
     description: 'Camisa tailandesa do Flamengo temporada 2024/25, versão jogador com tecnologia de alta performance.',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -132,70 +132,127 @@ export const sampleProducts: Product[] = [
     featured: true,
     onSale: true,
     priceRanges: [
-      { min: 1, max: 4, price: 89.90 },
-      { min: 5, max: 9, price: 85.00 },
-      { min: 10, max: 19, price: 80.00 },
-      { min: 20, price: 75.00 }
+      { min: 1, price: 100.00 }, // 1 CAMISA (VAREJO)
+      { min: 2, max: 4, price: 90.00 }, // 2-4 CAMISAS
+      { min: 5, price: 85.00 } // 5+ CAMISAS
     ]
   },
   {
     id: '2',
     name: 'Conjunto Nike Dri-FIT Training',
-    price: 199.90,
-    wholesalePrice: 59.90,
+    price: 160.00, // Preço de varejo
+    wholesalePrice: 160.00,
     image: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=400&fit=crop',
     description: 'Conjunto tailandês completo para treino com tecnologia Dri-FIT que mantém o corpo seco durante o exercício.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'camisa-short',
-    featured: true
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 160.00 }, // 1 KIT
+      { min: 2, max: 4, price: 150.00 }, // 2-4 KIT
+      { min: 5, price: 145.00 } // 5+ KIT
+    ]
   },
   {
     id: '3',
     name: 'Camisa Lakers LeBron James',
-    price: 249.90,
-    wholesalePrice: 79.90,
+    price: 130.00, // Preço de varejo
+    wholesalePrice: 130.00,
     image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&h=400&fit=crop',
     description: 'Camisa tailandesa do Los Angeles Lakers com o número 23 do LeBron James.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nba',
     subcategory: 'nba-silk',
-    featured: true
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 130.00 }, // 1 CAMISA
+      { min: 2, max: 4, price: 125.00 }, // 2-4 CAMISAS
+      { min: 5, price: 115.00 } // 5+ CAMISAS
+    ]
   },
   {
     id: '4',
     name: 'Kit Infantil Barcelona 2024/25',
-    price: 149.90,
-    wholesalePrice: 49.90,
+    price: 100.00, // Preço de varejo
+    wholesalePrice: 100.00,
     image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=400&fit=crop',
     description: 'Kit tailandês completo infantil do Barcelona temporada 2024/25, ideal para os pequenos torcedores.',
     sizes: ['4', '6', '8', '10', '12'],
     category: 'conjuntos-infantis',
     subcategory: 'kit-infantil-24-25',
-    featured: true
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 100.00 }, // 1 KIT
+      { min: 2, price: 95.00 } // 2+ KIT
+    ]
   },
   {
     id: '5',
-    name: 'Boné New Era Yankees',
-    price: 89.90,
-    wholesalePrice: 29.90,
+    name: 'Camisa Retrô Flamengo 1995',
+    price: 130.00, // Preço de varejo
+    wholesalePrice: 130.00,
     image: 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=400&fit=crop',
-    description: 'Boné tailandês New Era do New York Yankees, modelo 59FIFTY.',
-    sizes: ['Único'],
-    category: 'acessorios',
-    subcategory: 'bones-times',
-    featured: true
+    description: 'Camisa retrô do Flamengo de 1995, relembrando os tempos dourados do clube.',
+    sizes: ['P', 'M', 'G', 'GG'],
+    category: 'futebol',
+    subcategory: 'retro',
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 130.00 }, // 1 CAMISA
+      { min: 2, max: 4, price: 120.00 }, // 2-4 CAMISAS
+      { min: 5, price: 110.00 } // 5+ CAMISAS
+    ]
   },
   {
     id: '6',
     name: 'Short Nike Dri-FIT Masculino',
-    price: 79.90,
-    wholesalePrice: 24.90,
+    price: 95.00, // Preço de varejo
+    wholesalePrice: 95.00,
     image: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
     description: 'Short tailandês masculino Nike com tecnologia Dri-FIT, ideal para treinos e atividades físicas.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'bermudas-shorts',
     subcategory: 'short-masculino',
-    featured: true
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 95.00 }, // 1 SHORT
+      { min: 2, max: 4, price: 85.00 }, // 2-4 SHORT
+      { min: 5, price: 80.00 } // 5+ SHORT
+    ]
+  },
+  {
+    id: '7',
+    name: 'Camisa Corinthians 2024/25',
+    price: 100.00, // Preço de varejo
+    wholesalePrice: 100.00,
+    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
+    description: 'Camisa tailandesa do Corinthians temporada 2024/25, versão jogador.',
+    sizes: ['P', 'M', 'G', 'GG'],
+    category: 'futebol',
+    subcategory: 'versao-jogador',
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 100.00 }, // 1 CAMISA (VAREJO)
+      { min: 2, max: 4, price: 90.00 }, // 2-4 CAMISAS
+      { min: 5, price: 85.00 } // 5+ CAMISAS
+    ]
+  },
+  {
+    id: '8',
+    name: 'Camisa São Paulo 2024/25',
+    price: 100.00, // Preço de varejo
+    wholesalePrice: 100.00,
+    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
+    description: 'Camisa tailandesa do São Paulo temporada 2024/25, versão jogador.',
+    sizes: ['P', 'M', 'G', 'GG'],
+    category: 'futebol',
+    subcategory: 'versao-jogador',
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 100.00 }, // 1 CAMISA (VAREJO)
+      { min: 2, max: 4, price: 90.00 }, // 2-4 CAMISAS
+      { min: 5, price: 85.00 } // 5+ CAMISAS
+    ]
   }
 ];

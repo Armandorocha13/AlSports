@@ -59,7 +59,7 @@ export class ShippingService {
   private baseUrl = 'https://api.superfrete.com'
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_SUPERFRETE_API_KEY || ''
+    this.apiKey = process.env.NEXT_PUBLIC_SUPERFRETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjAyOTcxNDUsInN1YiI6IlBIc0VYRTh4ckNZdE1QUUlWcXdmSGZXSmNBbzIifQ.X1R-XEZgK_OBKbd80mFgUMN7g8h049dWAN7WMbJV980'
   }
 
   static getInstance(): ShippingService {
@@ -167,6 +167,7 @@ export class ShippingService {
     estimatedDays: string
     minQuantity: number
   } {
+    // Frete grátis para pedidos com 50+ peças
     if (totalPieces >= 50) {
       return {
         method: 'transportadora',
@@ -174,20 +175,102 @@ export class ShippingService {
         estimatedDays: '5-7 dias úteis',
         minQuantity: 50
       }
-    } else if (totalPieces >= 20) {
+    }
+    
+    // Frete reduzido para pedidos com 20+ peças
+    else if (totalPieces >= 20) {
       return {
         method: 'super-frete',
-        cost: 10.00,
+        cost: 8.00,
         estimatedDays: '3-5 dias úteis',
         minQuantity: 1
       }
-    } else {
+    }
+    
+    // Frete padrão para pedidos menores
+    else if (totalPieces >= 10) {
+      return {
+        method: 'super-frete',
+        cost: 12.00,
+        estimatedDays: '3-5 dias úteis',
+        minQuantity: 1
+      }
+    }
+    
+    // Frete para pedidos pequenos
+    else {
       return {
         method: 'super-frete',
         cost: 15.00,
         estimatedDays: '3-5 dias úteis',
         minQuantity: 1
       }
+    }
+  }
+
+  // Calcular preço específico para transportadora baseado na quantidade
+  calculateTransportadoraPrice(totalPieces: number): number {
+    // Pedidos com 50+ peças: frete grátis
+    if (totalPieces >= 50) {
+      return 0
+    }
+    
+    // Pedidos com 30-49 peças: R$ 15,00
+    else if (totalPieces >= 30) {
+      return 15.00
+    }
+    
+    // Pedidos com 20-29 peças: R$ 25,00
+    else if (totalPieces >= 20) {
+      return 25.00
+    }
+    
+    // Pedidos menores que 20 peças: não disponível
+    else {
+      return -1 // Indica que transportadora não está disponível
+    }
+  }
+
+  // Obter informações de precificação da transportadora
+  getTransportadoraPricing(totalPieces: number): {
+    available: boolean
+    price: number
+    description: string
+    nextThreshold?: {
+      pieces: number
+      price: number
+    }
+  } {
+    const price = this.calculateTransportadoraPrice(totalPieces)
+    
+    if (price === -1) {
+      // Transportadora não disponível
+      const nextThreshold = totalPieces < 20 ? 20 : totalPieces < 30 ? 30 : 50
+      const nextPrice = nextThreshold === 20 ? 25.00 : nextThreshold === 30 ? 15.00 : 0
+      
+      return {
+        available: false,
+        price: 0,
+        description: `Adicione mais ${nextThreshold - totalPieces} peças para ter acesso à transportadora`,
+        nextThreshold: {
+          pieces: nextThreshold,
+          price: nextPrice
+        }
+      }
+    }
+    
+    if (price === 0) {
+      return {
+        available: true,
+        price: 0,
+        description: 'Frete grátis para pedidos com 50+ peças'
+      }
+    }
+    
+    return {
+      available: true,
+      price: price,
+      description: `R$ ${price.toFixed(2).replace('.', ',')} para pedidos com ${totalPieces} peças`
     }
   }
 }
