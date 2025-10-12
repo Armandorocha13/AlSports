@@ -200,7 +200,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const openWhatsAppOrder = (order: any, phoneNumber: string = '5521994595532') => {
+  const openWhatsAppOrder = (order: any, phoneNumber: string = '21990708854') => {
     const url = orderGenerator.generateWhatsAppUrl(order, phoneNumber)
     window.open(url, '_blank')
   }

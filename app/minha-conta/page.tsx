@@ -84,7 +84,7 @@ export default function MyAccountPage() {
       case 'aguardando_pagamento':
         return 'text-yellow-600'
       default:
-        return 'text-blue-600'
+        return 'text-primary-400'
     }
   }
 
@@ -105,7 +105,7 @@ export default function MyAccountPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     )
@@ -116,14 +116,14 @@ export default function MyAccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-900 py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-white mb-2">
             Olá, {profile?.full_name || user.email}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             Gerencie sua conta e acompanhe seus pedidos
           </p>
         </div>
@@ -133,28 +133,28 @@ export default function MyAccountPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex items-center">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Package className="h-6 w-6 text-blue-600" />
+                  <div className="p-3 bg-primary-500/10 rounded-lg">
+                    <Package className="h-6 w-6 text-primary-400" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total de Pedidos</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-gray-400">Total de Pedidos</p>
+                    <p className="text-2xl font-bold text-white">
                       {recentOrders.length > 0 ? recentOrders.length + '+' : '0'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex items-center">
                   <div className="p-3 bg-green-100 rounded-lg">
                     <DollarSign className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Gasto</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-gray-400">Total Gasto</p>
+                    <p className="text-2xl font-bold text-white">
                       {formatCurrency(
                         recentOrders.reduce((total, order) => total + order.total_amount, 0)
                       )}
@@ -163,14 +163,14 @@ export default function MyAccountPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex items-center">
                   <div className="p-3 bg-purple-100 rounded-lg">
                     <Truck className="h-6 w-6 text-purple-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Pedidos Ativos</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-gray-400">Pedidos Ativos</p>
+                    <p className="text-2xl font-bold text-white">
                       {recentOrders.filter(order => 
                         !['entregue', 'cancelado'].includes(order.status)
                       ).length}
@@ -181,10 +181,10 @@ export default function MyAccountPage() {
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-gray-800 rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-white">
                     Pedidos Recentes
                   </h2>
                   <Link
@@ -201,10 +201,10 @@ export default function MyAccountPage() {
                 {recentOrders.length === 0 ? (
                   <div className="text-center py-8">
                     <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-white mb-2">
                       Nenhum pedido encontrado
                     </h3>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-400 mb-6">
                       Você ainda não fez nenhum pedido.
                     </p>
                     <Link
@@ -217,16 +217,16 @@ export default function MyAccountPage() {
                 ) : (
                   <div className="space-y-4">
                     {recentOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                      <div key={order.id} className="flex items-center justify-between p-4 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors duration-200">
                         <div className="flex items-center space-x-4">
-                          <div className="p-2 bg-gray-100 rounded-lg">
-                            <Package className="h-5 w-5 text-gray-600" />
+                          <div className="p-2 bg-gray-700 rounded-lg">
+                            <Package className="h-5 w-5 text-gray-400" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-white">
                               Pedido #{order.order_number}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-400">
                               {formatDate(order.created_at)} • {order.total_items} item(s)
                             </p>
                           </div>
@@ -250,36 +250,36 @@ export default function MyAccountPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Account Menu */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-gray-800 rounded-lg shadow">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-white mb-4">
                   Minha Conta
                 </h3>
                 <nav className="space-y-2">
                   <Link
                     href="/minha-conta/perfil"
-                    className="flex items-center p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
                     <User className="h-5 w-5 mr-3" />
                     <span>Meu Perfil</span>
                   </Link>
                   <Link
                     href="/minha-conta/pedidos"
-                    className="flex items-center p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
                     <Package className="h-5 w-5 mr-3" />
                     <span>Meus Pedidos</span>
                   </Link>
                   <Link
                     href="/minha-conta/enderecos"
-                    className="flex items-center p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
                     <MapPin className="h-5 w-5 mr-3" />
                     <span>Endereços</span>
                   </Link>
                   <Link
                     href="/minha-conta/configuracoes"
-                    className="flex items-center p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
                     <Settings className="h-5 w-5 mr-3" />
                     <span>Configurações</span>
@@ -289,27 +289,27 @@ export default function MyAccountPage() {
             </div>
 
             {/* Account Info */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-gray-800 rounded-lg shadow">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-white mb-4">
                   Informações da Conta
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div>
                     <span className="font-medium text-gray-700">Nome:</span>
-                    <p className="text-gray-900">{profile?.full_name || 'Não informado'}</p>
+                    <p className="text-white">{profile?.full_name || 'Não informado'}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Email:</span>
-                    <p className="text-gray-900">{user.email}</p>
+                    <p className="text-white">{user.email}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Telefone:</span>
-                    <p className="text-gray-900">{profile?.phone || 'Não informado'}</p>
+                    <p className="text-white">{profile?.phone || 'Não informado'}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Membro desde:</span>
-                    <p className="text-gray-900">
+                    <p className="text-white">
                       {new Date(user.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
@@ -318,9 +318,9 @@ export default function MyAccountPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-gray-800 rounded-lg shadow">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-white mb-4">
                   Ações Rápidas
                 </h3>
                 <div className="space-y-3">
@@ -332,7 +332,7 @@ export default function MyAccountPage() {
                   </Link>
                   <button
                     onClick={signOut}
-                    className="block w-full border border-gray-300 text-gray-700 text-center py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center"
+                    className="block w-full border border-gray-600 text-gray-300 text-center py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sair da Conta

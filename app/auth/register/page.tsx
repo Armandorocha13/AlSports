@@ -311,7 +311,7 @@ export default function RegisterPage() {
                 name="agree-terms"
                 type="checkbox"
                 required
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary-400 focus:ring-primary-500 border-gray-300 rounded"
               />
                 <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-300">
                 Eu concordo com os{' '}

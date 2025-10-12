@@ -6,8 +6,8 @@
 
 :root {
 	--foreground-rgb: 255, 255, 255;
-	--background-start-rgb: 0, 0, 0;
-	--background-end-rgb: 0, 0, 0;
+	--background-start-rgb: 17, 24, 39;
+	--background-end-rgb: 31, 41, 55;
 }
 
 * {
@@ -36,11 +36,11 @@ a {
 	text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
 	:root {
 		--foreground-rgb: 255, 255, 255;
-		--background-start-rgb: 0, 0, 0;
-		--background-end-rgb: 0, 0, 0;
+		--background-start-rgb: 17, 24, 39;
+		--background-end-rgb: 31, 41, 55;
 	}
 }
 

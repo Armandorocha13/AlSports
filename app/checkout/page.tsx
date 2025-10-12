@@ -108,7 +108,7 @@ export default function CheckoutPage() {
         order_id: order.id,
         product_id: item.product.id,
         product_name: item.product.name,
-        product_sku: item.product.sku || '',
+        product_sku: item.product.id || '',
         product_image_url: item.product.image,
         size: item.selectedSize,
         color: item.selectedColor,
@@ -530,7 +530,7 @@ export default function CheckoutPage() {
                   {cartSummary.shippingInfo.method === 'transportadora' ? (
                     <Truck className="h-4 w-4 mr-2 text-green-600" />
                   ) : (
-                    <Package className="h-4 w-4 mr-2 text-blue-600" />
+                    <Package className="h-4 w-4 mr-2 text-primary-400" />
                   )}
                   <span>
                     {cartSummary.shippingInfo.method === 'transportadora' 
