@@ -98,20 +98,59 @@ export default function AdminPedidos() {
         console.error('Erro ao buscar pedidos do banco:', error)
       }
 
-      // Buscar pedidos do localStorage (pedidos WhatsApp)
-      const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
-      console.log('📱 Pedidos encontrados no localStorage:', localOrders.length)
-      console.log('📋 Dados do localStorage:', localOrders)
+      // Buscar pedidos WhatsApp do banco de dados
+      let whatsappOrders = []
+      let whatsappError = null
+
+      try {
+        const { data, error } = await supabase
+          .from('whatsapp_orders')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        whatsappOrders = data || []
+        whatsappError = error
+
+        if (whatsappError) {
+          console.error('❌ Erro ao buscar pedidos WhatsApp:', whatsappError)
+        }
+
+        console.log('📱 Pedidos WhatsApp encontrados na tabela whatsapp_orders:', whatsappOrders.length)
+      } catch (error) {
+        console.log('⚠️ Tabela whatsapp_orders não disponível, buscando na tabela orders...')
+        
+        // Fallback: buscar pedidos WhatsApp na tabela orders
+        try {
+          const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+          if (ordersError) {
+            console.error('❌ Erro ao buscar pedidos na tabela orders:', ordersError)
+          } else {
+            // Filtrar apenas pedidos que parecem ser WhatsApp (baseado em padrões)
+            whatsappOrders = (ordersData || []).filter(order => 
+              order.order_number?.includes('ALS-') || 
+              order.notes?.includes('WhatsApp') ||
+              order.customer_email
+            )
+            console.log('📱 Pedidos WhatsApp encontrados na tabela orders:', whatsappOrders.length)
+          }
+        } catch (fallbackError) {
+          console.error('❌ Erro no fallback para tabela orders:', fallbackError)
+        }
+      }
       
-      // Mapear pedidos do banco
+      // Mapear pedidos do banco tradicional
       const formattedDbOrders = (dbOrders || []).map(order => ({
         ...order,
         items_count: order.order_items?.[0]?.count || 0,
         source: 'database'
       }))
 
-      // Mapear pedidos do localStorage
-      const whatsappOrders = localOrders.map((order: any) => ({
+      // Mapear pedidos WhatsApp do banco
+      const formattedWhatsappOrders = (whatsappOrders || []).map((order: any) => ({
         id: order.id,
         order_number: order.order_number,
         customer_name: order.customer_name,
@@ -124,17 +163,16 @@ export default function AdminPedidos() {
         shipping_address: order.shipping_address,
         notes: order.notes,
         created_at: order.created_at,
-        updated_at: order.created_at,
+        updated_at: order.updated_at,
         items_count: order.items?.length || 0,
         source: 'whatsapp',
-        method: order.method || 'whatsapp'
+        method: 'whatsapp'
       }))
       
-      console.log('📱 Pedidos WhatsApp mapeados:', whatsappOrders.length)
-      console.log('📋 Dados mapeados:', whatsappOrders)
+      console.log('📱 Pedidos WhatsApp mapeados:', formattedWhatsappOrders.length)
 
       // Combinar todos os pedidos
-      const allOrders = [...formattedDbOrders, ...whatsappOrders]
+      const allOrders = [...formattedDbOrders, ...formattedWhatsappOrders]
       
       // Ordenar por data de criação (mais recentes primeiro)
       allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -165,18 +203,40 @@ export default function AdminPedidos() {
       const order = orders.find(o => o.id === id)
       if (!order) return
 
-      // Verificar se é um pedido do localStorage (WhatsApp)
+      // Verificar se é um pedido WhatsApp
       if (order.source === 'whatsapp') {
-        // Atualizar no localStorage
-        const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
-        const updatedOrders = localOrders.map((localOrder: any) => 
-          localOrder.id === id 
-            ? { ...localOrder, status: newStatus, updated_at: new Date().toISOString() }
-            : localOrder
-        )
-        localStorage.setItem('user_orders', JSON.stringify(updatedOrders))
-        
-        console.log('✅ Status atualizado no localStorage:', newStatus)
+        // Tentar atualizar na tabela whatsapp_orders primeiro
+        try {
+          const { error } = await supabase
+            .from('whatsapp_orders')
+            .update({ 
+              status: newStatus,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+
+          if (error) {
+            console.error('❌ Erro ao atualizar em whatsapp_orders:', error)
+            throw error
+          }
+          
+          console.log('✅ Status atualizado no banco whatsapp_orders:', newStatus)
+        } catch (whatsappError) {
+          console.log('⚠️ Tabela whatsapp_orders não disponível, tentando tabela orders...')
+          
+          // Fallback: atualizar na tabela orders
+          const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', id)
+
+          if (error) {
+            console.error('❌ Erro ao atualizar na tabela orders:', error)
+            throw error
+          }
+          
+          console.log('✅ Status atualizado na tabela orders:', newStatus)
+        }
       } else {
         // Atualizar no banco de dados
         const { error } = await supabase

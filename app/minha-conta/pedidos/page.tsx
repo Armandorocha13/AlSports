@@ -44,21 +44,67 @@ export default function OrdersPage() {
     if (!user) return
 
     try {
-      // Por enquanto, buscar apenas do localStorage até as tabelas estarem configuradas
-      const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
-      
-      // Filtrar pedidos do usuário atual
-      const userOrders = localOrders.filter((order: any) => 
-        order.customer_email === user.email
-      )
-      
-      // Mapear para o formato esperado
-      const allOrders = userOrders.map((order: any) => ({
+      // Buscar pedidos WhatsApp do banco de dados
+      let whatsappOrders = []
+      let whatsappError = null
+
+      try {
+        const { data, error } = await supabase
+          .from('whatsapp_orders')
+          .select('*')
+          .eq('customer_email', user.email)
+          .order('created_at', { ascending: false })
+
+        whatsappOrders = data || []
+        whatsappError = error
+
+        if (whatsappError) {
+          console.error('❌ Erro ao buscar pedidos WhatsApp:', whatsappError)
+        }
+      } catch (error) {
+        console.log('⚠️ Tabela whatsapp_orders não disponível, buscando na tabela orders...')
+        
+        // Fallback: buscar pedidos WhatsApp na tabela orders
+        try {
+          const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('customer_email', user.email)
+            .order('created_at', { ascending: false })
+
+          if (ordersError) {
+            console.error('❌ Erro ao buscar pedidos na tabela orders:', ordersError)
+          } else {
+            // Filtrar apenas pedidos que parecem ser WhatsApp
+            whatsappOrders = (ordersData || []).filter(order => 
+              order.order_number?.includes('ALS-') || 
+              order.notes?.includes('WhatsApp')
+            )
+            console.log('📱 Pedidos WhatsApp encontrados na tabela orders:', whatsappOrders.length)
+          }
+        } catch (fallbackError) {
+          console.error('❌ Erro no fallback para tabela orders:', fallbackError)
+        }
+      }
+
+      // Buscar pedidos tradicionais do banco de dados
+      const { data: dbOrders, error: dbError } = await supabase
+        .from('orders_with_customer')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (dbError) {
+        console.error('❌ Erro ao buscar pedidos do banco:', dbError)
+      }
+
+      // Mapear pedidos WhatsApp
+      const formattedWhatsappOrders = (whatsappOrders || []).map((order: any) => ({
         id: order.id,
         order_number: order.order_number,
-        customer_name: order.customer_name || order.customer?.name,
-        customer_email: order.customer_email || order.customer?.email,
-        customer_phone: order.customer_phone || order.customer?.phone,
+        customer_name: order.customer_name,
+        customer_email: order.customer_email,
+        customer_phone: order.customer_phone,
         status: order.status,
         subtotal: order.subtotal,
         shipping_cost: order.shipping_cost,
@@ -66,13 +112,35 @@ export default function OrdersPage() {
         shipping_address: order.shipping_address,
         notes: order.notes,
         created_at: order.created_at,
-        method: order.method || 'whatsapp'
+        method: 'whatsapp'
       }))
+
+      // Mapear pedidos tradicionais
+      const formattedDbOrders = (dbOrders || []).map((order: any) => ({
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer_name || order.profiles?.full_name,
+        customer_email: order.customer_email || order.profiles?.email,
+        customer_phone: order.customer_phone || order.profiles?.phone,
+        status: order.status,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        total_amount: order.total_amount,
+        shipping_address: order.shipping_address,
+        notes: order.notes,
+        created_at: order.created_at,
+        method: 'database'
+      }))
+
+      // Combinar todos os pedidos
+      const allOrders = [...formattedWhatsappOrders, ...formattedDbOrders]
 
       // Ordenar por data de criação (mais recentes primeiro)
       allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-      console.log('📋 Pedidos encontrados no localStorage:', allOrders.length)
+      console.log('📋 Pedidos encontrados:', allOrders.length)
+      console.log('📱 Pedidos WhatsApp:', formattedWhatsappOrders.length)
+      console.log('📊 Pedidos tradicionais:', formattedDbOrders.length)
       setOrders(allOrders)
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)

@@ -7,6 +7,8 @@ import { orderGenerator, OrderData } from '@/lib/order-generator'
 import { DiscountCalculator, CartDiscountSummary } from '@/lib/discount-calculator'
 import { createClient } from '@/lib/supabase-client'
 
+const supabase = createClient()
+
 export interface CartItem {
   product: Product
   quantity: number
@@ -212,9 +214,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     orderData: any
   ) => {
     try {
-      // Solução temporária: salvar no localStorage até a tabela whatsapp_orders ser criada
       const orderToSave = {
-        id: `order_${Date.now()}`,
         order_number: orderData.code,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
@@ -232,20 +232,76 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
         notes: `Pedido finalizado via WhatsApp - ${orderData.code}`,
         whatsapp_message: `Olá! Tenho um novo pedido para você:\n\n*Número do Pedido:* ${orderData.code}\n*Total:* R$ ${orderData.total.toFixed(2)}\n*Itens:*\n${orderData.items.map((item: any) => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\nPor favor, aguardo as instruções para pagamento e envio do comprovante.`,
-        whatsapp_sent_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        method: 'whatsapp'
+        whatsapp_sent_at: new Date().toISOString()
       }
 
-      // Salvar no localStorage
-      const existingOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
-      existingOrders.push(orderToSave)
-      localStorage.setItem('user_orders', JSON.stringify(existingOrders))
+      // Tentar salvar na tabela whatsapp_orders primeiro
+      try {
+        const { data, error } = await supabase
+          .from('whatsapp_orders')
+          .insert([orderToSave])
+          .select()
 
-      console.log('✅ Pedido salvo no localStorage (aguardando tabela whatsapp_orders):', orderToSave)
-      console.log('📊 Total de pedidos no localStorage:', existingOrders.length)
-      console.log('📧 Email do cliente:', customerInfo.email)
-      return orderToSave
+        if (error) {
+          console.error('❌ Erro ao salvar em whatsapp_orders:', error)
+          throw error
+        }
+
+        console.log('✅ Pedido salvo na tabela whatsapp_orders:', data[0])
+        return data[0]
+      } catch (whatsappError) {
+        console.log('⚠️ Tabela whatsapp_orders não disponível, tentando tabela orders...')
+        
+        // Fallback para tabela orders se whatsapp_orders não estiver disponível
+        try {
+          const orderForOrdersTable = {
+            order_number: orderToSave.order_number,
+            customer_name: orderToSave.customer_name,
+            customer_email: orderToSave.customer_email,
+            total_amount: orderToSave.total_amount,
+            shipping_address: orderToSave.shipping_address,
+            status: orderToSave.status,
+            subtotal: orderToSave.subtotal,
+            shipping_cost: orderToSave.shipping_cost,
+            discount_amount: 0
+          }
+
+          const { data, error } = await supabase
+            .from('orders')
+            .insert([orderForOrdersTable])
+            .select()
+
+          if (error) {
+            console.error('❌ Erro ao salvar na tabela orders:', error)
+            throw error
+          }
+
+          console.log('✅ Pedido salvo na tabela orders:', data[0])
+          return {
+            ...data[0],
+            source: 'whatsapp',
+            method: 'whatsapp'
+          }
+        } catch (ordersError) {
+          console.log('⚠️ Tabela orders não disponível, salvando no localStorage...')
+          
+          // Fallback final para localStorage
+          const orderWithId = {
+            ...orderToSave,
+            id: `order_${Date.now()}`,
+            created_at: new Date().toISOString(),
+            method: 'whatsapp'
+          }
+
+          const existingOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
+          existingOrders.push(orderWithId)
+          localStorage.setItem('user_orders', JSON.stringify(existingOrders))
+
+          console.log('✅ Pedido salvo no localStorage (fallback final):', orderWithId)
+          console.log('📊 Total de pedidos no localStorage:', existingOrders.length)
+          return orderWithId
+        }
+      }
     } catch (error) {
       console.error('Erro ao salvar pedido:', error)
       throw error
