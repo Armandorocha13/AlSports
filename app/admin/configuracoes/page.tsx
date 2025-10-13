@@ -51,7 +51,7 @@ export default function AdminSettings() {
     contact_email: 'contato@alsports.com.br',
     contact_phone: '(21) 99459-5532',
     contact_address: 'Cidade da Moda, 13900 - Nova Iguaçu - RJ',
-    whatsapp_number: '21990708854',
+    whatsapp_number: '5521990708854',
     instagram_url: '',
     facebook_url: '',
     twitter_url: '',

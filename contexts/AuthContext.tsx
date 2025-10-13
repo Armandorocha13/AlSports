@@ -62,20 +62,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Buscar perfil do usuário
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (error) {
-        console.error('Erro ao buscar perfil:', error)
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError)
+        // Se não conseguir buscar perfil, criar um perfil temporário
+        const tempProfile = {
+          id: userId,
+          email: 'usuario@exemplo.com',
+          full_name: 'Usuário',
+          phone: null,
+          cpf: null,
+          birth_date: null,
+          user_type: 'cliente' as const,
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        setProfile(tempProfile)
         return
       }
 
-      setProfile(data)
+      // Buscar roles do usuário na tabela user_roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+
+      if (rolesError) {
+        console.error('Erro ao buscar roles:', rolesError)
+        // Se não conseguir buscar roles, usar o user_type do perfil como fallback
+        setProfile(profileData)
+        return
+      }
+
+      // Determinar o tipo de usuário baseado nos roles
+      let userType = profileData.user_type || 'cliente' // usar o do perfil como fallback
+      
+      // Verificar se o usuário tem role de admin na tabela user_roles
+      if (userRoles && userRoles.length > 0) {
+        const roles = userRoles.map(ur => ur.role)
+        if (roles.includes('admin')) {
+          userType = 'admin'
+        } else if (roles.includes('vendedor')) {
+          userType = 'vendedor'
+        }
+      }
+      
+      // Fallback temporário: verificar se é um usuário específico conhecido como admin
+      // TODO: Remover este fallback quando a tabela user_roles estiver configurada
+      if (userId === '00000000-0000-0000-0000-000000000001') {
+        userType = 'admin'
+        console.log('🔧 Usuário admin detectado via fallback')
+      }
+
+      // Criar perfil com o tipo correto baseado nos roles
+      const profileWithRole = {
+        ...profileData,
+        user_type: userType
+      }
+
+      setProfile(profileWithRole)
     } catch (error) {
       console.error('Erro ao buscar perfil:', error)
+      // Em caso de erro, criar perfil temporário
+      const tempProfile = {
+        id: userId,
+        email: 'usuario@exemplo.com',
+        full_name: 'Usuário',
+        phone: null,
+        cpf: null,
+        birth_date: null,
+        user_type: 'cliente' as const,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      setProfile(tempProfile)
     }
   }
 

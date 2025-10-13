@@ -219,6 +219,26 @@ CREATE TABLE public.payments (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Pedidos via WhatsApp
+CREATE TABLE public.whatsapp_orders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  order_number TEXT UNIQUE NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_email TEXT NOT NULL,
+  customer_phone TEXT,
+  status TEXT DEFAULT 'aguardando_pagamento',
+  subtotal DECIMAL(10,2) NOT NULL,
+  shipping_cost DECIMAL(10,2) DEFAULT 0,
+  total_amount DECIMAL(10,2) NOT NULL,
+  items JSONB NOT NULL, -- Array de itens do pedido
+  shipping_address JSONB, -- Endereço de entrega
+  notes TEXT,
+  whatsapp_message TEXT, -- Mensagem enviada via WhatsApp
+  whatsapp_sent_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Configurações do sistema
 CREATE TABLE public.settings (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -246,6 +266,11 @@ CREATE INDEX idx_orders_created ON public.orders(created_at);
 
 CREATE INDEX idx_order_items_order ON public.order_items(order_id);
 CREATE INDEX idx_order_items_product ON public.order_items(product_id);
+
+CREATE INDEX idx_whatsapp_orders_email ON public.whatsapp_orders(customer_email);
+CREATE INDEX idx_whatsapp_orders_status ON public.whatsapp_orders(status);
+CREATE INDEX idx_whatsapp_orders_number ON public.whatsapp_orders(order_number);
+CREATE INDEX idx_whatsapp_orders_created ON public.whatsapp_orders(created_at);
 
 CREATE INDEX idx_order_status_history_order ON public.order_status_history(order_id);
 CREATE INDEX idx_order_status_history_created ON public.order_status_history(created_at);
@@ -473,7 +498,7 @@ INSERT INTO public.settings (key, value, description) VALUES
 ('shipping_cost', '15.00', 'Custo padrão do frete'),
 ('min_order_value', '50.00', 'Valor mínimo do pedido'),
 ('max_installments', '12', 'Máximo de parcelas'),
-('whatsapp_number', '"+5511999999999"', 'Número do WhatsApp'),
+('whatsapp_number', '"+5521990708854"', 'Número do WhatsApp'),
 ('instagram_url', '"https://instagram.com/alsports"', 'URL do Instagram'),
 ('facebook_url', '"https://facebook.com/alsports"', 'URL do Facebook');
 

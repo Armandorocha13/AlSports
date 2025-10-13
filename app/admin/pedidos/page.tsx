@@ -23,7 +23,8 @@ import {
   Plus,
   Mail,
   Save,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react'
 
 interface Order {
@@ -84,7 +85,8 @@ export default function AdminPedidos() {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar pedidos do banco de dados
+      const { data: dbOrders, error } = await supabase
         .from('orders')
         .select(`
           *,
@@ -92,23 +94,65 @@ export default function AdminPedidos() {
         `)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro ao buscar pedidos do banco:', error)
+      }
 
-      const formattedOrders = data?.map(order => ({
+      // Buscar pedidos do localStorage (pedidos WhatsApp)
+      const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
+      console.log('📱 Pedidos encontrados no localStorage:', localOrders.length)
+      console.log('📋 Dados do localStorage:', localOrders)
+      
+      // Mapear pedidos do banco
+      const formattedDbOrders = (dbOrders || []).map(order => ({
         ...order,
-        items_count: order.order_items?.[0]?.count || 0
-      })) || []
+        items_count: order.order_items?.[0]?.count || 0,
+        source: 'database'
+      }))
+
+      // Mapear pedidos do localStorage
+      const whatsappOrders = localOrders.map((order: any) => ({
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer_name,
+        customer_email: order.customer_email,
+        customer_phone: order.customer_phone,
+        status: order.status,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        total_amount: order.total_amount,
+        shipping_address: order.shipping_address,
+        notes: order.notes,
+        created_at: order.created_at,
+        updated_at: order.created_at,
+        items_count: order.items?.length || 0,
+        source: 'whatsapp',
+        method: order.method || 'whatsapp'
+      }))
+      
+      console.log('📱 Pedidos WhatsApp mapeados:', whatsappOrders.length)
+      console.log('📋 Dados mapeados:', whatsappOrders)
+
+      // Combinar todos os pedidos
+      const allOrders = [...formattedDbOrders, ...whatsappOrders]
+      
+      // Ordenar por data de criação (mais recentes primeiro)
+      allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
       // Verificar novos pedidos
       const currentTime = new Date()
-      const recentOrders = formattedOrders.filter(order => {
+      const recentOrders = allOrders.filter(order => {
         const orderTime = new Date(order.created_at)
         const timeDiff = currentTime.getTime() - orderTime.getTime()
         return timeDiff < 300000 // Últimos 5 minutos
       })
       
       setNewOrdersCount(recentOrders.length)
-      setOrders(formattedOrders)
+      setOrders(allOrders)
+      
+      console.log('📋 Pedidos encontrados:', allOrders.length)
+      console.log('📊 Pedidos do banco:', formattedDbOrders.length)
+      console.log('📱 Pedidos WhatsApp:', whatsappOrders.length)
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)
     } finally {
@@ -121,28 +165,46 @@ export default function AdminPedidos() {
       const order = orders.find(o => o.id === id)
       if (!order) return
 
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', id)
+      // Verificar se é um pedido do localStorage (WhatsApp)
+      if (order.source === 'whatsapp') {
+        // Atualizar no localStorage
+        const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
+        const updatedOrders = localOrders.map((localOrder: any) => 
+          localOrder.id === id 
+            ? { ...localOrder, status: newStatus, updated_at: new Date().toISOString() }
+            : localOrder
+        )
+        localStorage.setItem('user_orders', JSON.stringify(updatedOrders))
+        
+        console.log('✅ Status atualizado no localStorage:', newStatus)
+      } else {
+        // Atualizar no banco de dados
+        const { error } = await supabase
+          .from('orders')
+          .update({ status: newStatus })
+          .eq('id', id)
 
-      if (error) throw error
+        if (error) throw error
+        
+        // Atualizar histórico de status
+        await supabase
+          .from('order_status_history')
+          .insert({
+            order_id: id,
+            status: newStatus,
+            notes: `Status alterado para ${getStatusText(newStatus)}`
+          })
+      }
       
+      // Atualizar estado local
       setOrders(orders.map(order => 
         order.id === id ? { ...order, status: newStatus } : order
       ))
       
-      // Atualizar histórico de status
-      await supabase
-        .from('order_status_history')
-        .insert({
-          order_id: id,
-          status: newStatus,
-          notes: `Status alterado para ${getStatusText(newStatus)}`
-        })
-
       // Enviar notificação por email
       await sendStatusNotification(order, newStatus)
+      
+      alert(`Status do pedido ${order.order_number} atualizado para ${getStatusText(newStatus)}`)
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
       alert('Erro ao atualizar status do pedido')
@@ -366,7 +428,7 @@ export default function AdminPedidos() {
       </div>
 
       {/* Estatísticas em tempo real */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-800 p-4 rounded-lg">
           <div className="flex items-center">
             <ShoppingCart className="h-8 w-8 text-primary-400 mr-3" />
@@ -406,8 +468,19 @@ export default function AdminPedidos() {
               </p>
             </div>
           </div>
+        </div>
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <div className="flex items-center">
+            <MessageCircle className="h-8 w-8 text-green-400 mr-3" />
+            <div>
+              <p className="text-gray-400 text-sm">Pedidos WhatsApp</p>
+              <p className="text-2xl font-bold text-white">
+                {orders.filter(o => o.source === 'whatsapp').length}
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
       {/* Filtros */}
       <div className="bg-gray-800 p-4 rounded-lg mb-6">
@@ -449,6 +522,11 @@ export default function AdminPedidos() {
                   <h3 className="text-lg font-semibold text-white mr-3">
                     Pedido #{order.order_number}
                   </h3>
+                  {order.source === 'whatsapp' && (
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-600 text-white mr-2 flex items-center">
+                      📱 WhatsApp
+                    </span>
+                  )}
                   <span className={`px-3 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(order.status)}`}>
                         {getStatusText(order.status)}
                       </span>
@@ -457,10 +535,19 @@ export default function AdminPedidos() {
                   <div>
                     <p><strong>Cliente:</strong> {order.customer_name}</p>
                     <p><strong>Email:</strong> {order.customer_email}</p>
+                    {order.customer_phone && (
+                      <p><strong>Telefone:</strong> {order.customer_phone}</p>
+                    )}
+                    {order.source === 'whatsapp' && (
+                      <p><strong>Método:</strong> 📱 WhatsApp</p>
+                    )}
                           </div>
                   <div>
                     <p><strong>Itens:</strong> {order.items_count}</p>
                     <p><strong>Total:</strong> R$ {order.total_amount.toFixed(2)}</p>
+                    {order.shipping_cost && (
+                      <p><strong>Frete:</strong> R$ {order.shipping_cost.toFixed(2)}</p>
+                    )}
                           </div>
                         </div>
                 {order.shipping_address && (

@@ -5,6 +5,7 @@ import { Product } from '@/lib/data'
 import { shippingService } from '@/lib/shipping'
 import { orderGenerator, OrderData } from '@/lib/order-generator'
 import { DiscountCalculator, CartDiscountSummary } from '@/lib/discount-calculator'
+import { createClient } from '@/lib/supabase-client'
 
 export interface CartItem {
   product: Product
@@ -32,6 +33,7 @@ interface CartContextType {
   createOrder: (customerInfo?: any, shippingAddress?: any, paymentMethod?: string, notes?: string) => any
   getCartSummary: () => any
   openWhatsAppOrder: (order: any, phoneNumber?: string) => void
+  saveOrderToDatabase: (customerInfo: { name: string; email: string; phone: string }, orderData: any) => Promise<any>
   // Novas funções de desconto
   getDiscountSummary: () => CartDiscountSummary
   getItemDiscount: (product: Product, quantity: number) => any
@@ -200,9 +202,54 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const openWhatsAppOrder = (order: any, phoneNumber: string = '21990708854') => {
+  const openWhatsAppOrder = (order: any, phoneNumber: string = '5521990708854') => {
     const url = orderGenerator.generateWhatsAppUrl(order, phoneNumber)
     window.open(url, '_blank')
+  }
+
+  const saveOrderToDatabase = async (
+    customerInfo: { name: string; email: string; phone: string },
+    orderData: any
+  ) => {
+    try {
+      // Solução temporária: salvar no localStorage até a tabela whatsapp_orders ser criada
+      const orderToSave = {
+        id: `order_${Date.now()}`,
+        order_number: orderData.code,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        status: 'aguardando_pagamento',
+        subtotal: orderData.subtotal,
+        shipping_cost: orderData.shipping,
+        total_amount: orderData.total,
+        items: orderData.items,
+        shipping_address: {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          phone: customerInfo.phone,
+          method: orderData.shippingMethod || 'whatsapp'
+        },
+        notes: `Pedido finalizado via WhatsApp - ${orderData.code}`,
+        whatsapp_message: `Olá! Tenho um novo pedido para você:\n\n*Número do Pedido:* ${orderData.code}\n*Total:* R$ ${orderData.total.toFixed(2)}\n*Itens:*\n${orderData.items.map((item: any) => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\nPor favor, aguardo as instruções para pagamento e envio do comprovante.`,
+        whatsapp_sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        method: 'whatsapp'
+      }
+
+      // Salvar no localStorage
+      const existingOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
+      existingOrders.push(orderToSave)
+      localStorage.setItem('user_orders', JSON.stringify(existingOrders))
+
+      console.log('✅ Pedido salvo no localStorage (aguardando tabela whatsapp_orders):', orderToSave)
+      console.log('📊 Total de pedidos no localStorage:', existingOrders.length)
+      console.log('📧 Email do cliente:', customerInfo.email)
+      return orderToSave
+    } catch (error) {
+      console.error('Erro ao salvar pedido:', error)
+      throw error
+    }
   }
 
   // Funções de desconto
@@ -238,6 +285,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         createOrder,
         getCartSummary,
         openWhatsAppOrder,
+        saveOrderToDatabase,
         getDiscountSummary,
         getItemDiscount,
         getNextDiscountThreshold

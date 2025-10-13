@@ -44,18 +44,36 @@ export default function OrdersPage() {
     if (!user) return
 
     try {
-      const { data, error } = await supabase
-        .from('orders_with_customer')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+      // Por enquanto, buscar apenas do localStorage até as tabelas estarem configuradas
+      const localOrders = JSON.parse(localStorage.getItem('user_orders') || '[]')
+      
+      // Filtrar pedidos do usuário atual
+      const userOrders = localOrders.filter((order: any) => 
+        order.customer_email === user.email
+      )
+      
+      // Mapear para o formato esperado
+      const allOrders = userOrders.map((order: any) => ({
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer_name || order.customer?.name,
+        customer_email: order.customer_email || order.customer?.email,
+        customer_phone: order.customer_phone || order.customer?.phone,
+        status: order.status,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        total_amount: order.total_amount,
+        shipping_address: order.shipping_address,
+        notes: order.notes,
+        created_at: order.created_at,
+        method: order.method || 'whatsapp'
+      }))
 
-      if (error) {
-        console.error('Erro ao buscar pedidos:', error)
-        return
-      }
+      // Ordenar por data de criação (mais recentes primeiro)
+      allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-      setOrders(data || [])
+      console.log('📋 Pedidos encontrados no localStorage:', allOrders.length)
+      setOrders(allOrders)
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)
     } finally {

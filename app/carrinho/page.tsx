@@ -53,6 +53,7 @@ export default function CartPage() {
     createOrder,
     clearCart,
     openWhatsAppOrder,
+    saveOrderToDatabase,
     getDiscountSummary,
     getItemDiscount,
     getNextDiscountThreshold
@@ -79,7 +80,7 @@ export default function CartPage() {
   // Funções para novas funcionalidades
   const getRelatedProducts = () => {
     if (items.length === 0) return []
-    const currentCategories = [...new Set(items.map(item => item.product.category))]
+    const currentCategories = Array.from(new Set(items.map(item => item.product.category)))
     return sampleProducts
       .filter(product => 
         currentCategories.includes(product.category) && 
@@ -295,31 +296,43 @@ export default function CartPage() {
 
     setIsLoading(true)
     try {
+      const customerInfo = {
+        name: user.user_metadata?.full_name || 'Cliente',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || ''
+      }
+
+      console.log('👤 Dados do cliente:', customerInfo)
+
       const order = createOrder(
-        {
-          name: user.user_metadata?.full_name || 'Cliente',
-          email: user.email || '',
-          phone: user.user_metadata?.phone || ''
-        },
+        customerInfo,
         undefined,
         'WhatsApp',
         'Pedido finalizado via WhatsApp'
       )
+
+      console.log('📦 Pedido criado:', order)
+
+      // Salvar pedido no banco de dados
+      console.log('💾 Salvando pedido...')
+      const savedOrder = await saveOrderToDatabase(customerInfo, order)
+      console.log('✅ Pedido salvo:', savedOrder)
 
       alert(
         `🎉 Pedido Criado! Seu número de pedido é: *${order.code}*\n\n` +
         `📝 *INSTRUÇÕES IMPORTANTES:*\n` +
         `• Anote o número do pedido.\n` +
         `• Envie o comprovante de pagamento junto com este número via WhatsApp.\n` +
-        `• Aguarde a confirmação do pagamento.`
+        `• Aguarde a confirmação do pagamento.\n\n` +
+        `✅ *Pedido salvo! Você pode acompanhar na aba "Meus Pedidos".*`
       )
 
-      const phoneNumber = '21990708854'
+      const phoneNumber = '5521990708854'
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
         `Olá! Tenho um novo pedido para você:\n\n` +
         `*Número do Pedido:* ${order.code}\n` +
         `*Total:* R$ ${getTotalWithCoupon().toFixed(2)}\n` +
-        `*Itens:*\n${order.items.map(item => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
+        `*Itens:*\n${order.items.map((item: any) => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
         `Por favor, aguardo as instruções para pagamento e envio do comprovante.`
       )}`
       window.open(whatsappUrl, '_blank')
