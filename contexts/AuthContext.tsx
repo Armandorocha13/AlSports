@@ -1,37 +1,43 @@
 'use client'
 
+// Importações necessárias para o contexto de autenticação
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase-client'
 import { Profile } from '@/lib/types/database'
 
+// Interface que define o tipo do contexto de autenticação
 interface AuthContextType {
-  user: User | null
-  profile: Profile | null
-  session: Session | null
-  loading: boolean
-  signUp: (email: string, password: string, userData: Partial<Profile>) => Promise<{ error: any }>
-  signIn: (email: string, password: string) => Promise<{ error: any }>
-  signOut: () => Promise<void>
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>
+  user: User | null // Usuário atual do Supabase
+  profile: Profile | null // Perfil do usuário na aplicação
+  session: Session | null // Sessão atual do Supabase
+  loading: boolean // Estado de carregamento
+  signUp: (email: string, password: string, userData: Partial<Profile>) => Promise<{ error: any }> // Função de cadastro
+  signIn: (email: string, password: string) => Promise<{ error: any }> // Função de login
+  signOut: () => Promise<void> // Função de logout
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }> // Função de atualização do perfil
 }
 
+// Criação do contexto de autenticação
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Provedor do contexto de autenticação
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // Estados para gerenciar autenticação
+  const [user, setUser] = useState<User | null>(null) // Usuário atual
+  const [profile, setProfile] = useState<Profile | null>(null) // Perfil do usuário
+  const [session, setSession] = useState<Session | null>(null) // Sessão atual
+  const [loading, setLoading] = useState(true) // Estado de carregamento
+  const supabase = createClient() // Cliente do Supabase
 
   useEffect(() => {
-    // Obter sessão inicial
+    // Função para obter sessão inicial do usuário
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       setUser(session?.user ?? null)
       
+      // Se há usuário logado, buscar seu perfil
       if (session?.user) {
         await fetchProfile(session.user.id)
       }
@@ -41,12 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession()
 
-    // Escutar mudanças de autenticação
+    // Listener para mudanças no estado de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         
+        // Se há usuário logado, buscar perfil; senão, limpar perfil
         if (session?.user) {
           await fetchProfile(session.user.id)
         } else {
@@ -57,12 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
+    // Cleanup da subscription
     return () => subscription.unsubscribe()
   }, [])
 
+  // Função para buscar o perfil do usuário
   const fetchProfile = async (userId: string) => {
     try {
-      // Buscar perfil do usuário
+      // Buscar perfil do usuário na tabela profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -147,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Função para cadastro de novos usuários
   const signUp = async (email: string, password: string, userData: Partial<Profile>) => {
     try {
       // Verificar se o email já existe
@@ -176,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Criar usuário no Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -233,6 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Função para login de usuários
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -246,6 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Função para logout do usuário
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
@@ -254,6 +267,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Função para atualizar perfil do usuário
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) {
       return { error: new Error('Usuário não autenticado') }
@@ -278,6 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Valor do contexto com todas as funções e estados
   const value = {
     user,
     profile,
@@ -296,6 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Hook para usar o contexto de autenticação
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {

@@ -1,19 +1,25 @@
+// Importações necessárias para o middleware
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Middleware para autenticação e proteção de rotas
 export async function middleware(request: NextRequest) {
+  // Criar resposta inicial do Next.js
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  // Criar cliente Supabase para o servidor
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, // URL do projeto Supabase
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, // Chave anônima do Supabase
     {
       cookies: {
+        // Função para obter todos os cookies
         getAll() {
           return request.cookies.getAll()
         },
+        // Função para definir cookies
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
@@ -27,10 +33,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // IMPORTANTE: Evitar escrever lógica entre createServerClient e
+  // supabase.auth.getUser(). Um erro simples pode tornar muito difícil debugar
+  // problemas com usuários sendo deslogados aleatoriamente.
 
+  // Obter usuário atual da sessão
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -59,25 +66,26 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
+  // IMPORTANTE: Você *deve* retornar o objeto supabaseResponse como está. Se você está
+  // criando um novo objeto de resposta com NextResponse.next() certifique-se de:
+  // 1. Passar a requisição nele, assim:
   //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
+  // 2. Copiar os cookies, assim:
   //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object instead of the supabaseResponse object
+  // 3. Alterar o objeto myNewResponse em vez do objeto supabaseResponse
 
   return supabaseResponse
 }
 
+// Configuração do middleware
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * Corresponder a todos os caminhos de requisição exceto os que começam com:
+     * - _next/static (arquivos estáticos)
+     * - _next/image (arquivos de otimização de imagem)
+     * - favicon.ico (arquivo de favicon)
+     * Sinta-se livre para modificar este padrão para incluir mais caminhos.
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

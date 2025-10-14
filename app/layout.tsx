@@ -1,3 +1,4 @@
+// Importações necessárias para o layout principal da aplicação
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -6,14 +7,17 @@ import Footer from '@/components/Footer'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 
+// Configuração da fonte Inter para toda a aplicação
 const inter = Inter({ subsets: ['latin'] })
 
+// Metadados da aplicação para SEO
 export const metadata: Metadata = {
   title: 'AL Sports - Mundo da Bola | Loja de Atacado de Roupas Esportivas',
   description: 'Especializada na venda por atacado de roupas esportivas. Futebol, NBA, Roupas de Treino, Conjuntos Infantis, Acessórios e muito mais.',
   keywords: 'roupas esportivas, atacado, futebol, NBA, treino, infantil, acessórios, AL Sports, mundo da bola',
 }
 
+// Componente principal do layout da aplicação
 export default function RootLayout({
   children,
 }: {
@@ -22,13 +26,19 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
+        {/* Provedor de autenticação para gerenciar estado do usuário */}
         <AuthProvider>
+          {/* Provedor do carrinho para gerenciar produtos no carrinho */}
           <CartProvider>
+            {/* Container principal com layout flexível */}
             <div className="min-h-screen flex flex-col">
+              {/* Cabeçalho da aplicação */}
               <Header />
+              {/* Área principal onde o conteúdo das páginas será renderizado */}
               <main className="flex-1">
                 {children}
               </main>
+              {/* Rodapé da aplicação */}
               <Footer />
             </div>
           </CartProvider>

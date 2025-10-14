@@ -1,5 +1,6 @@
 'use client'
 
+// Importações necessárias para o componente Header
 import { useState } from 'react'
 import Link from 'next/link'
 import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield } from 'lucide-react'
@@ -7,20 +8,26 @@ import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 
+// Componente do cabeçalho da aplicação
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  // Estados para controlar abertura/fechamento de menus
+  const [isMenuOpen, setIsMenuOpen] = useState(false) // Menu mobile
+  const [isSearchOpen, setIsSearchOpen] = useState(false) // Barra de pesquisa
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false) // Menu do usuário
+  
+  // Hooks para autenticação e carrinho
   const { user, profile, signOut } = useAuth()
   const { getTotalItems, getTotal, getShippingInfo } = useCart()
 
   return (
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-800">
-      {/* Top Bar */}
+      {/* Barra superior com informações de contato */}
       <div className="bg-primary-500 text-black py-2">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center text-sm">
+            {/* Mensagem promocional */}
             <p>🛒 Venda por Atacado - Preços Especiais para Revendedores</p>
+            {/* Informações de contato (visível apenas em desktop) */}
             <div className="hidden md:flex items-center space-x-4">
               <span>📞 (11) 99999-9999</span>
               <span>✉️ contato@alsports.com.br</span>
@@ -29,17 +36,17 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Main Header */}
+      {/* Cabeçalho principal */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo da empresa */}
           <Link href="/" className="flex items-center">
             <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
               <span className="font-bold text-black text-lg">AL</span>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Navegação desktop - Links para categorias */}
           <nav className="hidden lg:flex items-center space-x-8">
             {categories.map((category) => (
               <Link
@@ -52,9 +59,9 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Search, Cart and User Menu */}
+          {/* Área de ações: pesquisa, carrinho e menu do usuário */}
           <div className="flex items-center space-x-4">
-            {/* Search */}
+            {/* Botão de pesquisa */}
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
@@ -62,19 +69,20 @@ export default function Header() {
               <Search size={20} />
             </button>
 
-            {/* Cart Link */}
+            {/* Link do carrinho com contador e tooltip */}
             <a
               href="/carrinho"
               className="relative p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200 group"
               title={`Carrinho: ${getTotalItems()} item(s) - R$ ${getTotal().toFixed(2)}`}
             >
               <ShoppingCart size={20} />
+              {/* Contador de itens no carrinho */}
               {getTotalItems() > 0 && (
                 <>
                   <span className="absolute -top-1 -right-1 bg-primary-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
                     {getTotalItems()}
                   </span>
-                  {/* Tooltip */}
+                  {/* Tooltip com informações do carrinho */}
                   <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
                     <div className="p-3 space-y-1">
                       <div className="font-semibold text-primary-400">Carrinho</div>
@@ -93,9 +101,10 @@ export default function Header() {
               )}
             </a>
 
-            {/* User Menu */}
+            {/* Menu do usuário - exibe se estiver logado */}
             {user ? (
               <div className="relative">
+                {/* Botão do menu do usuário */}
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
@@ -106,9 +115,10 @@ export default function Header() {
                   </span>
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Menu dropdown do usuário */}
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    {/* Link para área do usuário */}
                     <Link
                       href="/minha-conta"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -116,6 +126,7 @@ export default function Header() {
                     >
                       Minha Conta
                     </Link>
+                    {/* Link para pedidos do usuário */}
                     <Link
                       href="/minha-conta/pedidos"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -123,6 +134,7 @@ export default function Header() {
                     >
                       Meus Pedidos
                     </Link>
+                    {/* Link para endereços do usuário */}
                     <Link
                       href="/minha-conta/enderecos"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -131,7 +143,7 @@ export default function Header() {
                       Endereços
                     </Link>
                     
-                    {/* Admin Panel Button */}
+                    {/* Botão do painel admin - exibe apenas para administradores */}
                     {profile?.user_type === 'admin' && (
                       <>
                         <hr className="my-1" />
@@ -148,6 +160,7 @@ export default function Header() {
                       </>
                     )}
                     
+                    {/* Botão de logout */}
                     <hr className="my-1" />
                     <button
                       onClick={() => {
@@ -163,6 +176,7 @@ export default function Header() {
                 )}
               </div>
             ) : (
+              /* Links de login e cadastro para usuários não logados */
               <div className="flex items-center space-x-2">
                 <Link
                   href="/auth/login"
@@ -180,7 +194,7 @@ export default function Header() {
               </div>
             )}
 
-            {/* Mobile Menu Button */}
+            {/* Botão do menu mobile */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
@@ -190,7 +204,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Barra de pesquisa - exibe quando ativada */}
         {isSearchOpen && (
           <div className="mt-4 pb-4">
             <div className="relative">
@@ -205,7 +219,7 @@ export default function Header() {
         )}
       </div>
 
-      {/* Mobile Menu */}
+      {/* Menu mobile - navegação para dispositivos móveis */}
       {isMenuOpen && (
         <div className="lg:hidden bg-gray-800 border-t border-gray-700">
           <nav className="container mx-auto px-4 py-4">
@@ -225,7 +239,7 @@ export default function Header() {
         </div>
       )}
 
-      {/* Floating Cart Button for Mobile */}
+      {/* Botão flutuante do carrinho para mobile */}
       {getTotalItems() > 0 && (
         <div className="fixed bottom-6 right-6 z-40 lg:hidden">
           <a
@@ -238,7 +252,7 @@ export default function Header() {
                 {getTotalItems()}
               </span>
             </div>
-            {/* Pulse animation */}
+            {/* Animação de pulso */}
             <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
           </a>
         </div>

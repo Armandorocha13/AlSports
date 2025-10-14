@@ -1,5 +1,6 @@
 'use client'
 
+// Importações necessárias para o contexto do carrinho
 import { createContext, useContext, useState, ReactNode } from 'react'
 import { Product } from '@/lib/data'
 import { shippingService } from '@/lib/shipping'
@@ -7,50 +8,58 @@ import { orderGenerator, OrderData } from '@/lib/order-generator'
 import { DiscountCalculator, CartDiscountSummary } from '@/lib/discount-calculator'
 import { createClient } from '@/lib/supabase-client'
 
+// Cliente do Supabase para operações de banco de dados
 const supabase = createClient()
 
+// Interface que define um item do carrinho
 export interface CartItem {
-  product: Product
-  quantity: number
-  selectedSize: string
-  selectedColor?: string
-  addedAt: Date
+  product: Product // Produto adicionado
+  quantity: number // Quantidade do produto
+  selectedSize: string // Tamanho selecionado
+  selectedColor?: string // Cor selecionada (opcional)
+  addedAt: Date // Data de adição ao carrinho
 }
 
+// Interface que define o tipo do contexto do carrinho
 interface CartContextType {
-  items: CartItem[]
-  addItem: (product: Product, size: string, quantity: number, color?: string) => void
-  removeItem: (productId: string, size: string, color?: string) => void
-  updateQuantity: (productId: string, size: string, quantity: number, color?: string) => void
-  clearCart: () => void
-  getTotalItems: () => number
-  getTotalPieces: () => number
-  getSubtotal: () => number
-  getShippingCost: () => number
-  getTotal: () => number
-  getItemPrice: (product: Product, quantity: number) => number
-  getShippingInfo: () => any
-  canUseTransportadora: () => boolean
-  getMissingForTransportadora: () => number
-  createOrder: (customerInfo?: any, shippingAddress?: any, paymentMethod?: string, notes?: string) => any
-  getCartSummary: () => any
-  openWhatsAppOrder: (order: any, phoneNumber?: string) => void
-  saveOrderToDatabase: (customerInfo: { name: string; email: string; phone: string }, orderData: any) => Promise<any>
-  // Novas funções de desconto
-  getDiscountSummary: () => CartDiscountSummary
-  getItemDiscount: (product: Product, quantity: number) => any
-  getNextDiscountThreshold: (product: Product, currentQuantity: number) => any
+  items: CartItem[] // Lista de itens no carrinho
+  addItem: (product: Product, size: string, quantity: number, color?: string) => void // Adicionar item
+  removeItem: (productId: string, size: string, color?: string) => void // Remover item
+  updateQuantity: (productId: string, size: string, quantity: number, color?: string) => void // Atualizar quantidade
+  clearCart: () => void // Limpar carrinho
+  getTotalItems: () => number // Total de itens únicos
+  getTotalPieces: () => number // Total de peças
+  getSubtotal: () => number // Subtotal sem frete
+  getShippingCost: () => number // Custo do frete
+  getTotal: () => number // Total com frete
+  getItemPrice: (product: Product, quantity: number) => number // Preço do item baseado na quantidade
+  getShippingInfo: () => any // Informações de frete
+  canUseTransportadora: () => boolean // Pode usar transportadora
+  getMissingForTransportadora: () => number // Peças faltando para transportadora
+  createOrder: (customerInfo?: any, shippingAddress?: any, paymentMethod?: string, notes?: string) => any // Criar pedido
+  getCartSummary: () => any // Resumo do carrinho
+  openWhatsAppOrder: (order: any, phoneNumber?: string) => void // Abrir pedido no WhatsApp
+  saveOrderToDatabase: (customerInfo: { name: string; email: string; phone: string }, orderData: any) => Promise<any> // Salvar pedido no banco
+  // Funções de desconto
+  getDiscountSummary: () => CartDiscountSummary // Resumo de descontos
+  getItemDiscount: (product: Product, quantity: number) => any // Desconto de um item
+  getNextDiscountThreshold: (product: Product, currentQuantity: number) => any // Próximo limite de desconto
 }
 
+// Criação do contexto do carrinho
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+// Provedor do contexto do carrinho
 export function CartProvider({ children }: { children: ReactNode }) {
+  // Estado que armazena os itens do carrinho
   const [items, setItems] = useState<CartItem[]>([])
 
+  // Função para adicionar item ao carrinho
   const addItem = (product: Product, size: string, quantity: number = 1, color?: string) => {
     console.log('🛒 CartContext: Adicionando ao carrinho:', { product: product.name, size, quantity, color })
     
     setItems(prev => {
+      // Verificar se já existe um item com o mesmo produto, tamanho e cor
       const existingItem = prev.find(item =>
         item.product.id === product.id && 
         item.selectedSize === size && 
@@ -58,6 +67,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       )
 
       if (existingItem) {
+        // Se o item já existe, atualizar a quantidade
         console.log('🛒 CartContext: Item existente, atualizando quantidade')
         return prev.map(item =>
           item.product.id === product.id && 
@@ -67,6 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item
         )
       } else {
+        // Se é um novo item, adicionar à lista
         console.log('🛒 CartContext: Novo item adicionado')
         const newItems = [...prev, {
           product,
@@ -81,6 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  // Função para remover item do carrinho
   const removeItem = (productId: string, size: string, color?: string) => {
     setItems(prev => prev.filter(item =>
       !(item.product.id === productId && 
@@ -89,8 +101,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ))
   }
 
+  // Função para atualizar quantidade de um item
   const updateQuantity = (productId: string, size: string, quantity: number, color?: string) => {
     if (quantity <= 0) {
+      // Se quantidade for 0 ou menor, remover o item
       removeItem(productId, size, color)
       return
     }
@@ -104,23 +118,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ))
   }
 
+  // Função para limpar todo o carrinho
   const clearCart = () => {
     setItems([])
   }
 
+  // Função para obter total de itens únicos no carrinho
   const getTotalItems = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
 
+  // Função para obter total de peças (mesmo que getTotalItems)
   const getTotalPieces = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
 
+  // Função para calcular preço de um item baseado na quantidade
   const getItemPrice = (product: Product, quantity: number): number => {
+    // Se não há faixas de preço, usar preço atacado padrão
     if (!product.priceRanges || product.priceRanges.length === 0) {
       return product.wholesalePrice
     }
 
+    // Encontrar a faixa de preço adequada para a quantidade
     const priceRange = product.priceRanges.find(range => {
       if (range.max) {
         return quantity >= range.min && quantity <= range.max
@@ -129,9 +149,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     })
 
+    // Retornar preço da faixa encontrada ou preço atacado padrão
     return priceRange ? priceRange.price : product.wholesalePrice
   }
 
+  // Função para calcular subtotal (sem frete)
   const getSubtotal = () => {
     return items.reduce((total, item) => {
       const price = getItemPrice(item.product, item.quantity)
@@ -139,28 +161,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, 0)
   }
 
+  // Função para obter informações de frete
   const getShippingInfo = () => {
     const totalPieces = getTotalPieces()
     return shippingService.calculateShippingByQuantity(totalPieces)
   }
 
+  // Função para obter custo do frete
   const getShippingCost = () => {
     return getShippingInfo().cost
   }
 
+  // Função para calcular total (subtotal + frete)
   const getTotal = () => {
     return getSubtotal() + getShippingCost()
   }
 
+  // Função para verificar se pode usar transportadora (mínimo 50 peças)
   const canUseTransportadora = () => {
     return getTotalPieces() >= 50
   }
 
+  // Função para calcular quantas peças faltam para transportadora
   const getMissingForTransportadora = () => {
     const missing = 50 - getTotalPieces()
     return missing > 0 ? missing : 0
   }
 
+  // Função para obter resumo completo do carrinho
   const getCartSummary = () => {
     return {
       totalItems: getTotalItems(),
@@ -172,6 +200,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Função para criar um pedido com base no carrinho
   const createOrder = (
     customerInfo?: { name: string; email: string; phone: string },
     shippingAddress?: any,
@@ -180,6 +209,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   ) => {
     const shippingInfo = getShippingInfo()
     
+    // Mapear itens do carrinho para formato do pedido
     const orderItems = items.map(item => ({
       productName: item.product.name,
       size: item.selectedSize,
@@ -189,6 +219,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalPrice: getItemPrice(item.product, item.quantity) * item.quantity
     }))
 
+    // Usar o gerador de pedidos para criar o pedido
     return orderGenerator.createOrder({
       totalItems: getTotalItems(),
       totalPieces: getTotalPieces(),
@@ -204,16 +235,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  // Função para abrir pedido no WhatsApp
   const openWhatsAppOrder = (order: any, phoneNumber: string = '5521990708854') => {
     const url = orderGenerator.generateWhatsAppUrl(order, phoneNumber)
     window.open(url, '_blank')
   }
 
+  // Função para salvar pedido no banco de dados
   const saveOrderToDatabase = async (
     customerInfo: { name: string; email: string; phone: string },
     orderData: any
   ) => {
     try {
+      // Preparar dados do pedido para salvar
       const orderToSave = {
         order_number: orderData.code,
         customer_name: customerInfo.name,
@@ -321,6 +355,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return DiscountCalculator.getNextDiscountThreshold(product, currentQuantity)
   }
 
+  // Retornar o provedor do contexto com todas as funções e estados
   return (
     <CartContext.Provider
       value={{
@@ -352,6 +387,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// Hook para usar o contexto do carrinho
 export function useCart() {
   const context = useContext(CartContext)
   if (context === undefined) {
