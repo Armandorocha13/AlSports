@@ -79,18 +79,25 @@ export default function CategoryPage({ params }: CategoryPageProps) {
             >
               <div className="card h-full hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                 <div className="relative overflow-hidden">
-                  <div className="h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="bg-primary-500 text-black p-4 rounded-full mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-xl font-bold">
-                          {subcategory.name.charAt(0)}
-                        </span>
+                  <div className="h-48 relative">
+                    <Image
+                      src={subcategory.image}
+                      alt={subcategory.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors duration-200 drop-shadow-lg">
+                          {subcategory.name}
+                        </h3>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 text-center">
                   <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-primary-400 transition-colors duration-200">
                     {subcategory.name}
                   </h3>
@@ -98,7 +105,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                     Clique para ver os produtos desta subcategoria
                   </p>
                   
-                  <div className="flex items-center text-primary-400 font-medium group-hover:text-primary-300 transition-colors duration-200">
+                  <div className="flex items-center justify-center text-primary-400 font-medium group-hover:text-primary-300 transition-colors duration-200">
                     <span>Ver Produtos</span>
                     <ArrowLeft className="ml-1 rotate-180" size={16} />
                   </div>

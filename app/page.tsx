@@ -4,20 +4,20 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Star, Truck, Shield, RotateCcw } from 'lucide-react'
-import { sampleProducts, categories } from '@/lib/data'
+import { sampleProducts, categories, getFeaturedProductsLimited } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
 import CategoryCard from '@/components/CategoryCard'
 import AdminBanner from '@/components/AdminBanner'
 
 // Componente da página inicial da aplicação
 export default function HomePage() {
-  // Filtra produtos em destaque para exibição na seção de produtos em destaque
-  const featuredProducts = sampleProducts.filter(product => product.featured)
+  // Filtra produtos em destaque limitados a 2 por subcategoria
+  const featuredProducts = getFeaturedProductsLimited()
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen dark-theme">
       {/* Seção Hero - Banner principal da página inicial */}
-      <section className="relative bg-gradient-to-r from-gray-800 to-gray-900 text-white">
+      <section className="relative bg-gradient-to-r from-black to-gray-900 text-white">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             {/* Título principal da seção hero */}
@@ -86,7 +86,7 @@ export default function HomePage() {
         </section>
 
       {/* Seção de categorias de produtos */}
-      <section className="py-16 bg-black">
+      <section className="py-16 bg-gray-900">
         <div className="container mx-auto px-4">
           {/* Cabeçalho da seção de categorias */}
           <div className="text-center mb-12">
@@ -108,7 +108,7 @@ export default function HomePage() {
       </section>
 
       {/* Seção de produtos em destaque */}
-      <section className="py-16 bg-gray-900">
+      <section className="py-16 bg-black">
         <div className="container mx-auto px-4">
           {/* Cabeçalho da seção de produtos em destaque */}
           <div className="text-center mb-12">
@@ -130,7 +130,7 @@ export default function HomePage() {
       </section>
 
         {/* Banner promocional */}
-        <section className="py-16 bg-gradient-to-r from-gray-800 to-black text-white">
+        <section className="py-16 bg-gradient-to-r from-black to-gray-900 text-white">
           <div className="container mx-auto px-4 text-center">
             {/* Título da promoção */}
             <h2 className="text-3xl md:text-4xl font-bold mb-4">

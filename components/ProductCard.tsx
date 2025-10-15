@@ -4,7 +4,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, Heart } from 'lucide-react'
-import { Product } from '@/lib/data'
+// Tipo Product simples para os componentes
+interface Product {
+  id: string
+  name: string
+  price: number
+  wholesalePrice: number
+  image: string
+  description: string
+  sizes: string[]
+  category: string
+  subcategory: string
+  featured?: boolean
+  onSale?: boolean
+  priceRanges?: Array<{
+    min: number
+    max?: number
+    price: number
+  }>
+}
 import ProductViewModal from './ProductViewModal'
 
 interface ProductCardProps {
@@ -27,8 +45,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       return `R$ ${product.wholesalePrice.toFixed(2)}`
     }
     
-    const minPrice = Math.min(...product.priceRanges.map(range => range.price))
-    const maxPrice = Math.max(...product.priceRanges.map(range => range.price))
+    const minPrice = Math.min(...product.priceRanges.map((range: any) => range.price))
+    const maxPrice = Math.max(...product.priceRanges.map((range: any) => range.price))
     
     if (minPrice === maxPrice) {
       return `R$ ${minPrice.toFixed(2)}`
@@ -46,7 +64,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             width={300}
             height={300}
-            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-80 object-contain group-hover:scale-105 transition-transform duration-300"
           />
           
           {/* Badges */}
@@ -86,7 +104,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Sizes */}
           <div className="flex flex-wrap gap-1 mb-3">
-            {product.sizes.slice(0, 4).map((size) => (
+            {product.sizes.slice(0, 4).map((size: string) => (
               <span key={size} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
                 {size}
               </span>

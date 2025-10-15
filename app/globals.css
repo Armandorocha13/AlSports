@@ -6,8 +6,10 @@
 
 :root {
 	--foreground-rgb: 255, 255, 255;
-	--background-start-rgb: 17, 24, 39;
-	--background-end-rgb: 31, 41, 55;
+	--background-start-rgb: 0, 0, 0;
+	--background-end-rgb: 15, 15, 15;
+	--accent-yellow: 255, 193, 7;
+	--accent-yellow-dark: 255, 183, 0;
 }
 
 * {
@@ -39,8 +41,10 @@ a {
 @media (prefers-color-scheme: light) {
 	:root {
 		--foreground-rgb: 255, 255, 255;
-		--background-start-rgb: 17, 24, 39;
-		--background-end-rgb: 31, 41, 55;
+		--background-start-rgb: 0, 0, 0;
+		--background-end-rgb: 15, 15, 15;
+		--accent-yellow: 255, 193, 7;
+		--accent-yellow-dark: 255, 183, 0;
 	}
 }
 
@@ -50,16 +54,16 @@ a {
 }
 
 ::-webkit-scrollbar-track {
-	background: #1f2937;
+	background: #0f0f0f;
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #facc15;
+	background: rgb(var(--accent-yellow));
 	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: #eab308;
+	background: rgb(var(--accent-yellow-dark));
 }
 
 /* Smooth transitions */
@@ -69,16 +73,41 @@ a {
 
 /* Custom button styles */
 .btn-primary {
-	@apply bg-primary-500 hover:bg-primary-600 text-black font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+	@apply bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
 .btn-secondary {
-	@apply bg-gray-800 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+	@apply bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
 /* Card styles */
 .card {
 	@apply bg-gray-900 border border-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200;
+}
+
+/* Dark theme with yellow accents */
+.dark-theme {
+	background: linear-gradient(to bottom, transparent, rgb(15, 15, 15)) rgb(0, 0, 0);
+}
+
+.dark-theme .text-primary-400 {
+	color: rgb(var(--accent-yellow));
+}
+
+.dark-theme .text-primary-500 {
+	color: rgb(var(--accent-yellow-dark));
+}
+
+.dark-theme .bg-primary-500 {
+	background-color: rgb(var(--accent-yellow));
+}
+
+.dark-theme .bg-primary-400 {
+	background-color: rgb(var(--accent-yellow-dark));
+}
+
+.dark-theme .border-primary-500 {
+	border-color: rgb(var(--accent-yellow));
 }
 
 /* Grid styles */

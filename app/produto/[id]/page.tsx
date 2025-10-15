@@ -107,7 +107,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 alt={product.name}
                 width={600}
                 height={600}
-                className="w-full h-96 lg:h-[500px] object-cover rounded-lg"
+                className="w-full h-96 lg:h-[500px] object-contain rounded-lg"
               />
               {product.featured && (
                 <span className="absolute top-4 left-4 bg-primary-600 text-white text-sm px-3 py-1 rounded-full">

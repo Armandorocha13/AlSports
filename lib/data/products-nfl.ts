@@ -8,7 +8,7 @@ export const nflProducts = [
     name: 'Camisa NFL MAHOMES',
     price: 120.00, // Preço de varejo
     wholesalePrice: 120.00,
-    image: '/images/NFL/CamisasNFL/(G).jpg',
+    image: '/images/NFL/mahomes.jpg',
     description: 'Camisa tailandesa do Kansas City Chiefs com Patrick Mahomes.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nfl',
@@ -25,7 +25,7 @@ export const nflProducts = [
     name: 'Camisa NFL KELCE',
     price: 120.00, // Preço de varejo
     wholesalePrice: 120.00,
-    image: '/images/NFL/CamisasNFL/(M).jpg',
+    image: '/images/NFL/kelce.jpg',
     description: 'Camisa tailandesa do Kansas City Chiefs com Travis Kelce.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nfl',

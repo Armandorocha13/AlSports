@@ -40,6 +40,31 @@ export const getFeaturedProducts = () => {
   return allProducts.filter(product => product.featured);
 };
 
+// Função para buscar produtos em destaque limitados a 2 por subcategoria e máximo 8 produtos
+export const getFeaturedProductsLimited = () => {
+  const featuredProducts = allProducts.filter(product => product.featured);
+  
+  // Agrupar por subcategoria
+  const productsBySubcategory: { [key: string]: any[] } = {};
+  
+  featuredProducts.forEach(product => {
+    const subcategory = product.subcategory;
+    if (!productsBySubcategory[subcategory]) {
+      productsBySubcategory[subcategory] = [];
+    }
+    productsBySubcategory[subcategory].push(product);
+  });
+  
+  // Limitar a 2 produtos por subcategoria
+  const limitedProducts: any[] = [];
+  Object.values(productsBySubcategory).forEach(subcategoryProducts => {
+    limitedProducts.push(...subcategoryProducts.slice(0, 2));
+  });
+  
+  // Limitar o total a 8 produtos
+  return limitedProducts.slice(0, 8);
+};
+
 // Função para buscar produto por ID
 export const getProductById = (id: string) => {
   return allProducts.find(product => product.id === id);

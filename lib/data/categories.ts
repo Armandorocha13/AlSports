@@ -7,32 +7,62 @@ export const categories = [
     id: 'futebol',
     name: 'Futebol',
     slug: 'futebol',
-    image: '/images/Futebol/Camisas24-25/(G).jpg',
+    image: '/images/Futebol/Camisas24-25/Flamengo24-25.png',
     description: 'Camisas, conjuntos e acessórios de futebol tailandeses',
     subcategories: [
       {
         id: 'versao-jogador',
         name: 'Versão Jogador',
         slug: 'versao-jogador',
-        image: '/images/Futebol/Camisas24-25/(G).jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.jpg'
       },
       {
         id: 'versao-feminina',
         name: 'Versão Feminina',
         slug: 'versao-feminina',
-        image: '/images/Futebol/CamisasFutebolFeminina/(G).jpg'
+        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
       },
       {
         id: 'regatas',
         name: 'Regatas',
         slug: 'regatas',
-        image: '/images/Futebol/CamisasFutebolRegatas/(G)_.jpg'
+        image: '/images/Futebol/CamisasFutebolRegatas/RegataFlamengoTreino.jpg'
       },
       {
         id: 'retro',
         name: 'Retrô',
         slug: 'retro',
-        image: '/images/Futebol/CamisasFutebolRetro/2021- (GG).jpg'
+        image: '/images/Futebol/CamisasFutebolRetro/Flamengo2009.jpg'
+      },
+      {
+        id: 'shorts-masculino',
+        name: 'Shorts Masculino',
+        slug: 'shorts-masculino',
+        image: '/images/Futebol/ShortsFutebolMasculino/ShortFlamengo1.png'
+      },
+      {
+        id: 'shorts-feminino',
+        name: 'Shorts Feminino',
+        slug: 'shorts-feminino',
+        image: '/images/Futebol/ShortFutebolFeminino/ShortFemininoFlamengo.jpg'
+      },
+      {
+        id: 'temporada-25-26',
+        name: 'Temporada 25/26',
+        slug: 'temporada-25-26',
+        image: '/images/Futebol/Camisas25-26/Flamengo2-25-26.jpg'
+      },
+      {
+        id: 'temporada-23-24',
+        name: 'Temporada 23/24',
+        slug: 'temporada-23-24',
+        image: '/images/Futebol/Camisas23-24/Flamengo23-24.webp'
+      },
+      {
+        id: 'temporada-24-25',
+        name: 'Temporada 24/25',
+        slug: 'temporada-24-25',
+        image: '/images/Futebol/Camisas24-25/Flamengo24-25.png'
       }
     ]
   },
@@ -40,14 +70,14 @@ export const categories = [
     id: 'nba',
     name: 'NBA',
     slug: 'nba',
-    image: '/images/NBA/CamisasNBA/(G).jpg',
+    image: '/images/NBA/bullsJordan.jpg',
     description: 'Camisas e acessórios da NBA tailandeses',
     subcategories: [
       {
         id: 'camisas-nba',
         name: 'Camisas NBA',
         slug: 'camisas-nba',
-        image: '/images/NBA/CamisasNBA/(G).jpg'
+        image: '/images/NBA/LebronJames.jpg'
       }
     ]
   },
@@ -55,14 +85,14 @@ export const categories = [
     id: 'nfl',
     name: 'NFL',
     slug: 'nfl',
-    image: '/images/NFL/CamisasNFL/(G).jpg',
+    image: '/images/NFL/mahomes.jpg',
     description: 'Camisas e acessórios da NFL tailandeses',
     subcategories: [
       {
         id: 'camisas-nfl',
         name: 'Camisas NFL',
         slug: 'camisas-nfl',
-        image: '/images/NFL/CamisasNFL/(G).jpg'
+        image: '/images/NFL/kelce.jpg'
       }
     ]
   },
@@ -119,9 +149,9 @@ export const categories = [
         image: '/images/ConjuntosInfantis/InfantilFlamengo/InfantilFlamengo.jpg'
       },
       {
-        id: 'kit-infantil-23-24',
-        name: 'Kit Infantil 23/24',
-        slug: 'kit-infantil-23-24',
+        id: 'kit-infantil-25-26',
+        name: 'Kit Infantil 25/26',
+        slug: 'kit-infantil-25-26',
         image: '/images/ConjuntosInfantis/InfantilMilan/InfantilMilan1.png'
       },
       {
@@ -136,14 +166,14 @@ export const categories = [
     id: 'acessorios',
     name: 'Acessórios',
     slug: 'acessorios',
-    image: '/images/Acessorios/MeiaFlamengo/MeiaFlamengo.jpg',
+    image: '/images/Acessorios/Meias/MeiaFlamengo.jpg',
     description: 'Acessórios esportivos tailandeses',
     subcategories: [
       {
         id: 'meias',
         name: 'Meias',
         slug: 'meias',
-        image: '/images/Acessorios/MeiaFlamengo/MeiaFlamengo.jpg'
+        image: '/images/Acessorios/Meias/MeiaFlamengo.jpg'
       },
       {
         id: 'bones',

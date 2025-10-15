@@ -8,8 +8,25 @@ export const acessoriosProducts = [
     name: 'Meia Flamengo',
     price: 25.00, // Preço de varejo
     wholesalePrice: 25.00,
-    image: '/images/Acessorios/MeiaFlamengo/MeiaFlamengo.jpg',
+    image: '/images/Acessorios/Meias/MeiaFlamengo.jpg',
     description: 'Meia tailandesa do Flamengo com tecnologia de alta performance.',
+    sizes: ['P', 'M', 'G'],
+    category: 'acessorios',
+    subcategory: 'meias',
+    featured: true,
+    priceRanges: [
+      { min: 1, price: 25.00 }, // 1 MEIA
+      { min: 2, max: 4, price: 22.00 }, // 2-4 MEIAS
+      { min: 5, price: 20.00 } // 5+ MEIAS
+    ]
+  },
+  {
+    id: '13',
+    name: 'Meia Casual',
+    price: 25.00, // Preço de varejo
+    wholesalePrice: 25.00,
+    image: '/images/Acessorios/Meias/MeiaCasual.jpg',
+    description: 'Meia tailandesa casual com tecnologia de alta performance.',
     sizes: ['P', 'M', 'G'],
     category: 'acessorios',
     subcategory: 'meias',

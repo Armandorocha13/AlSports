@@ -14,22 +14,26 @@ export default function CategoryCard({ category }: CategoryCardProps) {
     <div className="card group hover:shadow-xl transition-all duration-300">
       <div className="relative overflow-hidden">
         <Link href={`/categoria/${category.slug}`}>
-          <div className="h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="bg-primary-500 text-black p-4 rounded-full mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl font-bold">
-                  {category.name.charAt(0)}
-                </span>
+          <div className="h-64 relative">
+            <Image
+              src={category.image}
+              alt={category.name}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-white group-hover:text-primary-400 transition-colors duration-200 drop-shadow-lg">
+                  {category.name}
+                </h3>
               </div>
-              <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors duration-200">
-                {category.name}
-              </h3>
             </div>
           </div>
         </Link>
       </div>
 
-      <div className="p-6">
+      <div className="p-6 text-center">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-white mb-2">
             {category.name}
@@ -41,7 +45,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
 
         {/* Subcategories Preview */}
         <div className="mb-4">
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 justify-center">
             {category.subcategories.slice(0, 3).map((subcategory) => (
               <span 
                 key={subcategory.id}

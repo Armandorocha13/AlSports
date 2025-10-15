@@ -138,7 +138,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                     src={product.image}
                     alt={product.name}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                   />
                   
                   {/* Badges */}

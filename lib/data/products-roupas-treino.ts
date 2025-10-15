@@ -5,11 +5,11 @@
 export const roupasTreinoProducts = [
   {
     id: '2',
-    name: 'Conjunto Nike Dri-FIT Training',
+    name: 'Conjunto de treino Flamengo Camisa + Short',
     price: 160.00, // Preço de varejo
     wholesalePrice: 160.00,
     image: '/images/ConjuntoTreino/camisa-shorts/BermudaShortsFamengo.png',
-    description: 'Conjunto tailandês completo para treino com tecnologia Dri-FIT que mantém o corpo seco durante o exercício.',
+    description: 'Conjunto tailandês completo para treino com camisa + short.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'camisa-short',
@@ -22,11 +22,11 @@ export const roupasTreinoProducts = [
   },
   {
     id: '28',
-    name: 'Conjunto Inter Miami Training',
+    name: 'Conjunto de treino Inter Miami Camisa + Short',
     price: 160.00, // Preço de varejo
     wholesalePrice: 160.00,
     image: '/images/ConjuntoTreino/camisa-shorts/BermudaShortsInterMiami.png',
-    description: 'Conjunto tailandês completo do Inter Miami para treino com tecnologia de alta performance.',
+    description: 'Conjunto tailandês completo do Inter Miami para treino com camisa + short.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'camisa-short',
@@ -39,11 +39,11 @@ export const roupasTreinoProducts = [
   },
   {
     id: '29',
-    name: 'Regata + Short Flamengo Training',
+    name: 'Regata + Short de treino Flamengo',
     price: 140.00, // Preço de varejo
     wholesalePrice: 140.00,
     image: '/images/ConjuntoTreino/Regata-shorts/RegataFlamengoShorts.png',
-    description: 'Conjunto tailandês de regata + short do Flamengo para treino.',
+    description: 'Conjunto tailandês de regata + short do Flamengo para treino com regata + short.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'regata-short',
@@ -56,7 +56,7 @@ export const roupasTreinoProducts = [
   },
   {
     id: '30',
-    name: 'Regata + Short Inter Miami Training',
+    name: 'Regata + Short de treino Inter Miami',
     price: 140.00, // Preço de varejo
     wholesalePrice: 140.00,
     image: '/images/ConjuntoTreino/Regata-shorts/RegataInterMiamiShorts.png',
@@ -73,11 +73,11 @@ export const roupasTreinoProducts = [
   },
   {
     id: '31',
-    name: 'Calça Flamengo Training',
+    name: 'Calça de treino Flamengo',
     price: 80.00, // Preço de varejo
     wholesalePrice: 80.00,
     image: '/images/ConjuntoTreino/calças/CalçaFlamengo.jpg',
-    description: 'Calça tailandesa do Flamengo para treino com tecnologia de alta performance.',
+    description: 'Calça qualidade tailandesa do Flamengo para treino.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'calca',
@@ -90,11 +90,11 @@ export const roupasTreinoProducts = [
   },
   {
     id: '32',
-    name: 'Casaco Flamengo Training',
+    name: 'Casaco de treino Flamengo',
     price: 120.00, // Preço de varejo
     wholesalePrice: 120.00,
     image: '/images/ConjuntoTreino/Casacos/CasacoFlamengo.jpg',
-    description: 'Casaco tailandês do Flamengo para treino com tecnologia de alta performance.',
+    description: 'Casaco qualidade tailandesa do Flamengo para treino.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'roupas-treino',
     subcategory: 'casaco',
@@ -107,7 +107,7 @@ export const roupasTreinoProducts = [
   },
   {
     id: '33',
-    name: 'Corta Vento Fluminense Training',
+    name: 'Corta Vento de treino Fluminense',
     price: 100.00, // Preço de varejo
     wholesalePrice: 100.00,
     image: '/images/ConjuntoTreino/CortaVento/CortaVentoFluminense.jpg',

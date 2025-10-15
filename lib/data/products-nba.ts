@@ -8,7 +8,7 @@ export const nbaProducts = [
     name: 'Camisa Lakers LeBron James',
     price: 120.00, // Preço de varejo
     wholesalePrice: 120.00,
-    image: '/images/NBA/CamisasNBA/(G).jpg',
+    image: '/images/NBA/LebronJames.jpg',
     description: 'Camisa tailandesa do Lakers com LeBron James, versão jogador.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nba',
@@ -22,11 +22,11 @@ export const nbaProducts = [
   },
   {
     id: '4',
-    name: 'Camisa Warriors Stephen Curry',
+    name: 'Camisa Chicago Bulls Jordan  ',
     price: 120.00, // Preço de varejo
     wholesalePrice: 120.00,
-    image: '/images/NBA/CamisasNBA/(M).jpg',
-    description: 'Camisa tailandesa do Warriors com Stephen Curry, versão jogador.',
+    image: '/images/NBA/bullsJordan.jpg',
+    description: 'Camisa tailandesa do Chicago Bulls com Jordan, versão jogador.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'nba',
     subcategory: 'camisas-nba',
