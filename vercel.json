@@ -1,7 +1,8 @@
 {
   "build": {
     "env": {
-      "NEXT_PUBLIC_SUPABASE_URL": "https://nzrzgtwhgousnnvxjyhf.supabase.co"
+      "NEXT_PUBLIC_SUPABASE_URL": "https://nzrzgtwhgousnnvxjyhf.supabase.co",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56cnpndHdoZ291c25udnhqeWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODc1OTAsImV4cCI6MjA3NTI2MzU5MH0.RxeZfgwMfUAr6iGDCb4gsB_lDLYYgyWj70hCaC3CE7o"
     }
   }
 }
