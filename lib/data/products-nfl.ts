@@ -6,8 +6,8 @@ export const nflProducts = [
   {
     id: '9',
     name: 'Camisa NFL MAHOMES',
-    price: 120.00, // Preço de varejo
-    wholesalePrice: 120.00,
+    price: 130.00, // Preço de varejo
+    wholesalePrice: 130.00,
     image: '/images/NFL/mahomes.jpg',
     description: 'Camisa tailandesa do Kansas City Chiefs com Patrick Mahomes.',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -15,16 +15,16 @@ export const nflProducts = [
     subcategory: 'camisas-nfl',
     featured: true,
     priceRanges: [
-      { min: 1, price: 120.00 }, // 1 CAMISA (VAREJO)
-      { min: 2, max: 4, price: 110.00 }, // 2-4 CAMISAS
-      { min: 5, price: 100.00 } // 5+ CAMISAS
+      { min: 1, price: 130.00 }, // 1 CAMISA (VAREJO)
+      { min: 2, max: 4, price: 125.00 }, // 2-4 CAMISAS
+      { min: 5, price: 115.00 } // 5+ CAMISAS
     ]
   },
   {
     id: '11',
     name: 'Camisa NFL KELCE',
-    price: 120.00, // Preço de varejo
-    wholesalePrice: 120.00,
+    price: 130.00, // Preço de varejo
+    wholesalePrice: 130.00,
     image: '/images/NFL/kelce.jpg',
     description: 'Camisa tailandesa do Kansas City Chiefs com Travis Kelce.',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -32,9 +32,9 @@ export const nflProducts = [
     subcategory: 'camisas-nfl',
     featured: true,
     priceRanges: [
-      { min: 1, price: 120.00 }, // 1 CAMISA (VAREJO)
-      { min: 2, max: 4, price: 110.00 }, // 2-4 CAMISAS
-      { min: 5, price: 100.00 } // 5+ CAMISAS
+      { min: 1, price: 130.00 }, // 1 CAMISA (VAREJO)
+      { min: 2, max: 4, price: 125.00 }, // 2-4 CAMISAS
+      { min: 5, price: 115.00 } // 5+ CAMISAS
     ]
   }
 ];

@@ -43,7 +43,10 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
       return product.wholesalePrice
     }
     
-    const priceRange = product.priceRanges.find(range => {
+    // Ordenar as faixas por min (maior para menor) para priorizar faixas mais específicas
+    const sortedRanges = [...product.priceRanges].sort((a, b) => b.min - a.min)
+    
+    const priceRange = sortedRanges.find(range => {
       if (range.max) {
         return quantity >= range.min && quantity <= range.max
       } else {
@@ -110,21 +113,21 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className="absolute inset-0 bg-black bg-opacity-70"
         onClick={onClose}
       />
       
       {/* Modal */}
       <div className="relative flex items-center justify-center min-h-screen p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-black border-2 border-yellow-400 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">Detalhes do Produto</h2>
+          <div className="flex items-center justify-between p-6 border-b border-yellow-400">
+            <h2 className="text-2xl font-bold text-white">Detalhes do Produto</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+              className="p-2 hover:bg-yellow-400 hover:text-black rounded-full transition-colors duration-200"
             >
-              <X size={24} className="text-gray-500" />
+              <X size={24} className="text-white" />
             </button>
           </div>
 
@@ -144,7 +147,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   {/* Badges */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2">
                     {product.featured && (
-                      <span className="bg-primary-500 text-black px-3 py-1 rounded-full text-sm font-semibold">
+                      <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold">
                         Destaque
                       </span>
                     )}
@@ -156,15 +159,15 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   </div>
 
                   {/* Botão de Favorito */}
-                  <button className="absolute top-4 right-4 p-3 bg-white/80 rounded-full hover:bg-white transition-colors duration-200">
-                    <Heart size={20} className="text-gray-600 hover:text-red-500" />
+                  <button className="absolute top-4 right-4 p-3 bg-black/80 rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                    <Heart size={20} className="text-white hover:text-black" />
                   </button>
                 </div>
 
                 {/* Galeria de Imagens (placeholder) */}
                 <div className="flex gap-2">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                    <div key={i} className="w-16 h-16 bg-gray-800 border border-yellow-400 rounded-lg"></div>
                   ))}
                 </div>
               </div>
@@ -173,7 +176,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
               <div className="space-y-6">
                 {/* Nome e Avaliação */}
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-3xl font-bold text-white mb-2">
                     {product.name}
                   </h1>
                   <div className="flex items-center gap-2">
@@ -182,42 +185,65 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                         <div key={i} className="w-5 h-5 text-yellow-400 fill-current">★</div>
                       ))}
                     </div>
-                    <span className="text-sm text-gray-500">(4.8) • 127 avaliações</span>
+                    <span className="text-sm text-gray-300">(4.8) • 127 avaliações</span>
                   </div>
                 </div>
 
                 {/* Descrição */}
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed">
                   {product.description}
                 </p>
 
                 {/* Preços */}
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-900 border border-yellow-400 p-4 rounded-lg">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-3xl font-bold text-primary-600">
+                    <span className="text-3xl font-bold text-yellow-400">
                       {getPriceRange()}
                     </span>
-                    <span className="text-lg text-gray-500 line-through">
+                    <span className="text-lg text-gray-400 line-through">
                       R$ {product.price.toFixed(2)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-300">
                     {product.priceRanges ? 'Preço por faixa de quantidade' : 'Preço de atacado'}
                   </p>
                   
                   {/* Informação da Faixa de Preço */}
                   {getPriceRangeInfo() && (
                     <div className="mt-2">
-                      <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm">
+                      <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold">
                         Faixa: {getPriceRangeInfo()!.min}{getPriceRangeInfo()!.max ? `-${getPriceRangeInfo()!.max}` : '+'} peças
                       </span>
+                    </div>
+                  )}
+
+                  {/* Tabela de Faixas de Preço */}
+                  {product.priceRanges && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold text-white mb-2">Faixas de Preço:</h4>
+                      <div className="space-y-1">
+                        {product.priceRanges.map((range, index) => (
+                          <div key={index} className={`flex justify-between text-sm p-2 rounded ${
+                            getPriceRangeInfo()?.min === range.min && getPriceRangeInfo()?.max === range.max
+                              ? 'bg-yellow-400 text-black font-semibold'
+                              : 'bg-gray-800 text-white'
+                          }`}>
+                            <span>
+                              {range.min}{range.max ? `-${range.max}` : '+'} camisas
+                            </span>
+                            <span className="font-semibold">
+                              R$ {range.price.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Seleção de Tamanho */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tamanhos Disponíveis:</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Tamanhos Disponíveis:</h3>
                   <div className="flex flex-wrap gap-3">
                     {product.sizes.map((size) => (
                       <button
@@ -225,8 +251,8 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                         onClick={() => setSelectedSize(size)}
                         className={`px-6 py-3 border-2 rounded-lg font-semibold transition-all duration-200 ${
                           selectedSize === size
-                            ? 'border-primary-500 bg-primary-500 text-white shadow-md'
-                            : 'border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-gray-700'
+                            ? 'border-yellow-400 bg-yellow-400 text-black shadow-md'
+                            : 'border-gray-600 hover:border-yellow-400 hover:bg-yellow-400 hover:text-black text-white'
                         }`}
                       >
                         {size}
@@ -234,30 +260,68 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                     ))}
                   </div>
                   {selectedSize && (
-                    <p className="text-sm text-green-600 mt-2">
+                    <p className="text-sm text-yellow-400 mt-2">
                       ✓ Tamanho {selectedSize} selecionado
                     </p>
                   )}
                 </div>
 
+                {/* Seletor de Quantidade */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">Quantidade:</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center border-2 border-yellow-400 rounded-lg">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="px-4 py-2 hover:bg-yellow-400 hover:text-black transition-colors duration-200"
+                        disabled={quantity <= 1}
+                      >
+                        <span className="text-xl font-bold text-white">-</span>
+                      </button>
+                      <div className="px-6 py-2 min-w-[60px] text-center">
+                        <span className="text-xl font-bold text-white">{quantity}</span>
+                      </div>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="px-4 py-2 hover:bg-yellow-400 hover:text-black transition-colors duration-200"
+                      >
+                        <span className="text-xl font-bold text-white">+</span>
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-300">
+                      {quantity === 1 && '1 camisa'}
+                      {quantity >= 2 && quantity <= 4 && `${quantity} camisas (desconto aplicado!)`}
+                      {quantity >= 5 && `${quantity} camisas (máximo desconto!)`}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Simulação de Preço */}
                 {product.priceRanges && (
-                  <div className="bg-primary-50 p-4 rounded-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Simulação de Preço:</h4>
+                  <div className="bg-gray-900 border border-yellow-400 p-4 rounded-lg">
+                    <h4 className="text-lg font-semibold text-white mb-3">Simulação de Preço:</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span>Preço unitário:</span>
-                        <span className="font-semibold text-primary-600">
+                        <span className="text-gray-300">Preço unitário:</span>
+                        <span className="font-semibold text-yellow-400">
                           R$ {getCurrentPrice().toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Quantidade:</span>
-                        <span className="font-semibold">{quantity}x</span>
+                        <span className="text-gray-300">Quantidade:</span>
+                        <span className="font-semibold text-white">{quantity}x</span>
                       </div>
-                      <div className="flex justify-between border-t border-primary-200 pt-2">
-                        <span className="font-semibold">Total:</span>
-                        <span className="font-bold text-xl text-primary-600">
+                      {getDiscountPercentage() > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Desconto:</span>
+                          <span className="font-semibold text-green-400">
+                            -{getDiscountPercentage()}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t border-yellow-400 pt-2">
+                        <span className="font-semibold text-white">Total:</span>
+                        <span className="font-bold text-xl text-yellow-400">
                           R$ {getTotalPrice().toFixed(2)}
                         </span>
                       </div>
@@ -266,20 +330,20 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                 )}
 
                 {/* Informações Adicionais */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Informações do Produto:</h4>
-                  <div className="space-y-2 text-sm text-gray-600">
+                <div className="bg-gray-900 border border-yellow-400 p-4 rounded-lg">
+                  <h4 className="text-lg font-semibold text-white mb-3">Informações do Produto:</h4>
+                  <div className="space-y-2 text-sm text-gray-300">
                     <div className="flex justify-between">
                       <span>Categoria:</span>
-                      <span className="font-semibold capitalize">{product.category}</span>
+                      <span className="font-semibold capitalize text-white">{product.category}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Subcategoria:</span>
-                      <span className="font-semibold capitalize">{product.subcategory}</span>
+                      <span className="font-semibold capitalize text-white">{product.subcategory}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Tamanhos:</span>
-                      <span className="font-semibold">{product.sizes.join(', ')}</span>
+                      <span className="font-semibold text-white">{product.sizes.join(', ')}</span>
                     </div>
                   </div>
                 </div>
@@ -289,13 +353,13 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   <button 
                     onClick={handleAddToCart}
                     disabled={!selectedSize || isAdding}
-                    className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-yellow-400 text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-yellow-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <ShoppingCart size={20} />
                     {isAdding ? 'Adicionando...' : 'Adicionar ao Carrinho'}
                   </button>
                   
-                  <button className="w-full border-2 border-primary-600 text-primary-600 py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2">
+                  <button className="w-full border-2 border-yellow-400 text-yellow-400 py-4 px-6 rounded-lg font-semibold text-lg hover:bg-yellow-400 hover:text-black transition-colors duration-200 flex items-center justify-center gap-2">
                     <Share2 size={20} />
                     Compartilhar Produto
                   </button>

@@ -14,12 +14,12 @@ export default function CategoryCard({ category }: CategoryCardProps) {
     <div className="card group hover:shadow-xl transition-all duration-300">
       <div className="relative overflow-hidden">
         <Link href={`/categoria/${category.slug}`}>
-          <div className="h-64 relative">
+          <div className="h-80 relative">
             <Image
               src={category.image}
               alt={category.name}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-contain group-hover:scale-105 transition-transform duration-300 bg-gray-100 p-2"
             />
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
             <div className="absolute inset-0 flex items-center justify-center">

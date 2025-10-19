@@ -42,21 +42,25 @@ export default function MyAccountPage() {
     if (!user) return
 
     try {
+      console.log('Buscando todos os pedidos para o usuário:', user.id)
       const { data, error } = await supabase
-        .from('orders_with_customer')
-        .select('*')
+        .from('orders')
+        .select(`
+          *,
+          profiles!inner(full_name, email, phone)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(3)
 
       if (error) {
-        console.error('Erro ao buscar pedidos recentes:', error)
+        console.error('Erro ao buscar pedidos:', error)
         return
       }
 
+      console.log('Pedidos encontrados:', data?.length || 0)
       setRecentOrders(data || [])
     } catch (error) {
-      console.error('Erro ao buscar pedidos recentes:', error)
+      console.error('Erro ao buscar pedidos:', error)
     } finally {
       setLoading(false)
     }
@@ -142,7 +146,7 @@ export default function MyAccountPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-400">Total de Pedidos</p>
                     <p className="text-2xl font-bold text-white">
-                      {recentOrders.length > 0 ? recentOrders.length + '+' : '0'}
+                      {recentOrders.length}
                     </p>
                   </div>
                 </div>
@@ -186,15 +190,8 @@ export default function MyAccountPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-white">
-                    Pedidos Recentes
+                    Meus Pedidos ({recentOrders.length})
                   </h2>
-                  <Link
-                    href="/minha-conta/pedidos"
-                    className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center"
-                  >
-                    Ver todos
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </Link>
                 </div>
               </div>
 
@@ -218,27 +215,49 @@ export default function MyAccountPage() {
                 ) : (
                   <div className="space-y-4">
                     {recentOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                        <div className="flex items-center space-x-4">
-                          <div className="p-2 bg-gray-700 rounded-lg">
-                            <Package className="h-5 w-5 text-gray-400" />
+                      <div key={order.id} className="border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2 bg-gray-700 rounded-lg">
+                                <Package className="h-5 w-5 text-gray-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-white">
+                                  Pedido #{order.order_number}
+                                </p>
+                                <p className="text-sm text-gray-400">
+                                  {formatDate(order.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-white text-lg">
+                                {formatCurrency(order.total_amount)}
+                              </p>
+                              <p className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                                {getStatusText(order.status)}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-white">
-                              Pedido #{order.order_number}
-                            </p>
-                            <p className="text-sm text-gray-400">
-                              {formatDate(order.created_at)} • {order.total_items} item(s)
-                            </p>
+                          
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <div className="flex items-center space-x-4">
+                              <span>Pedido #{order.order_number}</span>
+                              <span>•</span>
+                              <span>ID: {order.id.slice(0, 8)}...</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>{new Date(order.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}</span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            {formatCurrency(order.total_amount)}
-                          </p>
-                          <p className={`text-sm ${getStatusColor(order.status)}`}>
-                            {getStatusText(order.status)}
-                          </p>
                         </div>
                       </div>
                     ))}

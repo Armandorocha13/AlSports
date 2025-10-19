@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { signIn } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/minha-conta'
+  const redirectTo = searchParams.get('redirectTo') || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,9 +26,11 @@ export default function LoginPage() {
     const { error } = await signIn(email, password)
 
     if (error) {
+      console.error('Erro no login:', error)
       setError(error.message)
       setLoading(false)
     } else {
+      console.log('Login realizado com sucesso, redirecionando para:', redirectTo)
       router.push(redirectTo)
     }
   }

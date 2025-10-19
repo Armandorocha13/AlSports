@@ -40,8 +40,8 @@ export const roupasTreinoProducts = [
   {
     id: '29',
     name: 'Regata + Short de treino Flamengo',
-    price: 140.00, // Preço de varejo
-    wholesalePrice: 140.00,
+    price: 160.00, // Preço de varejo
+    wholesalePrice: 160.00,
     image: '/images/ConjuntoTreino/Regata-shorts/RegataFlamengoShorts.png',
     description: 'Conjunto tailandês de regata + short do Flamengo para treino com regata + short.',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -49,16 +49,16 @@ export const roupasTreinoProducts = [
     subcategory: 'regata-short',
     featured: true,
     priceRanges: [
-      { min: 1, price: 140.00 }, // 1 KIT
-      { min: 2, max: 4, price: 130.00 }, // 2-4 KIT
-      { min: 5, price: 125.00 } // 5+ KIT
+      { min: 1, price: 160.00 }, // 1 KIT
+      { min: 2, max: 4, price: 150.00 }, // 2-4 KIT
+      { min: 5, price: 145.00 } // 5+ KIT
     ]
   },
   {
     id: '30',
     name: 'Regata + Short de treino Inter Miami',
-    price: 140.00, // Preço de varejo
-    wholesalePrice: 140.00,
+    price: 160.00, // Preço de varejo
+    wholesalePrice: 160.00,
     image: '/images/ConjuntoTreino/Regata-shorts/RegataInterMiamiShorts.png',
     description: 'Conjunto tailandês de regata + short do Inter Miami para treino.',
     sizes: ['P', 'M', 'G', 'GG'],
@@ -66,9 +66,9 @@ export const roupasTreinoProducts = [
     subcategory: 'regata-short',
     featured: true,
     priceRanges: [
-      { min: 1, price: 140.00 }, // 1 KIT
-      { min: 2, max: 4, price: 130.00 }, // 2-4 KIT
-      { min: 5, price: 125.00 } // 5+ KIT
+      { min: 1, price: 160.00 }, // 1 KIT
+      { min: 2, max: 4, price: 150.00 }, // 2-4 KIT
+      { min: 5, price: 145.00 } // 5+ KIT
     ]
   },
   {

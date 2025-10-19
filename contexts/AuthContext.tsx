@@ -80,21 +80,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profileError) {
         console.error('Erro ao buscar perfil:', profileError)
-        // Se não conseguir buscar perfil, criar um perfil temporário
-        const tempProfile = {
-          id: userId,
-          email: 'usuario@exemplo.com',
-          full_name: 'Usuário',
-          phone: null,
-          cpf: null,
-          birth_date: null,
-          user_type: 'cliente' as const,
-          avatar_url: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+        console.log('Tentando criar perfil para usuário:', userId)
+        
+        // Tentar criar um perfil básico se não existir
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: user.email || 'usuario@exemplo.com',
+            full_name: 'Usuário',
+            user_type: 'cliente'
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Erro ao criar perfil:', createError)
+          // Se não conseguir criar perfil, usar perfil temporário
+          const tempProfile = {
+            id: userId,
+            email: user.email || 'usuario@exemplo.com',
+            full_name: 'Usuário',
+            phone: null,
+            cpf: null,
+            birth_date: null,
+            user_type: 'cliente' as const,
+            avatar_url: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          setProfile(tempProfile)
+        } else {
+          console.log('Perfil criado com sucesso:', newProfile)
+          setProfile(newProfile)
         }
-        setProfile(tempProfile)
-        return
+      } else {
+        console.log('Perfil encontrado:', profileData)
+        setProfile(profileData)
       }
 
       // Buscar roles do usuário na tabela user_roles
@@ -187,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Criar usuário no Supabase Auth
+      console.log('Criando usuário no Supabase Auth...')
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -197,6 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       })
+
+      console.log('Resultado da criação do usuário:', { data, error })
 
       if (error) {
         // Tratar erros específicos do Supabase
@@ -217,7 +242,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Criar perfil do usuário apenas se o usuário foi criado com sucesso
       if (data.user) {
-        const { error: profileError } = await supabase
+        console.log('Criando perfil para usuário:', data.user.id)
+        console.log('Dados do perfil:', {
+          id: data.user.id,
+          email: data.user.email!,
+          full_name: userData.full_name,
+          phone: userData.phone,
+          cpf: userData.cpf,
+          birth_date: userData.birth_date,
+          user_type: 'cliente'
+        })
+
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: data.user.id,
@@ -228,15 +264,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             birth_date: userData.birth_date,
             user_type: 'cliente'
           })
+          .select()
 
         if (profileError) {
           console.error('Erro ao criar perfil:', profileError)
+          console.error('Detalhes do erro:', {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint
+          })
           // Se falhou ao criar o perfil, tentar deletar o usuário criado
           await supabase.auth.admin.deleteUser(data.user.id)
           return { error: { message: 'Erro ao criar perfil do usuário' } }
+        } else {
+          console.log('Perfil criado com sucesso:', profileData)
         }
       }
 
+      console.log('Cadastro finalizado com sucesso, retornando sucesso')
       return { error: null }
     } catch (error) {
       console.error('Erro no signUp:', error)
@@ -247,13 +293,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Função para login de usuários
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Tentando fazer login para:', email)
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      return { error }
+      if (error) {
+        console.error('Erro no login:', error)
+        return { error }
+      } else {
+        console.log('Login realizado com sucesso:', data.user?.email)
+        return { error: null }
+      }
     } catch (error) {
+      console.error('Erro no catch do login:', error)
       return { error }
     }
   }

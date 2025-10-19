@@ -7,44 +7,44 @@ export const categories = [
     id: 'futebol',
     name: 'Futebol',
     slug: 'futebol',
-    image: '/images/Futebol/Camisas24-25/Flamengo24-25.png',
+    image: '/images/Futebol/CamisaJogador/FlamengoJogador.png',
     description: 'Camisas, conjuntos e acessórios de futebol tailandeses',
     subcategories: [
       {
         id: 'versao-jogador',
         name: 'Versão Jogador',
         slug: 'versao-jogador',
-        image: '/images/Futebol/CamisaJogador/FlamengoJogador.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'versao-feminina',
         name: 'Versão Feminina',
         slug: 'versao-feminina',
-        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'regatas',
         name: 'Regatas',
         slug: 'regatas',
-        image: '/images/Futebol/CamisasFutebolRegatas/RegataFlamengoTreino.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'retro',
         name: 'Retrô',
         slug: 'retro',
-        image: '/images/Futebol/CamisasFutebolRetro/Flamengo2009.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'shorts-masculino',
         name: 'Shorts Masculino',
         slug: 'shorts-masculino',
-        image: '/images/Futebol/ShortsFutebolMasculino/ShortFlamengo1.png'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'shorts-feminino',
         name: 'Shorts Feminino',
         slug: 'shorts-feminino',
-        image: '/images/Futebol/ShortFutebolFeminino/ShortFemininoFlamengo.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'temporada-25-26',

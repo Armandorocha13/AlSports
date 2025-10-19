@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState('')
   
   const { signUp } = useAuth()
@@ -111,10 +112,17 @@ export default function RegisterPage() {
       })
 
       if (error) {
+        console.error('Erro no cadastro:', error)
         setError(error.message || 'Erro ao criar conta')
         setLoading(false)
       } else {
-        router.push('/auth/login?message=Conta criada com sucesso! Verifique seu email para confirmar.')
+        console.log('Cadastro realizado com sucesso, redirecionando...')
+        setRedirecting(true)
+        // Adicionar um pequeno delay para garantir que o redirecionamento aconteça
+        setTimeout(() => {
+          console.log('Executando redirecionamento...')
+          router.push('/auth/login?message=Conta criada com sucesso! Verifique seu email para confirmar.')
+        }, 1000)
       }
     } catch (error) {
       setError('Erro interno do servidor')
@@ -328,10 +336,10 @@ export default function RegisterPage() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || redirecting}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-primary-500 hover:bg-primary-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Criando conta...' : 'Criar conta'}
+                {loading ? 'Criando conta...' : redirecting ? 'Redirecionando...' : 'Criar conta'}
               </button>
             </div>
           </form>

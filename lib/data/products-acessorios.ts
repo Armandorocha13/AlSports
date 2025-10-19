@@ -10,7 +10,7 @@ export const acessoriosProducts = [
     wholesalePrice: 25.00,
     image: '/images/Acessorios/Meias/MeiaFlamengo.jpg',
     description: 'Meia tailandesa do Flamengo com tecnologia de alta performance.',
-    sizes: ['P', 'M', 'G'],
+    sizes: ['Único'],
     category: 'acessorios',
     subcategory: 'meias',
     featured: true,
@@ -27,7 +27,7 @@ export const acessoriosProducts = [
     wholesalePrice: 25.00,
     image: '/images/Acessorios/Meias/MeiaCasual.jpg',
     description: 'Meia tailandesa casual com tecnologia de alta performance.',
-    sizes: ['P', 'M', 'G'],
+    sizes: ['Único'],
     category: 'acessorios',
     subcategory: 'meias',
     featured: true,
@@ -50,7 +50,7 @@ export const acessoriosProducts = [
     featured: true,
     priceRanges: [
       { min: 1, price: 45.00 }, // 1 BONÉ
-      { min: 2, max: 4, price: 40.00 }, // 2-4 BONÉS
+      { min: 2, max: 4, price: 40.00 }, // 2-4 BONES
       { min: 5, price: 35.00 } // 5+ BONÉS
     ]
   },
@@ -67,7 +67,7 @@ export const acessoriosProducts = [
     featured: true,
     priceRanges: [
       { min: 1, price: 40.00 }, // 1 BONÉ
-      { min: 2, max: 4, price: 35.00 }, // 2-4 BONÉS
+      { min: 2, max: 4, price: 35.00 }, // 2-4 BONES
       { min: 5, price: 30.00 } // 5+ BONÉS
     ]
   }

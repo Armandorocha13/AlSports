@@ -43,7 +43,10 @@ export default function ProductPage({ params }: ProductPageProps) {
       return product.wholesalePrice
     }
     
-    const priceRange = product.priceRanges.find(range => {
+    // Ordenar as faixas por min (maior para menor) para priorizar faixas mais específicas
+    const sortedRanges = [...product.priceRanges].sort((a, b) => b.min - a.min)
+    
+    const priceRange = sortedRanges.find(range => {
       if (range.max) {
         return quantity >= range.min && quantity <= range.max
       } else {
@@ -63,24 +66,24 @@ export default function ProductPage({ params }: ProductPageProps) {
     .slice(0, 4)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Breadcrumb */}
-      <div className="bg-white border-b">
+      <div className="bg-black border-b border-yellow-400">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center space-x-2 text-sm">
-            <Link href="/" className="text-gray-500 hover:text-primary-600">
+            <Link href="/" className="text-gray-300 hover:text-yellow-400">
               Início
             </Link>
-            <span className="text-gray-400">/</span>
-            <Link href={`/categoria/${category?.slug}`} className="text-gray-500 hover:text-primary-600">
+            <span className="text-gray-500">/</span>
+            <Link href={`/categoria/${category?.slug}`} className="text-gray-300 hover:text-yellow-400">
               {category?.name}
             </Link>
-            <span className="text-gray-400">/</span>
-            <Link href={`/categoria/${category?.slug}/${subcategory?.slug}`} className="text-gray-500 hover:text-primary-600">
+            <span className="text-gray-500">/</span>
+            <Link href={`/categoria/${category?.slug}/${subcategory?.slug}`} className="text-gray-300 hover:text-yellow-400">
               {subcategory?.name}
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium">{product.name}</span>
+            <span className="text-gray-500">/</span>
+            <span className="text-white font-medium">{product.name}</span>
           </nav>
         </div>
       </div>
@@ -89,11 +92,11 @@ export default function ProductPage({ params }: ProductPageProps) {
         <div className="flex items-center gap-4 mb-6">
           <Link 
             href={`/categoria/${category?.slug}/${subcategory?.slug}`}
-            className="p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200"
+            className="p-2 text-gray-300 hover:text-yellow-400 transition-colors duration-200"
           >
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             {product.name}
           </h1>
         </div>
@@ -110,7 +113,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 className="w-full h-96 lg:h-[500px] object-contain rounded-lg"
               />
               {product.featured && (
-                <span className="absolute top-4 left-4 bg-primary-600 text-white text-sm px-3 py-1 rounded-full">
+                <span className="absolute top-4 left-4 bg-yellow-400 text-black text-sm px-3 py-1 rounded-full">
                   Destaque
                 </span>
               )}
@@ -123,46 +126,46 @@ export default function ProductPage({ params }: ProductPageProps) {
             
             {/* Thumbnail Images */}
             <div className="flex gap-2">
-              <div className="w-20 h-20 bg-gray-200 rounded-lg"></div>
-              <div className="w-20 h-20 bg-gray-200 rounded-lg"></div>
-              <div className="w-20 h-20 bg-gray-200 rounded-lg"></div>
+              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
+              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
+              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
             </div>
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="text-3xl font-bold text-white mb-2">
                 {product.name}
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg text-gray-300">
                 {product.description}
               </p>
             </div>
 
             {/* Prices */}
-            <div className="bg-gray-50 p-6 rounded-lg">
+            <div className="bg-gray-900 border border-yellow-400 p-6 rounded-lg">
               <div className="flex items-center gap-4 mb-2">
-                <span className="text-3xl font-bold text-primary-600">
+                <span className="text-3xl font-bold text-yellow-400">
                   {getPriceRange()}
                 </span>
-                <span className="text-xl text-gray-500 line-through">
+                <span className="text-xl text-gray-400 line-through">
                   R$ {product.price.toFixed(2)}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-300 mb-4">
                 {product.priceRanges ? 'Preço por faixa de quantidade' : 'Preço de atacado'}
               </p>
               {product.priceRanges && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Tabela de Preços:</h4>
+                  <h4 className="text-sm font-semibold text-white mb-2">Tabela de Preços:</h4>
                   <div className="space-y-1">
                     {product.priceRanges.map((range, index) => (
-                      <div key={index} className="flex justify-between text-sm">
+                      <div key={index} className="flex justify-between text-sm text-gray-300">
                         <span>
                           {range.min}{range.max ? `-${range.max}` : '+'} peças:
                         </span>
-                        <span className="font-semibold">R$ {range.price.toFixed(2)}</span>
+                        <span className="font-semibold text-white">R$ {range.price.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -172,7 +175,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
             {/* Sizes */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-semibold text-white mb-3">
                 Tamanhos Disponíveis
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -182,8 +185,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                     onClick={() => setSelectedSize(size)}
                     className={`px-4 py-2 border rounded-lg transition-colors duration-200 ${
                       selectedSize === size
-                        ? 'border-primary-500 bg-primary-500 text-white'
-                        : 'border-gray-300 hover:border-primary-500 hover:bg-primary-50'
+                        ? 'border-yellow-400 bg-yellow-400 text-black'
+                        : 'border-gray-600 hover:border-yellow-400 hover:bg-yellow-400 hover:text-black text-white'
                     }`}
                   >
                     {size}
@@ -191,7 +194,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 ))}
               </div>
               {selectedSize && (
-                <p className="text-sm text-green-600 mt-2">
+                <p className="text-sm text-yellow-400 mt-2">
                   ✓ Tamanho {selectedSize} selecionado
                 </p>
               )}
@@ -199,52 +202,60 @@ export default function ProductPage({ params }: ProductPageProps) {
 
             {/* Quantity */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-semibold text-white mb-3">
                 Quantidade
               </h3>
               <div className="flex items-center gap-4">
-                <div className="flex items-center border border-gray-300 rounded-lg">
+                <div className="flex items-center border-2 border-yellow-400 rounded-lg">
                   <button 
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-2 hover:bg-gray-50"
+                    className="px-4 py-2 hover:bg-yellow-400 hover:text-black transition-colors duration-200"
+                    disabled={quantity <= 1}
                   >
-                    -
+                    <span className="text-xl font-bold text-white">-</span>
                   </button>
-                  <span className="px-4 py-2 border-x border-gray-300 min-w-[60px] text-center">
-                    {quantity}
-                  </span>
+                  <div className="px-6 py-2 min-w-[60px] text-center">
+                    <span className="text-xl font-bold text-white">{quantity}</span>
+                  </div>
                   <button 
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-2 hover:bg-gray-50"
+                    className="px-4 py-2 hover:bg-yellow-400 hover:text-black transition-colors duration-200"
                   >
-                    +
+                    <span className="text-xl font-bold text-white">+</span>
                   </button>
                 </div>
-                <span className="text-sm text-gray-600">
-                  Mínimo: 1 unidade
-                </span>
+                <div className="text-sm text-gray-300">
+                  {quantity === 1 && '1 camisa'}
+                  {quantity >= 2 && quantity <= 4 && `${quantity} camisas (desconto aplicado!)`}
+                  {quantity >= 5 && `${quantity} camisas (máximo desconto!)`}
+                </div>
               </div>
               {product.priceRanges && (
-                <p className="text-sm text-primary-600 mt-2">
-                  Preço atual: R$ {getCurrentPrice().toFixed(2)} por unidade
-                </p>
+                <div className="mt-2">
+                  <p className="text-sm text-yellow-400">
+                    Preço atual: R$ {getCurrentPrice().toFixed(2)} por unidade
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    Total: R$ {(getCurrentPrice() * quantity).toFixed(2)}
+                  </p>
+                </div>
               )}
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-4">
               <button 
-                className="w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                className="w-full bg-yellow-400 text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 Entre em Contato para Comprar
               </button>
               
               <div className="flex gap-4">
-                <button className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2">
+                <button className="flex-1 border border-yellow-400 text-yellow-400 py-3 px-6 rounded-lg font-medium hover:bg-yellow-400 hover:text-black transition-colors duration-200 flex items-center justify-center gap-2">
                   <Heart size={18} />
                   Favoritar
                 </button>
-                <button className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2">
+                <button className="flex-1 border border-yellow-400 text-yellow-400 py-3 px-6 rounded-lg font-medium hover:bg-yellow-400 hover:text-black transition-colors duration-200 flex items-center justify-center gap-2">
                   <Share2 size={18} />
                   Compartilhar
                 </button>
@@ -254,16 +265,16 @@ export default function ProductPage({ params }: ProductPageProps) {
             {/* Features */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Truck className="text-primary-600" size={20} />
-                <span className="text-sm text-gray-600"></span>
+                <Truck className="text-yellow-400" size={20} />
+                <span className="text-sm text-gray-300">Frete grátis para pedidos acima de R$ 200</span>
               </div>
               <div className="flex items-center gap-3">
-                <Shield className="text-primary-600" size={20} />
-                <span className="text-sm text-gray-600">Produto original com garantia</span>
+                <Shield className="text-yellow-400" size={20} />
+                <span className="text-sm text-gray-300">Produto original com garantia</span>
               </div>
               <div className="flex items-center gap-3">
-                <RotateCcw className="text-primary-600" size={20} />
-                <span className="text-sm text-gray-600">Trocas e devoluções em até 30 dias</span>
+                <RotateCcw className="text-yellow-400" size={20} />
+                <span className="text-sm text-gray-300">Trocas e devoluções em até 30 dias</span>
               </div>
             </div>
           </div>
@@ -271,14 +282,14 @@ export default function ProductPage({ params }: ProductPageProps) {
 
         {/* Product Details */}
         <div className="mt-16">
-          <div className="bg-white rounded-lg p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          <div className="bg-gray-900 border border-yellow-400 rounded-lg p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">
               Detalhes do Produto
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Características:</h4>
-                <ul className="space-y-1 text-gray-600">
+                <h4 className="font-semibold text-white mb-2">Características:</h4>
+                <ul className="space-y-1 text-gray-300">
                   <li>• Material de alta qualidade</li>
                   <li>• Tecnologia de secagem rápida</li>
                   <li>• Corte anatômico</li>
@@ -286,8 +297,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Especificações:</h4>
-                <ul className="space-y-1 text-gray-600">
+                <h4 className="font-semibold text-white mb-2">Especificações:</h4>
+                <ul className="space-y-1 text-gray-300">
                   <li>• Composição: 100% Poliéster</li>
                   <li>• Origem: Importado</li>
                   <li>• Peso: 150g</li>
@@ -301,7 +312,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
-            <h3 className="text-2xl font-bold text-gray-900 mb-8">
+            <h3 className="text-2xl font-bold text-white mb-8">
               Produtos Relacionados
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
