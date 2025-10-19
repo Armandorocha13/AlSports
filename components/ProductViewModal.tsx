@@ -3,7 +3,23 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { X, Heart, Share2, ShoppingCart } from 'lucide-react'
-import { Product } from '@/lib/data'
+// Definir tipo Product localmente
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+  wholesalePrice: number;
+  image: string;
+  description: string;
+  sizes: string[];
+  category: string;
+  subcategory: string;
+  featured: boolean;
+  priceRanges: Array<{
+    min: number;
+    price: number;
+  }>;
+}
 import { useCart } from '@/contexts/CartContext'
 import { useRouter } from 'next/navigation'
 
