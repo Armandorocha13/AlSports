@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { emailService } from '@/lib/email-service'
-import { Order } from '@/lib/types'
+// Order type already defined in database types
 import { 
   ShoppingCart,
   Package,

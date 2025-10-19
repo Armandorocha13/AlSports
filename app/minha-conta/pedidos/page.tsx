@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase-client'
-import { Order } from '@/lib/types'
+// Order type already defined in database types
 import { OrderWithCustomer, OrderStatus } from '@/lib/types/database'
 import OrderTimeline from '@/components/OrderTimeline'
 
