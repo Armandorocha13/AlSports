@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from('profiles')
           .insert({
             id: userId,
-            email: user.email || 'usuario@exemplo.com',
+            email: user?.email || 'usuario@exemplo.com',
             full_name: 'Usuário',
             user_type: 'cliente'
           })
