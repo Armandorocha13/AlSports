@@ -73,6 +73,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Se é um novo item, adicionar à lista
         console.log('🛒 CartContext: Novo item adicionado')
         const newItems = [...prev, {
+          id: `${product.id}-${size}-${color || 'default'}-${Date.now()}`,
           product,
           quantity,
           selectedSize: size,
