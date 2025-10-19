@@ -204,7 +204,7 @@ export default function AdminPedidos() {
       if (!order) return
 
       // Verificar se é um pedido WhatsApp
-      if (order.source === 'whatsapp') {
+      if ((order as any).source === 'whatsapp') {
         // Tentar atualizar na tabela whatsapp_orders primeiro
         try {
           const { error } = await supabase
