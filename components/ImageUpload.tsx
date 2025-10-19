@@ -46,23 +46,17 @@ export default function ImageUpload({
 
     try {
       // Redimensionar imagem se necessário
-      const resizedFile = await resizeImage(file, maxWidth, maxHeight, quality)
+      const resizedFile = await resizeImage(file, { width: maxWidth, height: maxHeight, quality })
 
       // Gerar nome único para o arquivo
-      const fileName = generateFileName(file.name, path)
+      const fileName = generateFileName(file.name)
       const fullPath = path ? `${path}/${fileName}` : fileName
 
       // Fazer upload
-      const result = await uploadImage(resizedFile, STORAGE_BUCKETS[bucket], fullPath, {
-        upsert: true
-      })
+      const result = await uploadImage(resizedFile, STORAGE_BUCKETS[bucket], fullPath)
 
-      if (result.success) {
-        setPreviewUrl(result.url)
-        onUpload(result.url, result.path)
-      } else {
-        onError?.('Erro ao fazer upload da imagem')
-      }
+      setPreviewUrl(result.url)
+      onUpload(result.url, result.path)
     } catch (error) {
       console.error('Erro no upload:', error)
       onError?.('Erro ao processar a imagem')
