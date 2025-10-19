@@ -595,8 +595,8 @@ export default function AdminPedidos() {
                   <div>
                     <p><strong>Cliente:</strong> {order.customer_name}</p>
                     <p><strong>Email:</strong> {order.customer_email}</p>
-                    {order.customer_phone && (
-                      <p><strong>Telefone:</strong> {order.customer_phone}</p>
+                    {(order as any).customer_phone && (
+                      <p><strong>Telefone:</strong> {(order as any).customer_phone}</p>
                     )}
                     {(order as any).source === 'whatsapp' && (
                       <p><strong>Método:</strong> 📱 WhatsApp</p>
