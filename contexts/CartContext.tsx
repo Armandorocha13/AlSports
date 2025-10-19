@@ -136,11 +136,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Encontrar a faixa de preço adequada para a quantidade
     const priceRange = product.priceRanges.find(range => {
-      if (range.max) {
-        return quantity >= range.min && quantity <= range.max
-      } else {
-        return quantity >= range.min
-      }
+      return quantity >= range.min
     })
 
     // Retornar preço da faixa encontrada ou preço atacado padrão
