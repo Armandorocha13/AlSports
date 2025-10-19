@@ -605,8 +605,8 @@ export default function AdminPedidos() {
                   <div>
                     <p><strong>Itens:</strong> {order.items_count}</p>
                     <p><strong>Total:</strong> R$ {order.total_amount.toFixed(2)}</p>
-                    {order.shipping_cost && (
-                      <p><strong>Frete:</strong> R$ {order.shipping_cost.toFixed(2)}</p>
+                    {(order as any).shipping_cost && (
+                      <p><strong>Frete:</strong> R$ {(order as any).shipping_cost.toFixed(2)}</p>
                     )}
                           </div>
                         </div>
