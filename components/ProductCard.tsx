@@ -56,7 +56,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 Destaque
               </span>
             )}
-            {product.onSale && (
+            {product.featured && (
               <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                 Promoção
               </span>
