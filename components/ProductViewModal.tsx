@@ -216,12 +216,12 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                       <div className="space-y-1">
                         {product.priceRanges.map((range, index) => (
                           <div key={index} className={`flex justify-between text-sm p-2 rounded ${
-                            getPriceRangeInfo()?.min === range.min && getPriceRangeInfo()?.max === range.max
+                            getPriceRangeInfo()?.min === range.min
                               ? 'bg-yellow-400 text-black font-semibold'
                               : 'bg-gray-800 text-white'
                           }`}>
                             <span>
-                              {range.min}{range.max ? `-${range.max}` : '+'} camisas
+                              {range.min}+ camisas
                             </span>
                             <span className="font-semibold">
                               R$ {range.price.toFixed(2)}
