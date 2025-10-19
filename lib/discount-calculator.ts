@@ -118,11 +118,7 @@ export class DiscountCalculator {
     }
 
     return product.priceRanges.find(range => {
-      if (range.max) {
-        return quantity >= range.min && quantity <= range.max
-      } else {
-        return quantity >= range.min
-      }
+      return quantity >= range.min
     })
   }
 

@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Configuração para export estático (Netlify)
+  output: 'export',
+  trailingSlash: true,
   // Configuração de imagens para permitir carregamento de fontes externas
   images: {
     remotePatterns: [
@@ -18,7 +21,7 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: false, // Manter otimização de imagens ativada
+    unoptimized: true, // Desabilitar otimização para export estático
   },
   // Configurações experimentais
   experimental: {
