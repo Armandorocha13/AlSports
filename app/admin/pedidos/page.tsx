@@ -535,7 +535,7 @@ export default function AdminPedidos() {
             <div>
               <p className="text-gray-400 text-sm">Pedidos WhatsApp</p>
               <p className="text-2xl font-bold text-white">
-                {orders.filter(o => o.source === 'whatsapp').length}
+                {orders.filter(o => (o as any).source === 'whatsapp').length}
               </p>
             </div>
           </div>
