@@ -305,13 +305,13 @@ export default function OrdersPage() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Endereço de Entrega</h4>
                       <div className="text-sm text-gray-600">
-                        <p>{order.shipping_address.street}, {order.shipping_address.number}</p>
-                        {order.shipping_address.complement && (
+                        <p>{order.shipping_address?.street}, {order.shipping_address?.number}</p>
+                        {order.shipping_address?.complement && (
                           <p>{order.shipping_address.complement}</p>
                         )}
-                        <p>{order.shipping_address.neighborhood}</p>
-                        <p>{order.shipping_address.city} - {order.shipping_address.state}</p>
-                        <p>CEP: {order.shipping_address.zip_code}</p>
+                        <p>{order.shipping_address?.neighborhood}</p>
+                        <p>{order.shipping_address?.city} - {order.shipping_address?.state}</p>
+                        <p>CEP: {order.shipping_address?.zip_code}</p>
                       </div>
                     </div>
 
