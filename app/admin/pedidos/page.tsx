@@ -582,7 +582,7 @@ export default function AdminPedidos() {
                   <h3 className="text-lg font-semibold text-white mr-3">
                     Pedido #{order.order_number}
                   </h3>
-                  {order.source === 'whatsapp' && (
+                  {(order as any).source === 'whatsapp' && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-600 text-white mr-2 flex items-center">
                       📱 WhatsApp
                     </span>
@@ -598,7 +598,7 @@ export default function AdminPedidos() {
                     {order.customer_phone && (
                       <p><strong>Telefone:</strong> {order.customer_phone}</p>
                     )}
-                    {order.source === 'whatsapp' && (
+                    {(order as any).source === 'whatsapp' && (
                       <p><strong>Método:</strong> 📱 WhatsApp</p>
                     )}
                           </div>
