@@ -204,7 +204,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   {getPriceRangeInfo() && (
                     <div className="mt-2">
                       <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold">
-                        Faixa: {getPriceRangeInfo()!.min}{getPriceRangeInfo()!.max ? `-${getPriceRangeInfo()!.max}` : '+'} peças
+                        Faixa: {getPriceRangeInfo()!.min}+ peças
                       </span>
                     </div>
                   )}
