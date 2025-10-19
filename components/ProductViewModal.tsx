@@ -95,11 +95,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
     }
     
     const currentRange = product.priceRanges.find(range => {
-      if (range.max) {
-        return quantity >= range.min && quantity <= range.max
-      } else {
-        return quantity >= range.min
-      }
+      return quantity >= range.min
     })
     
     return currentRange
