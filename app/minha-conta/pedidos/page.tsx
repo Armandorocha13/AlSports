@@ -141,7 +141,7 @@ export default function OrdersPage() {
       console.log('📋 Pedidos encontrados:', allOrders.length)
       console.log('📱 Pedidos WhatsApp:', formattedWhatsappOrders.length)
       console.log('📊 Pedidos tradicionais:', formattedDbOrders.length)
-      setOrders(allOrders)
+      setOrders(allOrders as any)
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)
     } finally {
