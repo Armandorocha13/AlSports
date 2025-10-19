@@ -94,7 +94,7 @@ export const futebolProducts = [
     name: 'Camisa Feminina Flamengo 2024/25',
     price: 95.00, // Preço de varejo
     wholesalePrice: 95.00,
-    image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino2024-25.png',
+    image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg',
     description: 'Camisa tailandesa feminina do Flamengo temporada 2024/25.',
     sizes: ['P', 'M', 'G', 'GG'],
     category: 'futebol',

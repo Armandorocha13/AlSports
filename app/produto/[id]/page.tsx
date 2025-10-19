@@ -47,11 +47,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     const sortedRanges = [...product.priceRanges].sort((a, b) => b.min - a.min)
     
     const priceRange = sortedRanges.find(range => {
-      if (range.max) {
-        return quantity >= range.min && quantity <= range.max
-      } else {
-        return quantity >= range.min
-      }
+      return quantity >= range.min
     })
     
     return priceRange ? priceRange.price : product.wholesalePrice
@@ -110,14 +106,14 @@ export default function ProductPage({ params }: ProductPageProps) {
                 alt={product.name}
                 width={600}
                 height={600}
-                className="w-full h-96 lg:h-[500px] object-contain rounded-lg"
+                className="w-full h-96 lg:h-[600px] object-cover rounded-lg"
               />
               {product.featured && (
                 <span className="absolute top-4 left-4 bg-yellow-400 text-black text-sm px-3 py-1 rounded-full">
                   Destaque
                 </span>
               )}
-              {product.onSale && (
+              {product.featured && (
                 <span className="absolute top-4 right-4 bg-red-500 text-white text-sm px-3 py-1 rounded-full">
                   Promoção
                 </span>
@@ -163,7 +159,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                     {product.priceRanges.map((range, index) => (
                       <div key={index} className="flex justify-between text-sm text-gray-300">
                         <span>
-                          {range.min}{range.max ? `-${range.max}` : '+'} peças:
+                          {range.min}+ peças:
                         </span>
                         <span className="font-semibold text-white">R$ {range.price.toFixed(2)}</span>
                       </div>

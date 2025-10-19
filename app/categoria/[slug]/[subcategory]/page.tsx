@@ -154,7 +154,7 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
           <h3 className="text-2xl font-bold text-white mb-8 text-center">
             Outras Subcategorias de {category.name}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {category.subcategories
               .filter(sub => sub.id !== subcategory.id)
               .slice(0, 6)
@@ -162,9 +162,9 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
                 <Link
                   key={relatedSub.id}
                   href={`/categoria/${category.slug}/${relatedSub.slug}`}
-                  className="text-center p-4 border border-gray-700 rounded-lg hover:border-primary-400 hover:bg-gray-800 transition-all duration-200"
+                  className="text-center p-6 border border-gray-700 rounded-lg hover:border-primary-400 hover:bg-gray-800 transition-all duration-200 hover:scale-105"
                 >
-                  <div className="bg-primary-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-black font-bold">
                       {relatedSub.name.charAt(0)}
                     </span>

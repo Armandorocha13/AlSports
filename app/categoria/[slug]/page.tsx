@@ -70,16 +70,16 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {category.subcategories.map((subcategory) => (
             <Link
               key={subcategory.id}
               href={`/categoria/${category.slug}/${subcategory.slug}`}
               className="group"
             >
-              <div className="card h-full hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <div className="card h-full hover:shadow-xl transition-all duration-300 group-hover:scale-105 border border-gray-700">
                 <div className="relative overflow-hidden">
-                  <div className="h-48 relative">
+                  <div className="h-80 relative">
                     <Image
                       src={subcategory.image}
                       alt={subcategory.name}
@@ -97,7 +97,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                   </div>
                 </div>
 
-                <div className="p-6 text-center">
+                <div className="p-8 text-center">
                   <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-primary-400 transition-colors duration-200">
                     {subcategory.name}
                   </h3>

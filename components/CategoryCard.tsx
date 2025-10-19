@@ -3,7 +3,21 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
-import { Category } from '@/lib/data'
+import { categories } from '@/lib/data'
+
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  image: string;
+  description: string;
+  subcategories: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    image: string;
+  }>;
+};
 
 interface CategoryCardProps {
   category: Category
@@ -14,12 +28,12 @@ export default function CategoryCard({ category }: CategoryCardProps) {
     <div className="card group hover:shadow-xl transition-all duration-300 border border-gray-700">
       <div className="relative overflow-hidden">
         <Link href={`/categoria/${category.slug}`}>
-          <div className="h-80 relative">
+          <div className="h-96 relative">
             <Image
               src={category.image}
               alt={category.name}
               fill
-              className="object-contain group-hover:scale-105 transition-transform duration-300 bg-gray-100 p-4"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
             <div className="absolute inset-0 flex items-center justify-center">

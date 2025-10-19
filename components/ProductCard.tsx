@@ -64,7 +64,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             width={300}
             height={300}
-            className="w-full h-80 object-contain group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           
           {/* Badges */}
@@ -93,17 +93,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="p-3">
           <h3 className="font-semibold text-white mb-2 line-clamp-2 hover:text-primary-400 transition-colors duration-200">
             {product.name}
           </h3>
           
-          <p className="text-sm text-gray-400 mb-3 line-clamp-2">
+          <p className="text-sm text-gray-400 mb-2 line-clamp-2">
             {product.description}
           </p>
 
           {/* Sizes */}
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2">
             {product.sizes.slice(0, 4).map((size: string) => (
               <span key={size} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
                 {size}

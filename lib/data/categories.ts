@@ -7,7 +7,7 @@ export const categories = [
     id: 'futebol',
     name: 'Futebol',
     slug: 'futebol',
-    image: '/images/Futebol/Camisas24-25/Flamengo24-25.jpg',
+    image: '/images/Futebol/CamisaJogador/FlamengoJogador.png',
     description: 'Camisas, conjuntos e acessórios de futebol tailandeses',
     subcategories: [
       {
@@ -20,7 +20,7 @@ export const categories = [
         id: 'versao-feminina',
         name: 'Versão Feminina',
         slug: 'versao-feminina',
-        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
+        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino2024-25.png'
       },
       {
         id: 'regatas',
@@ -70,7 +70,7 @@ export const categories = [
     id: 'nba',
     name: 'NBA',
     slug: 'nba',
-    image: '/images/NBA/bullsJordan.jpg',
+    image: '/images/NBA/LebronJames.jpg',
     description: 'Camisas e acessórios da NBA tailandeses',
     subcategories: [
       {
