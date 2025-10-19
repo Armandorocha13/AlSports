@@ -7,7 +7,7 @@ export const categories = [
     id: 'futebol',
     name: 'Futebol',
     slug: 'futebol',
-    image: '/images/Futebol/Camisas24-25/Flamengo24-25.jpg',
+    image: '/images/Futebol/CamisaJogador/FlamengoJogador.png',
     description: 'Camisas, conjuntos e acessórios de futebol tailandeses',
     subcategories: [
       {
@@ -20,49 +20,49 @@ export const categories = [
         id: 'versao-feminina',
         name: 'Versão Feminina',
         slug: 'versao-feminina',
-        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'regatas',
         name: 'Regatas',
         slug: 'regatas',
-        image: '/images/Futebol/CamisasFutebolRegatas/RegataFlamengoTreino.png'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'retro',
         name: 'Retrô',
         slug: 'retro',
-        image: '/images/Futebol/CamisasFutebolRetro/Flamengo2009.png'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'shorts-masculino',
         name: 'Shorts Masculino',
         slug: 'shorts-masculino',
-        image: '/images/Futebol/ShortsFutebolMasculino/ShortFlamengo1.png'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'shorts-feminino',
         name: 'Shorts Feminino',
         slug: 'shorts-feminino',
-        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
+        image: '/images/Futebol/CamisaJogador/FlamengoJogador.png'
       },
       {
         id: 'temporada-25-26',
         name: 'Temporada 25/26',
         slug: 'temporada-25-26',
-        image: '/images/Futebol/Camisas25-26/Flamengo25-26.jpg'
+        image: '/images/Futebol/Camisas25-26/Flamengo2-25-26.jpg'
       },
       {
         id: 'temporada-23-24',
         name: 'Temporada 23/24',
         slug: 'temporada-23-24',
-        image: '/images/Futebol/Camisas23-24/Flamengo23-24.jpg'
+        image: '/images/Futebol/Camisas23-24/Flamengo23-24.webp'
       },
       {
         id: 'temporada-24-25',
         name: 'Temporada 24/25',
         slug: 'temporada-24-25',
-        image: '/images/Futebol/Camisas24-25/Flamengo24-25.jpg'
+        image: '/images/Futebol/Camisas24-25/Flamengo24-25.png'
       }
     ]
   },
@@ -85,7 +85,7 @@ export const categories = [
     id: 'nfl',
     name: 'NFL',
     slug: 'nfl',
-    image: '/images/NFL/kelce.jpg',
+    image: '/images/NFL/mahomes.jpg',
     description: 'Camisas e acessórios da NFL tailandeses',
     subcategories: [
       {
@@ -166,7 +166,7 @@ export const categories = [
     id: 'acessorios',
     name: 'Acessórios',
     slug: 'acessorios',
-    image: '/images/Acessorios/BoneCasual/BoneCasual.jpg',
+    image: '/images/Acessorios/Meias/MeiaFlamengo.jpg',
     description: 'Acessórios esportivos tailandeses',
     subcategories: [
       {
