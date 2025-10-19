@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Se não conseguir criar perfil, usar perfil temporário
           const tempProfile = {
             id: userId,
-            email: user.email || 'usuario@exemplo.com',
+            email: user?.email || 'usuario@exemplo.com',
             full_name: 'Usuário',
             phone: null,
             cpf: null,
