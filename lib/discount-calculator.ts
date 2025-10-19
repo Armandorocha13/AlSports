@@ -40,11 +40,7 @@ export class DiscountCalculator {
     // Se o produto tem faixas de preço, usar a lógica de faixas
     if (product.priceRanges && product.priceRanges.length > 0) {
       const applicableRange = product.priceRanges.find(range => {
-        if (range.max) {
-          return quantity >= range.min && quantity <= range.max
-        } else {
-          return quantity >= range.min
-        }
+        return quantity >= range.min
       })
 
       if (applicableRange) {
