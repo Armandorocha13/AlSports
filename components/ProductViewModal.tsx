@@ -47,11 +47,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
     const sortedRanges = [...product.priceRanges].sort((a, b) => b.min - a.min)
     
     const priceRange = sortedRanges.find(range => {
-      if (range.max) {
-        return quantity >= range.min && quantity <= range.max
-      } else {
-        return quantity >= range.min
-      }
+      return quantity >= range.min
     })
     
     return priceRange ? priceRange.price : product.wholesalePrice
