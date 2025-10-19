@@ -57,7 +57,7 @@ export class DiscountCalculator {
       discountedPrice,
       discountAmount,
       discountPercentage,
-      priceRange
+      priceRange: priceRange || undefined
     }
   }
 
