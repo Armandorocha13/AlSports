@@ -2,7 +2,7 @@
 
 // Importações necessárias para o contexto do carrinho
 import { createContext, useContext, useState, ReactNode } from 'react'
-import { Product } from '@/lib/data'
+import { Product, CartItem } from '@/lib/types'
 import { shippingService } from '@/lib/shipping'
 import { orderGenerator, OrderData } from '@/lib/order-generator'
 import { DiscountCalculator, CartDiscountSummary } from '@/lib/discount-calculator'
@@ -11,14 +11,7 @@ import { createClient } from '@/lib/supabase-client'
 // Cliente do Supabase para operações de banco de dados
 const supabase = createClient()
 
-// Interface que define um item do carrinho
-export interface CartItem {
-  product: Product // Produto adicionado
-  quantity: number // Quantidade do produto
-  selectedSize: string // Tamanho selecionado
-  selectedColor?: string // Cor selecionada (opcional)
-  addedAt: Date // Data de adição ao carrinho
-}
+// CartItem já importado de @/lib/types
 
 // Interface que define o tipo do contexto do carrinho
 interface CartContextType {

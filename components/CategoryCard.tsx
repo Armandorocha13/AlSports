@@ -4,20 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { categories } from '@/lib/data'
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  image: string;
-  description: string;
-  subcategories: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    image: string;
-  }>;
-};
+import { Category } from '@/lib/types'
 
 interface CategoryCardProps {
   category: Category

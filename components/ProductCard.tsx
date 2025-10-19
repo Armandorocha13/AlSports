@@ -4,25 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, Heart } from 'lucide-react'
-// Tipo Product simples para os componentes
-interface Product {
-  id: string
-  name: string
-  price: number
-  wholesalePrice: number
-  image: string
-  description: string
-  sizes: string[]
-  category: string
-  subcategory: string
-  featured?: boolean
-  onSale?: boolean
-  priceRanges?: Array<{
-    min: number
-    max?: number
-    price: number
-  }>
-}
+import { Product } from '@/lib/types'
 import ProductViewModal from './ProductViewModal'
 
 interface ProductCardProps {

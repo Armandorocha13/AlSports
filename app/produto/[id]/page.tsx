@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { ArrowLeft, Heart, Share2, Truck, Shield, RotateCcw, Star } from 'lucide-react'
 import { sampleProducts, categories } from '@/lib/data'
+import { Product } from '@/lib/types'
 import ProductCard from '@/components/ProductCard'
 
 interface ProductPageProps {
