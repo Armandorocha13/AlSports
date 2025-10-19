@@ -143,7 +143,7 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                         Destaque
                       </span>
                     )}
-                    {product.onSale && (
+                    {product.featured && (
                       <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                         -{getDiscountPercentage()}%
                       </span>
