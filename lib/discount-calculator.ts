@@ -1,4 +1,4 @@
-import { Product } from './data'
+import { Product } from './types'
 
 export interface DiscountInfo {
   originalPrice: number
