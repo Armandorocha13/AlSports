@@ -68,12 +68,6 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState('')
   const [showStockAlert, setShowStockAlert] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
-  const [cep, setCep] = useState('')
-  const [cepError, setCepError] = useState('')
-  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false)
-  const [shippingOptions, setShippingOptions] = useState<any[]>([])
-  const [selectedShipping, setSelectedShipping] = useState<any>(null)
-  const [showCepInput, setShowCepInput] = useState(false)
   const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null)
   
   const shippingInfo = getShippingInfo()
@@ -137,9 +131,6 @@ export default function CartPage() {
     if (selectedShippingOption) {
       return selectedShippingOption.price
     }
-    if (selectedShipping) {
-      return selectedShipping.price
-    }
     return getShippingCost()
   }
 
@@ -163,135 +154,6 @@ export default function CartPage() {
     return originalTotal - currentSubtotal + couponSavings
   }
 
-  // Funções para CEP e Frete
-  const formatCEP = (value: string) => {
-    const numbers = value.replace(/\D/g, '')
-    return numbers.replace(/(\d{5})(\d{3})/, '$1-$2')
-  }
-
-  const validateCEP = (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, '')
-    return cleanCEP.length === 8
-  }
-
-  const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedCEP = formatCEP(e.target.value)
-    setCep(formattedCEP)
-    setCepError('')
-    
-    // Limpar opções de frete quando CEP muda
-    if (shippingOptions.length > 0) {
-      setShippingOptions([])
-      setSelectedShipping(null)
-    }
-  }
-
-  const handleTrocarCEP = () => {
-    setShowCepInput(true)
-    setCep('')
-    setCepError('')
-    setShippingOptions([])
-    setSelectedShipping(null)
-  }
-
-  const calculateShipping = async () => {
-    if (!validateCEP(cep)) {
-      setCepError('CEP deve ter 8 dígitos')
-      return
-    }
-
-    setIsCalculatingShipping(true)
-    setCepError('')
-
-    try {
-      const fromZipCode = '26015-005' // Nova Iguaçu - RJ
-      const products = items.map(item => ({
-        id: item.product.id,
-        quantity: item.quantity,
-        price: getItemPrice(item.product, item.quantity)
-      }))
-
-      // Calcular frete via API Superfrete
-      const shippingQuotes = await shippingService.calculateShipping(
-        fromZipCode,
-        cep,
-        products
-      )
-
-      // Converter para formato do carrinho
-      const shippingOptions = shippingQuotes.map(quote => ({
-        id: quote.id,
-        name: quote.name,
-        price: quote.price,
-        deliveryTime: quote.delivery_range,
-        company: quote.company.name,
-        isFree: false
-      }))
-
-      // Adicionar opção de transportadora se tiver 20+ peças
-      if (getTotalPieces() >= 20) {
-        const transportadoraPrice = shippingService.calculateTransportadoraPrice(getTotalPieces())
-        shippingOptions.push({
-          id: 'transportadora',
-          name: 'Transportadora',
-          price: transportadoraPrice,
-          deliveryTime: '5-7 dias úteis',
-          company: 'Superfrete',
-          isFree: transportadoraPrice === 0
-        })
-      }
-
-      setShippingOptions(shippingOptions)
-      
-      // Selecionar a primeira opção como padrão
-      if (shippingOptions.length > 0) {
-        setSelectedShipping(shippingOptions[0])
-      }
-
-      // Fechar o input de CEP após calcular
-      setShowCepInput(false)
-    } catch (error) {
-      console.error('Erro ao calcular frete:', error)
-      setCepError('Erro ao calcular frete. Tente novamente.')
-      
-      // Fallback para opções padrão
-      const fallbackOptions = [
-        {
-          id: 'pac',
-          name: 'PAC',
-          price: 15.00,
-          deliveryTime: '5-7 dias úteis',
-          company: 'Correios',
-          isFree: false
-        },
-        {
-          id: 'sedex',
-          name: 'SEDEX',
-          price: 25.00,
-          deliveryTime: '3-5 dias úteis',
-          company: 'Correios',
-          isFree: false
-        }
-      ]
-
-      if (getTotalPieces() >= 20) {
-        const transportadoraPrice = shippingService.calculateTransportadoraPrice(getTotalPieces())
-        fallbackOptions.push({
-          id: 'transportadora',
-          name: 'Transportadora',
-          price: transportadoraPrice,
-          deliveryTime: '5-7 dias úteis',
-          company: 'Superfrete',
-          isFree: transportadoraPrice === 0
-        })
-      }
-
-      setShippingOptions(fallbackOptions)
-      setSelectedShipping(fallbackOptions[0])
-    } finally {
-      setIsCalculatingShipping(false)
-    }
-  }
 
   const handleWhatsAppOrder = async () => {
     if (!user) {
@@ -545,26 +407,17 @@ export default function CartPage() {
           
           <div className="flex justify-between text-sm">
             <span>Frete</span>
-                   <span>
-                     {selectedShipping ? (
-                       appliedCoupon === 'FREEGRATIS' 
-                         ? 'Grátis' 
-                         : selectedShipping.id === 'transportadora'
-                         ? selectedShipping.price === 0 
-                           ? 'Grátis'
-                           : `R$ ${selectedShipping.price.toFixed(2).replace('.', ',')}`
-                         : `R$ ${selectedShipping.price.toFixed(2).replace('.', ',')}`
-                     ) : (
-                       appliedCoupon === 'FREEGRATIS' 
-                         ? 'Grátis' 
-                         : shippingInfo.method === 'transportadora'
-                         ? (() => {
-                             const transportadoraPrice = shippingService.calculateTransportadoraPrice(getTotalPieces())
-                             return transportadoraPrice === 0 ? 'Grátis' : `R$ ${transportadoraPrice.toFixed(2).replace('.', ',')}`
-                           })()
-                         : `R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
-                     )}
-                   </span>
+            <span>
+              {selectedShippingOption ? (
+                appliedCoupon === 'FREEGRATIS' 
+                  ? 'Grátis' 
+                  : `R$ ${selectedShippingOption.price.toFixed(2).replace('.', ',')}`
+              ) : (
+                appliedCoupon === 'FREEGRATIS' 
+                  ? 'Grátis' 
+                  : `R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
+              )}
+            </span>
           </div>
           
           {/* Economia Total */}
