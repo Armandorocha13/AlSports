@@ -18,7 +18,7 @@ export interface ShippingRequest {
 }
 
 export interface ShippingOption {
-  id: number
+  id: string | number
   name: string
   price: number
   delivery_time: number
