@@ -8,6 +8,7 @@ import { sampleProducts, categories, getFeaturedProductsLimited } from '@/lib/da
 import ProductCard from '@/components/ProductCard'
 import CategoryCard from '@/components/CategoryCard'
 import AdminBanner from '@/components/AdminBanner'
+import BannerCarousel from '@/components/BannerCarousel'
 
 // Componente da página inicial da aplicação
 export default function HomePage() {
@@ -16,37 +17,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen dark-theme">
-      {/* Seção Hero - Banner principal da página inicial */}
-      <section className="relative bg-gradient-to-r from-black to-gray-900 text-white">
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Título principal da seção hero */}
-            <p className="text-xl md:text-2xl mb-8 text-primary-400">
-              Loja de Atacado de Roupas Esportivas
-            </p>
-            {/* Descrição da empresa */}
-            <p className="text-lg mb-10 text-gray-300 max-w-2xl mx-auto">
-              Especializada na venda por atacado de roupas esportivas. 
-              Encontre as melhores marcas com preços competitivos para revendedores.
-            </p>
-            {/* Botões de navegação para categorias principais */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/categoria/futebol" 
-                className="bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
-              >
-                Ver Futebol
-              </Link>
-              <Link 
-                href="/categoria/roupas-treino" 
-                className="border-2 border-primary-500 text-primary-400 px-8 py-3 rounded-lg font-semibold hover:bg-primary-500 hover:text-black transition-colors duration-200"
-              >
-                Roupas de Treino
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Carrossel de Banners */}
+      <BannerCarousel />
 
       {/* Banner administrativo - Exibe informações para administradores */}
       <div className="container mx-auto px-4">
