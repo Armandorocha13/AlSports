@@ -1,14 +1,18 @@
 // Importações necessárias para o layout principal da aplicação
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Montserrat } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 
-// Configuração da fonte Inter para toda a aplicação
-const inter = Inter({ subsets: ['latin'] })
+// Configuração da fonte Montserrat para toda a aplicação
+const montserrat = Montserrat({ 
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  weight: ['300', '400', '500', '600', '700', '800', '900']
+})
 
 // Metadados da aplicação para SEO
 export const metadata: Metadata = {
@@ -25,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={inter.className}>
+      <body className={montserrat.className}>
         {/* Provedor de autenticação para gerenciar estado do usuário */}
         <AuthProvider>
           {/* Provedor do carrinho para gerenciar produtos no carrinho */}

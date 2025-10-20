@@ -44,10 +44,10 @@ module.exports = {
           800: '#1e293b',
           900: '#0f172a',
           950: '#020617',
-        }
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Montserrat', 'system-ui', 'sans-serif'],
       },
     },
   },

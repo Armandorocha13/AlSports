@@ -16,7 +16,7 @@ interface Banner {
 const banners: Banner[] = [
   {
     id: '1',
-    image: '/images/Banners/FutebolBanner1.jpg',
+    image: '/images/Banners/Banner3.jpg',
     title: 'Loja de Atacado de Roupas Esportivas',
     description: 'Especializada na venda por atacado de roupas esportivas. Encontre as melhores marcas com preços competitivos para revendedores.',
     buttonText: 'Ver Futebol',
@@ -24,7 +24,7 @@ const banners: Banner[] = [
   },
   {
     id: '2',
-    image: '/images/Banners/FutebolBanner2.jpg',
+    image: '/images/Banners/Banner4.jpg',
     title: 'Roupas de Treino Premium',
     description: 'Conjuntos completos para treino com qualidade superior. Ideal para academias e atletas profissionais.',
     buttonText: 'Roupas de Treino',
@@ -59,13 +59,13 @@ export default function BannerCarousel() {
   }
 
   return (
-    <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden bg-black">
+    <div className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-black">
       {/* Banner Images */}
-      <div className="relative w-full h-full p-4">
+      <div className="relative w-full h-full">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
-            className={`absolute inset-4 transition-opacity duration-1000 ${
+            className={`absolute inset-0 transition-opacity duration-1000 ${
               index === currentIndex ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -73,45 +73,51 @@ export default function BannerCarousel() {
               src={banner.image}
               alt={banner.title}
               fill
-              className="object-cover rounded-lg"
+              className="object-cover"
               priority={index === 0}
             />
           </div>
         ))}
       </div>
 
-      {/* Navigation Arrows */}
-      <button
-        onClick={goToPrevious}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all duration-200"
-        aria-label="Banner anterior"
-      >
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      
-      <button
-        onClick={goToNext}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all duration-200"
-        aria-label="Próximo banner"
-      >
-        <ChevronRight className="w-6 h-6" />
-      </button>
-
-      {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {banners.map((_, index) => (
+      {/* Navigation Arrows - Hidden for single banner */}
+      {banners.length > 1 && (
+        <>
           <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              index === currentIndex 
-                ? 'bg-yellow-400' 
-                : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-            }`}
-            aria-label={`Ir para banner ${index + 1}`}
-          />
-        ))}
-      </div>
+            onClick={goToPrevious}
+            className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            aria-label="Banner anterior"
+          >
+            <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
+          </button>
+          
+          <button
+            onClick={goToNext}
+            className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            aria-label="Próximo banner"
+          >
+            <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
+          </button>
+        </>
+      )}
+
+      {/* Dots Indicator - Hidden for single banner */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-200 ${
+                index === currentIndex 
+                  ? 'bg-yellow-400 shadow-lg' 
+                  : 'bg-white bg-opacity-60 hover:bg-opacity-80'
+              }`}
+              aria-label={`Ir para banner ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

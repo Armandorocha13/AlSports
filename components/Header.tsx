@@ -3,6 +3,7 @@
 // Importações necessárias para o componente Header
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield } from 'lucide-react'
 import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
@@ -41,8 +42,15 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo da empresa */}
           <Link href="/" className="flex items-center">
-            <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
-              <span className="font-bold text-black text-lg">AL</span>
+            <div className="w-12 h-12 flex items-center justify-center rounded-full overflow-hidden">
+              <Image
+                src="/images/Logo/Logo.png"
+                alt="AlSports Logo"
+                width={48}
+                height={48}
+                className="object-contain"
+                priority
+              />
             </div>
           </Link>
 
