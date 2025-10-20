@@ -15,6 +15,7 @@ export interface ShippingRequest {
     insurance_value: number
     quantity: number
   }>
+  services?: string[]
 }
 
 export interface ShippingOption {
@@ -58,7 +59,8 @@ class SuperFreteService {
     try {
       console.log('🚚 Enviando requisição para SuperFrete:', request)
       
-      const response = await fetch(`${this.baseUrl}/shipment/quote`, {
+      // Tentar primeiro com o endpoint principal
+      let response = await fetch(`${this.baseUrl}/shipment/calculate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,6 +72,23 @@ class SuperFreteService {
       })
 
       console.log('📡 Resposta da API SuperFrete:', response.status, response.statusText)
+
+      // Se falhar, tentar com endpoint alternativo
+      if (!response.ok) {
+        console.log('🔄 Tentando endpoint alternativo...')
+        response = await fetch(`${this.baseUrl}/shipment/quote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+            'User-Agent': 'AlSports/1.0',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(request)
+        })
+        
+        console.log('📡 Resposta do endpoint alternativo:', response.status, response.statusText)
+      }
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -122,7 +141,8 @@ class SuperFreteService {
         weight: totalWeight,
         insurance_value: totalValue,
         quantity: 1
-      }]
+      }],
+      services: ['1', '2', '3', '4', '5'] // PAC, SEDEX, Jadlog, Total Express, Loggi
     }
 
     try {
@@ -169,7 +189,7 @@ class SuperFreteService {
 
 // Instância do serviço com a API key fornecida
 export const superFreteService = new SuperFreteService(
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjA5ODc1MjQsInN1YiI6IjlQOW5ZUnJRRFhOUGlndHRPaFM5WGZVMVJxODMifQ.opG9fsPXCMW1cNhGQLZR9jufXRg3MMJC49Ud1BE4d1s'
+  process.env.NEXT_PUBLIC_SUPERFRETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjA5ODc1MjQsInN1YiI6IjlQOW5ZUnJRRFhOUGlndHRPaFM5WGZVMVJxODMifQ.opG9fsPXCMW1cNhGQLZR9jufXRg3MMJC49Ud1BE4d1s'
 )
 
 // Função helper para calcular dimensões padrão de produtos
