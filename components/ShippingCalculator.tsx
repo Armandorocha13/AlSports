@@ -11,17 +11,19 @@ interface ShippingCalculatorProps {
     value: number
     quantity: number
   }>
+  totalPieces?: number
   onShippingSelect?: (option: ShippingOption | null) => void
 }
 
-export default function ShippingCalculator({ products, onShippingSelect }: ShippingCalculatorProps) {
+export default function ShippingCalculator({ products, totalPieces = 0, onShippingSelect }: ShippingCalculatorProps) {
   const [toCep, setToCep] = useState('')
   const fromCep = '26015-005' // Nova Iguaçu - RJ (fixo)
   
   const { shippingOptions, loading, error, selectedOption, setSelectedOption } = useShipping({
     fromCep,
     toCep,
-    products
+    products,
+    totalPieces
   })
 
   const handleOptionSelect = (option: ShippingOption) => {

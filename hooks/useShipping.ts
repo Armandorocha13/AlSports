@@ -11,9 +11,10 @@ interface UseShippingProps {
     value: number
     quantity: number
   }>
+  totalPieces?: number
 }
 
-export function useShipping({ fromCep, toCep, products }: UseShippingProps) {
+export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseShippingProps) {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,7 +76,7 @@ export function useShipping({ fromCep, toCep, products }: UseShippingProps) {
       setError(errorMessage)
       
       // Fallback com preços baseados na distância
-      const fallbackOptions = createFallbackOptions(fromCep, toCep)
+      const fallbackOptions = createFallbackOptions(fromCep, toCep, totalPieces)
       setShippingOptions(fallbackOptions)
       
       if (fallbackOptions.length > 0) {
@@ -116,7 +117,7 @@ function getDefaultProductDimensions(category: string) {
 }
 
 // Função para criar opções de fallback baseadas na distância
-function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[] {
+function createFallbackOptions(fromCep: string, toCep: string, totalPieces: number): ShippingOption[] {
   // Extrair região do CEP de destino
   const toRegion = toCep.substring(0, 2)
   const fromRegion = fromCep.substring(0, 2)
@@ -155,7 +156,7 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
     deliveryTime = 5
   }
 
-  // Criar múltiplas opções de frete simulando diferentes transportadoras
+  // Opções básicas sempre disponíveis
   const options: ShippingOption[] = [
     {
       id: 'pac-fallback',
@@ -181,12 +182,13 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
     }
   ]
 
-  // Adicionar opções de transportadoras privadas baseadas na distância
-  if (basePrice >= 12) { // Apenas para distâncias maiores
+  // Adicionar transportadoras privadas APENAS se tiver 20+ peças
+  if (totalPieces >= 20) {
+    // Jadlog - mais barato que PAC
     options.push({
       id: 'jadlog-fallback',
-      name: 'Jadlog',
-      price: Math.round(basePrice * 0.9),
+      name: 'Jadlog (20+ peças)',
+      price: Math.round(basePrice * 0.7), // 30% mais barato que PAC
       delivery_time: Math.max(3, deliveryTime - 1),
       company: {
         id: 3,
@@ -195,10 +197,11 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
       }
     })
 
+    // Total Express - preço médio
     options.push({
       id: 'total-express-fallback',
-      name: 'Total Express',
-      price: Math.round(basePrice * 1.1),
+      name: 'Total Express (20+ peças)',
+      price: Math.round(basePrice * 0.8), // 20% mais barato que PAC
       delivery_time: Math.max(2, deliveryTime - 2),
       company: {
         id: 4,
@@ -207,10 +210,11 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
       }
     })
 
+    // Loggi - mais rápido
     options.push({
       id: 'loggi-fallback',
-      name: 'Loggi',
-      price: Math.round(basePrice * 1.2),
+      name: 'Loggi (20+ peças)',
+      price: Math.round(basePrice * 1.1), // 10% mais caro que PAC, mas mais rápido
       delivery_time: Math.max(1, deliveryTime - 3),
       company: {
         id: 5,
@@ -219,11 +223,11 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
       }
     })
 
-    // Adicionar opção econômica
+    // Opção econômica para pedidos grandes
     options.push({
       id: 'economico-fallback',
-      name: 'Econômico',
-      price: Math.round(basePrice * 0.7),
+      name: 'Econômico (20+ peças)',
+      price: Math.round(basePrice * 0.5), // 50% mais barato que PAC
       delivery_time: deliveryTime + 2,
       company: {
         id: 6,
@@ -232,20 +236,6 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
       }
     })
   }
-
-  // Adicionar opção de transportadora para pedidos grandes (20+ peças)
-  // Esta opção sempre aparece independente da distância
-  options.push({
-    id: 'transportadora-fallback',
-    name: 'Transportadora (20+ peças)',
-    price: Math.round(basePrice * 0.5), // 50% mais barato que PAC
-    delivery_time: Math.max(5, deliveryTime + 1),
-    company: {
-      id: 7,
-      name: 'Transportadora Especial',
-      picture: ''
-    }
-  })
 
   // Ordenar por preço (mais barato primeiro)
   return options.sort((a, b) => a.price - b.price)

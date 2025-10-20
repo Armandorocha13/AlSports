@@ -353,6 +353,7 @@ export default function CartPage() {
             value: getItemPrice(item.product, item.quantity),
             quantity: item.quantity
           }))}
+          totalPieces={getTotalPieces()}
           onShippingSelect={setSelectedShippingOption}
         />
       </div>
