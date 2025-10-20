@@ -182,5 +182,32 @@ export const categories = [
         image: '/images/Acessorios/BonesTime/BoneFlamengo.png'
       }
     ]
+  },
+  {
+    id: 'tabela-medidas',
+    name: 'Tabela de Medidas',
+    slug: 'tabela-medidas',
+    image: '/images/Logo/Logo.png',
+    description: 'Consulte as medidas dos nossos produtos tailandeses',
+    subcategories: [
+      {
+        id: 'medidas-camisas',
+        name: 'Medidas de Camisas',
+        slug: 'medidas-camisas',
+        image: '/images/Logo/Logo.png'
+      },
+      {
+        id: 'medidas-shorts',
+        name: 'Medidas de Shorts',
+        slug: 'medidas-shorts',
+        image: '/images/Logo/Logo.png'
+      },
+      {
+        id: 'medidas-bones',
+        name: 'Medidas de Bonés',
+        slug: 'medidas-bones',
+        image: '/images/Logo/Logo.png'
+      }
+    ]
   }
 ];

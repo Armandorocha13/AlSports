@@ -114,3 +114,16 @@ a {
 .grid-responsive {
 	@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
 }
+
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	/* IE and Edge */
+	scrollbar-width: none;
+	/* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+	/* Chrome, Safari and Opera */
+}

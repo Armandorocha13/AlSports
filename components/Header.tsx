@@ -22,21 +22,6 @@ export default function Header() {
 
   return (
     <header className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-800">
-      {/* Barra superior com informações de contato */}
-      <div className="bg-primary-500 text-black py-2">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center text-sm">
-            {/* Mensagem promocional */}
-            <p>🛒 Venda por Atacado - Preços Especiais para Revendedores</p>
-            {/* Informações de contato (visível apenas em desktop) */}
-            <div className="hidden md:flex items-center space-x-4">
-              <span>📞 (11) 99999-9999</span>
-              <span>✉️ contato@alsports.com.br</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Cabeçalho principal */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
