@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { Facebook, Instagram, Twitter } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -36,7 +36,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Links Rápidos</h4>
+            <h4 className="text-lg font-semibold mb-4">Categorias</h4>
             <ul className="space-y-2">
               <li>
                 <Link href="/categoria/futebol" className="text-gray-400 hover:text-white transition-colors duration-200">
@@ -71,27 +71,37 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Additional Info */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Contato</h4>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <Phone size={16} className="text-primary-400" />
-                <span className="text-gray-400">(21) 99459-5532</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Mail size={16} className="text-primary-400" />
-                <span className="text-gray-400">contato@alsports.com.br</span>
-              </div>
-              <div className="flex items-start space-x-3">
-                <MapPin size={16} className="text-primary-400 mt-1" />
-                <span className="text-gray-400">
-                Cidade da Moda, 13900<br />
-                  Nova iguacu - RJ - Brasil - 26015-005
-                </span>
-              </div>
-            </div>
+            <h4 className="text-lg font-semibold mb-4">Informações</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/categoria/tabela-medidas" className="text-gray-400 hover:text-white transition-colors duration-200">
+                  Tabela de Medidas
+                </Link>
+              </li>
+              <li>
+                <Link href="/minha-conta" className="text-gray-400 hover:text-white transition-colors duration-200">
+                  Minha Conta
+                </Link>
+              </li>
+              <li>
+                <Link href="/carrinho" className="text-gray-400 hover:text-white transition-colors duration-200">
+                  Carrinho
+                </Link>
+              </li>
+              <li>
+                <span className="text-gray-400">Pedidos com 20+ peças</span>
+              </li>
+              <li>
+                <span className="text-gray-400">Frete calculado por CEP</span>
+              </li>
+              <li>
+                <span className="text-gray-400">Preços de atacado</span>
+              </li>
+            </ul>
           </div>
+
         </div>
 
         {/* Bottom Bar */}
