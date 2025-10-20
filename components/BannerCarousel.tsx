@@ -59,7 +59,7 @@ export default function BannerCarousel() {
   }
 
   return (
-    <div className="relative w-full h-[500px] overflow-hidden bg-black">
+    <div className="relative w-full h-[600px] overflow-hidden bg-black">
       {/* Banner Images */}
       <div className="relative w-full h-full">
         {banners.map((banner, index) => (
@@ -73,32 +73,9 @@ export default function BannerCarousel() {
               src={banner.image}
               alt={banner.title}
               fill
-              className="object-cover"
+              className="object-contain"
               priority={index === 0}
             />
-            
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-50" />
-            
-            {/* Content */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white max-w-4xl px-4">
-                <h1 className="text-4xl md:text-6xl font-bold mb-6 text-yellow-400">
-                  {banner.title}
-                </h1>
-                <p className="text-lg md:text-xl mb-8 text-white max-w-2xl mx-auto">
-                  {banner.description}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <a
-                    href={banner.buttonLink}
-                    className="bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors duration-200 border-2 border-yellow-400"
-                  >
-                    {banner.buttonText}
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
         ))}
       </div>
