@@ -16,7 +16,7 @@ interface Banner {
 const banners: Banner[] = [
   {
     id: '1',
-    image: '/images/Banners/Banner1.jpg',
+    image: '/images/Banners/FutebolBanner1.jpg',
     title: 'Loja de Atacado de Roupas Esportivas',
     description: 'Especializada na venda por atacado de roupas esportivas. Encontre as melhores marcas com preços competitivos para revendedores.',
     buttonText: 'Ver Futebol',
@@ -24,7 +24,7 @@ const banners: Banner[] = [
   },
   {
     id: '2',
-    image: '/images/Banners/Banner2.jpg',
+    image: '/images/Banners/FutebolBanner2.jpg',
     title: 'Roupas de Treino Premium',
     description: 'Conjuntos completos para treino com qualidade superior. Ideal para academias e atletas profissionais.',
     buttonText: 'Roupas de Treino',
