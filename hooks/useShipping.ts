@@ -222,19 +222,6 @@ function createFallbackOptions(fromCep: string, toCep: string, totalPieces: numb
         picture: ''
       }
     })
-
-    // Opção econômica para pedidos grandes
-    options.push({
-      id: 'economico-fallback',
-      name: 'Econômico (20+ peças)',
-      price: Math.round(basePrice * 0.5), // 50% mais barato que PAC
-      delivery_time: deliveryTime + 2,
-      company: {
-        id: 6,
-        name: 'Transportadora Econômica',
-        picture: ''
-      }
-    })
   }
 
   // Ordenar por preço (mais barato primeiro)
