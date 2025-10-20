@@ -89,6 +89,29 @@ export default function ShippingCalculator({ products, totalPieces = 0, onShippi
         <div className="space-y-3">
           <h4 className="text-md font-medium text-white mb-3">Opções de Frete:</h4>
           
+          {/* Aviso sobre transportadoras privadas */}
+          {totalPieces < 20 && (
+            <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-3 mb-4">
+              <div className="flex items-start space-x-2">
+                <div className="flex-shrink-0">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">!</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-400">
+                    🚚 Transportadoras Privadas
+                  </h4>
+                  <p className="text-xs text-red-300 mt-1">
+                    <strong>Jadlog, Total Express e Loggi</strong> aparecem apenas para pedidos com <strong>20 peças ou mais</strong>.
+                    <br />
+                    <span className="text-gray-400">Atual: {totalPieces} peças no carrinho</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {shippingOptions.map((option) => (
             <div
               key={option.id}
