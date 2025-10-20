@@ -102,28 +102,14 @@ export default function HomePage() {
       </section>
 
         {/* Banner promocional */}
-        <section className="py-16 bg-gradient-to-r from-black to-gray-900 text-white">
-          <div className="container mx-auto px-4 text-center">
-            {/* Título da promoção */}
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              🎉 Promoção Especial
-            </h2>
-            {/* Descrição da promoção */}
-            <p className="text-xl mb-6 text-primary-400">
-              Até 50% de desconto em produtos selecionados
-            </p>
-            <p className="text-lg mb-8 text-gray-300">
-              Aproveite nossa promoção de fim de temporada e garante os melhores preços
-            </p>
-            {/* Botão para ver promoções */}
-            <Link 
-              href="/categoria/futebol?promocao=true" 
-              className="inline-flex items-center bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
-            >
-              Ver Promoções
-              <ArrowRight className="ml-2" size={20} />
-            </Link>
-          </div>
+        <section className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-black">
+          <Image
+            src="/images/Banners/Banner4.jpg"
+            alt="Banner Promocional"
+            fill
+            className="object-cover"
+            priority
+          />
         </section>
 
       {/* Seção de newsletter */}
