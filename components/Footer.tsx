@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Twitter } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -10,7 +9,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-                <span className="font-bold text-black text-sm">AL</span>
+                <span className="font-bold text-black text-sm"><img src="/images/Logo/Logo.png" alt="AL Sports Logo Completo" className="rounded-full" /></span>
               </div>
               <div>
                 <h3 className="text-xl font-bold">AL Sports</h3>
@@ -21,17 +20,7 @@ export default function Footer() {
               Especializada na venda por atacado de roupas esportivas. 
               Qualidade e preços competitivos para revendedores.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <Facebook size={20} />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
-                <Twitter size={20} />
-              </a>
-            </div>
+            
           </div>
 
           {/* Quick Links */}
@@ -90,15 +79,7 @@ export default function Footer() {
                   Carrinho
                 </Link>
               </li>
-              <li>
-                <span className="text-gray-400">Pedidos com 20+ peças</span>
-              </li>
-              <li>
-                <span className="text-gray-400">Frete calculado por CEP</span>
-              </li>
-              <li>
-                <span className="text-gray-400">Preços de atacado</span>
-              </li>
+              
             </ul>
           </div>
 
@@ -108,10 +89,10 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © 2024 AL Sports. Todos os direitos reservados.
+              © 2025 AL Sports. Todos os direitos reservados.
             </p>
             <p className="text-gray-400 text-sm mt-2 md:mt-0">
-              Desenvolvido com ❤️ para o atacado esportivo
+              Desenvolvido por BeArts Media para o ALSports
             </p>
           </div>
         </div>

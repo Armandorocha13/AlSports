@@ -103,7 +103,7 @@ export default function HomePage() {
                   <Shield className="text-black" size={24} />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">Garantia</h3>
-                <p className="text-gray-400">Produtos originais com garantia</p>
+                <p className="text-gray-400">Produtos com garantia</p>
               </div>
               {/* Card de trocas */}
               <div className="text-center">
