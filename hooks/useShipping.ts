@@ -142,7 +142,8 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
     deliveryTime = 5
   }
 
-  return [
+  // Criar múltiplas opções de frete simulando diferentes transportadoras
+  const options: ShippingOption[] = [
     {
       id: 'pac-fallback',
       name: 'PAC',
@@ -166,4 +167,59 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
       }
     }
   ]
+
+  // Adicionar opções de transportadoras privadas baseadas na distância
+  if (basePrice >= 12) { // Apenas para distâncias maiores
+    options.push({
+      id: 'jadlog-fallback',
+      name: 'Jadlog',
+      price: Math.round(basePrice * 0.9),
+      delivery_time: Math.max(3, deliveryTime - 1),
+      company: {
+        id: 3,
+        name: 'Jadlog',
+        picture: ''
+      }
+    })
+
+    options.push({
+      id: 'total-express-fallback',
+      name: 'Total Express',
+      price: Math.round(basePrice * 1.1),
+      delivery_time: Math.max(2, deliveryTime - 2),
+      company: {
+        id: 4,
+        name: 'Total Express',
+        picture: ''
+      }
+    })
+
+    options.push({
+      id: 'loggi-fallback',
+      name: 'Loggi',
+      price: Math.round(basePrice * 1.2),
+      delivery_time: Math.max(1, deliveryTime - 3),
+      company: {
+        id: 5,
+        name: 'Loggi',
+        picture: ''
+      }
+    })
+
+    // Adicionar opção econômica
+    options.push({
+      id: 'economico-fallback',
+      name: 'Econômico',
+      price: Math.round(basePrice * 0.7),
+      delivery_time: deliveryTime + 2,
+      company: {
+        id: 6,
+        name: 'Transportadora Econômica',
+        picture: ''
+      }
+    })
+  }
+
+  // Ordenar por preço (mais barato primeiro)
+  return options.sort((a, b) => a.price - b.price)
 }

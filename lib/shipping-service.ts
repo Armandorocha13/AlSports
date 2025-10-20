@@ -108,15 +108,28 @@ class SuperFreteService {
       }))
     }
 
-    const shippingOptions = await this.calculateShipping(request)
-    
-    return shippingOptions.map(option => ({
-      id: option.id,
-      name: option.name,
-      price: option.price,
-      delivery_time: option.delivery_time,
-      company: option.company
-    }))
+    try {
+      const shippingOptions = await this.calculateShipping(request)
+      
+      // Filtrar e mapear apenas opções válidas
+      const validOptions = shippingOptions
+        .filter(option => option && option.price > 0 && !option.error)
+        .map(option => ({
+          id: option.id,
+          name: option.name,
+          price: option.price,
+          delivery_time: option.delivery_time,
+          company: option.company
+        }))
+        .sort((a, b) => a.price - b.price) // Ordenar por preço
+
+      console.log('🚚 Opções válidas do SuperFrete:', validOptions)
+      
+      return validOptions
+    } catch (error) {
+      console.error('❌ Erro na API SuperFrete:', error)
+      throw error
+    }
   }
 }
 
