@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { DiscountCalculator } from '@/lib/discount-calculator'
 import { sampleProducts } from '@/lib/data'
 import { shippingService } from '@/lib/shipping'
+import ShippingCalculator from '@/components/ShippingCalculator'
 
 export default function CartPage() {
   const router = useRouter()
@@ -73,6 +74,7 @@ export default function CartPage() {
   const [shippingOptions, setShippingOptions] = useState<any[]>([])
   const [selectedShipping, setSelectedShipping] = useState<any>(null)
   const [showCepInput, setShowCepInput] = useState(false)
+  const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null)
   
   const shippingInfo = getShippingInfo()
   const discountSummary = getDiscountSummary()
@@ -132,6 +134,9 @@ export default function CartPage() {
   }
 
   const getFinalShippingCost = () => {
+    if (selectedShippingOption) {
+      return selectedShippingOption.price
+    }
     if (selectedShipping) {
       return selectedShipping.price
     }
@@ -478,171 +483,16 @@ export default function CartPage() {
         })}
       </div>
 
-      {/* Delivery Options */}
-      <div className="bg-gray-800 mt-4 p-4">
-        <h3 className="font-medium text-white mb-3">Opções de Entrega</h3>
-        
-        {/* Aviso sobre Transportadora */}
-        <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-3 mb-4">
-          <div className="flex items-start space-x-2">
-            <div className="flex-shrink-0">
-              <div className="w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
-                <span className="text-black text-xs font-bold">i</span>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-medium text-primary-400">
-                📦 Entregas por Transportadora
-              </h4>
-              <p className="text-xs text-gray-300 mt-1">
-                Pedidos com <strong>20 peças ou mais</strong> podem ser enviados por transportadora.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="mb-3">
-          {showCepInput ? (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Digite seu CEP
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="00000-000"
-                    value={cep}
-                    onChange={handleCEPChange}
-                    maxLength={9}
-                    className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      cepError ? 'border-red-400' : 'border-gray-600'
-                    }`}
-                    autoFocus
-                  />
-                  <button
-                    onClick={calculateShipping}
-                    disabled={isCalculatingShipping || !validateCEP(cep)}
-                    className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                  >
-                    {isCalculatingShipping ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Calculando...
-                      </>
-                    ) : (
-                      'Calcular'
-                    )}
-                  </button>
-                </div>
-                {cepError && (
-                  <div className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle size={16} className="mr-1" />
-                    {cepError}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  setShowCepInput(false)
-                  setCep('')
-                  setCepError('')
-                }}
-                className="text-sm text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">
-                Receber {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'} em{' '}
-                {cep || '00000-000'}
-              </span>
-              <button
-                onClick={handleTrocarCEP}
-                className="text-sm text-primary-400 hover:text-primary-300 font-medium"
-              >
-                Trocar CEP
-              </button>
-            </div>
-          )}
-        </div>
-        
-        {cep && shippingOptions.length > 0 ? (
-          <div className="space-y-2">
-            {shippingOptions.map((option) => (
-              <div
-                key={option.id}
-                className={`p-3 border rounded-lg ${
-                  selectedShipping?.id === option.id
-                    ? 'border-primary-500 bg-primary-500/10'
-                    : 'border-gray-600'
-                }`}
-                onClick={() => setSelectedShipping(option)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-white">{option.name}</div>
-                    <div className="text-sm text-gray-400">{option.deliveryTime}</div>
-                  </div>
-                  <div className="text-right">
-                    {option.isFree ? (
-                      <span className="text-green-600 font-medium">Grátis</span>
-                    ) : (
-                      <span className="font-medium">R$ {option.price.toFixed(2).replace('.', ',')}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="bg-gray-700 p-3 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-white">PAC</div>
-                  <div className="text-sm text-gray-400">5-7 dias úteis</div>
-                </div>
-                <div className="text-right">
-                  <span className="font-medium text-white">R$ 15,00</span>
-                </div>
-              </div>
-            </div>
-            
-            {getTotalPieces() >= 20 ? (
-              <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-green-900">Transportadora</div>
-                    <div className="text-sm text-green-700">5-7 dias úteis</div>
-                  </div>
-                  <div className="text-right">
-                    {(() => {
-                      const transportadoraPrice = shippingService.calculateTransportadoraPrice(getTotalPieces())
-                      return transportadoraPrice === 0 ? (
-                        <span className="text-green-600 font-medium">Grátis</span>
-                      ) : (
-                        <span className="text-green-600 font-medium">R$ {transportadoraPrice.toFixed(2).replace('.', ',')}</span>
-                      )
-                    })()}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-        
-        <button
-          onClick={() => router.push('/')}
-          className="mt-3 text-sm text-primary-400 hover:text-primary-300"
-        >
-          Escolher mais produtos
-        </button>
+      {/* Shipping Calculator */}
+      <div className="mt-4">
+        <ShippingCalculator
+          products={items.map(item => ({
+            category: item.product.category,
+            value: getItemPrice(item.product, item.quantity),
+            quantity: item.quantity
+          }))}
+          onShippingSelect={setSelectedShippingOption}
+        />
       </div>
 
       {/* Coupon Section */}
