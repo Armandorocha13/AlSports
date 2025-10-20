@@ -15,8 +15,8 @@ interface ShippingCalculatorProps {
 }
 
 export default function ShippingCalculator({ products, onShippingSelect }: ShippingCalculatorProps) {
-  const [fromCep, setFromCep] = useState('')
   const [toCep, setToCep] = useState('')
+  const fromCep = '26015-005' // Nova Iguaçu - RJ (fixo)
   
   const { shippingOptions, loading, error, selectedOption, setSelectedOption } = useShipping({
     fromCep,
@@ -48,20 +48,7 @@ export default function ShippingCalculator({ products, onShippingSelect }: Shipp
         Calcular Frete
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            CEP de Origem
-          </label>
-          <input
-            type="text"
-            placeholder="00000-000"
-            value={fromCep}
-            onChange={(e) => setFromCep(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
-        
+      <div className="mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             CEP de Destino
@@ -73,6 +60,9 @@ export default function ShippingCalculator({ products, onShippingSelect }: Shipp
             onChange={(e) => setToCep(e.target.value)}
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
+          <p className="text-xs text-gray-400 mt-1">
+            Enviando de Nova Iguaçu - RJ (26015-005)
+          </p>
         </div>
       </div>
 
