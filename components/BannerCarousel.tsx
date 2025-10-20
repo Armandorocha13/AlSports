@@ -59,13 +59,13 @@ export default function BannerCarousel() {
   }
 
   return (
-    <div className="relative w-full h-[600px] overflow-hidden bg-black">
+    <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden bg-black">
       {/* Banner Images */}
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full p-4">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
+            className={`absolute inset-4 transition-opacity duration-1000 ${
               index === currentIndex ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -73,7 +73,7 @@ export default function BannerCarousel() {
               src={banner.image}
               alt={banner.title}
               fill
-              className="object-contain"
+              className="object-cover rounded-lg"
               priority={index === 0}
             />
           </div>
