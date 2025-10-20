@@ -27,12 +27,12 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo da empresa */}
           <Link href="/" className="flex items-center">
-            <div className="w-12 h-12 flex items-center justify-center rounded-full overflow-hidden">
+            <div className="w-24 h-16 flex items-center justify-center">
               <Image
-                src="/images/Logo/Logo.png"
+                src="/images/Logo/Monograma2.png"
                 alt="AlSports Logo"
-                width={48}
-                height={48}
+                width={200}
+                height={160}
                 className="object-contain"
                 priority
               />

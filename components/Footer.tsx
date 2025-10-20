@@ -8,18 +8,9 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-                <span className="font-bold text-black text-sm"><img src="/images/Logo/Logo.png" alt="AL Sports Logo Completo" className="rounded-full" /></span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">AL Sports</h3>
-                <p className="text-sm text-gray-400">Mundo da Bola</p>
-              </div>
+            <span className="font-bold text-black text-sm"><img src="/images/Logo/Monograma2.png" alt="AL Sports Logo Completo" className="rounded-full w-60 h-60" /></span>
             </div>
-            <p className="text-gray-400 mb-4">
-              Especializada na venda por atacado de roupas esportivas. 
-              Qualidade e preços competitivos para revendedores.
-            </p>
+            
             
           </div>
 
