@@ -59,7 +59,7 @@ export default function BannerCarousel() {
   }
 
   return (
-    <div className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-black">
+    <div className="relative w-full h-[350px] md:h-[500px] lg:h-[550px] overflow-hidden bg-black">
       {/* Banner Images */}
       <div className="relative w-full h-full">
         {banners.map((banner, index) => (
