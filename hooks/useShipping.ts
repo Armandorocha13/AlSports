@@ -220,6 +220,20 @@ function createFallbackOptions(fromCep: string, toCep: string): ShippingOption[]
     })
   }
 
+  // Adicionar opção de transportadora para pedidos grandes (20+ peças)
+  // Esta opção sempre aparece independente da distância
+  options.push({
+    id: 'transportadora-fallback',
+    name: 'Transportadora (20+ peças)',
+    price: Math.round(basePrice * 0.5), // 50% mais barato que PAC
+    delivery_time: Math.max(5, deliveryTime + 1),
+    company: {
+      id: 7,
+      name: 'Transportadora Especial',
+      picture: ''
+    }
+  })
+
   // Ordenar por preço (mais barato primeiro)
   return options.sort((a, b) => a.price - b.price)
 }

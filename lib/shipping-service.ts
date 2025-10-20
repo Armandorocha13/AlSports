@@ -125,7 +125,24 @@ class SuperFreteService {
 
       console.log('🚚 Opções válidas do SuperFrete:', validOptions)
       
-      return validOptions
+      // Adicionar opção de transportadora para pedidos grandes
+      // Esta opção sempre aparece como alternativa
+      const transportadoraOption = {
+        id: 'transportadora-superfrete',
+        name: 'Transportadora (20+ peças)',
+        price: Math.round(Math.min(...validOptions.map(o => o.price)) * 0.6), // 40% mais barato que a opção mais barata
+        delivery_time: 7,
+        company: {
+          id: 99,
+          name: 'Transportadora Especial',
+          picture: ''
+        }
+      }
+      
+      validOptions.push(transportadoraOption)
+      
+      // Reordenar por preço
+      return validOptions.sort((a, b) => a.price - b.price)
     } catch (error) {
       console.error('❌ Erro na API SuperFrete:', error)
       throw error
