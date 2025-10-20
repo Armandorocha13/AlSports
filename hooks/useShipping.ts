@@ -59,7 +59,20 @@ export function useShipping({ fromCep, toCep, products }: UseShippingProps) {
       }
     } catch (err) {
       console.error('❌ Erro ao calcular frete:', err)
-      setError(err instanceof Error ? err.message : 'Erro ao calcular frete')
+      
+      // Determinar o tipo de erro
+      let errorMessage = 'Erro ao calcular frete'
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
+          errorMessage = 'Não foi possível conectar com a API de frete'
+        } else if (err.message.includes('Network')) {
+          errorMessage = 'Problema de conexão com a internet'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
       
       // Fallback com preços baseados na distância
       const fallbackOptions = createFallbackOptions(fromCep, toCep)
