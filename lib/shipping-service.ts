@@ -56,24 +56,32 @@ class SuperFreteService {
 
   async calculateShipping(request: ShippingRequest): Promise<ShippingResponse[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/shipment/calculate`, {
+      console.log('🚚 Enviando requisição para SuperFrete:', request)
+      
+      const response = await fetch(`${this.baseUrl}/shipment/quote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'AlSports/1.0'
+          'User-Agent': 'AlSports/1.0',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(request)
       })
 
+      console.log('📡 Resposta da API SuperFrete:', response.status, response.statusText)
+
       if (!response.ok) {
-        throw new Error(`Erro na API SuperFrete: ${response.status}`)
+        const errorText = await response.text()
+        console.error('❌ Erro na API SuperFrete:', response.status, errorText)
+        throw new Error(`Erro na API SuperFrete: ${response.status} - ${errorText}`)
       }
 
       const data = await response.json()
+      console.log('✅ Dados recebidos da SuperFrete:', data)
       return data
     } catch (error) {
-      console.error('Erro ao calcular frete:', error)
+      console.error('❌ Erro ao calcular frete:', error)
       throw error
     }
   }
@@ -90,6 +98,15 @@ class SuperFreteService {
       quantity: number
     }>
   ): Promise<ShippingOption[]> {
+    // Calcular dimensões totais do pedido
+    const totalWeight = products.reduce((sum, product) => sum + (product.weight * product.quantity), 0)
+    const totalValue = products.reduce((sum, product) => sum + (product.value * product.quantity), 0)
+    
+    // Usar as maiores dimensões para o cálculo
+    const maxWidth = Math.max(...products.map(p => p.width))
+    const maxHeight = Math.max(...products.map(p => p.height))
+    const maxLength = Math.max(...products.map(p => p.length))
+
     const request: ShippingRequest = {
       from: {
         postal_code: fromCep.replace(/\D/g, '')
@@ -97,15 +114,15 @@ class SuperFreteService {
       to: {
         postal_code: toCep.replace(/\D/g, '')
       },
-      products: products.map((product, index) => ({
-        id: `product_${index}`,
-        width: product.width,
-        height: product.height,
-        length: product.length,
-        weight: product.weight,
-        insurance_value: product.value,
-        quantity: product.quantity
-      }))
+      products: [{
+        id: 'package',
+        width: maxWidth,
+        height: maxHeight,
+        length: maxLength,
+        weight: totalWeight,
+        insurance_value: totalValue,
+        quantity: 1
+      }]
     }
 
     try {
