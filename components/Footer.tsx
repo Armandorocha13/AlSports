@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Company Info */}
-          <div>
+          <div className="hidden md:block">
             <div className="flex items-center space-x-3 mb-4">
             <span className="font-bold text-black text-sm"><img src="/images/Logo/Monograma2.png" alt="AL Sports Logo Completo" className="rounded-full w-60 h-60" /></span>
             </div>
@@ -83,7 +83,7 @@ export default function Footer() {
               © 2025 AL Sports. Todos os direitos reservados.
             </p>
             <p className="text-gray-400 text-sm mt-2 md:mt-0">
-              Desenvolvido por BeArts Media para o ALSports
+              Desenvolvido por BeArts Media para o AL Mundo da Bola
             </p>
           </div>
         </div>
