@@ -9,6 +9,7 @@ import ProductCard from '@/components/ProductCard'
 import CategoryCard from '@/components/CategoryCard'
 import AdminBanner from '@/components/AdminBanner'
 import BannerCarousel from '@/components/BannerCarousel'
+import BottomBannerCarousel from '@/components/BottomBannerCarousel'
 import { useRef, useEffect, useState } from 'react'
 
 // Componente da página inicial da aplicação
@@ -86,7 +87,7 @@ export default function HomePage() {
       </div>
 
         {/* Seção de características da empresa */}
-        <section className="hidden md:block py-16 bg-gray-900">
+        <section className="hidden md:block py-16 bg-black">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Card de entrega rápida */}
@@ -118,7 +119,7 @@ export default function HomePage() {
         </section>
 
       {/* Seção de categorias de produtos */}
-      <section className="py-16 bg-gray-900">
+      <section className="py-16 bg-black">
         <div className="container mx-auto px-4">
           {/* Cabeçalho da seção de categorias */}
           <div className="text-center mb-12">
@@ -202,15 +203,7 @@ export default function HomePage() {
       </section>
 
         {/* Banner promocional */}
-        <section className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-black">
-          <Image
-            src="/images/Banners/Banner4.jpg"
-            alt="Banner Promocional"
-            fill
-            className="object-cover"
-            priority
-          />
-        </section>
+        <BottomBannerCarousel />
 
       {/* Seção de newsletter */}
       <section className="py-16 bg-black">

@@ -44,13 +44,13 @@ export const categories = [
         id: 'shorts-feminino',
         name: 'Shorts Feminino',
         slug: 'shorts-feminino',
-        image: '/images/Futebol/CamisasFutebolFeminina/FlamengoFeminino1.jpg'
+        image: '/images/Futebol/ShortsFutebolMasculino/ShortFemininoFlamengo.png'
       },
       {
         id: 'temporada-25-26',
         name: 'Temporada 25/26',
         slug: 'temporada-25-26',
-        image: '/images/Futebol/Camisas25-26/Flamengo25-26.jpg'
+        image: '/images/Futebol/Camisas25-26/FlamengoMasculina3.png'
       },
       {
         id: 'temporada-23-24',

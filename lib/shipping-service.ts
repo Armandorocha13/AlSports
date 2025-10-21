@@ -105,10 +105,8 @@ class SuperFreteService {
         }
       ]
 
-      // Adicionar transportadoras privadas se for pedido grande (20+ peças)
-      // Verificar se há 20+ peças no total do pedido
-      const totalQuantity = products ? products.reduce((sum, p) => sum + p.quantity, 0) : 0
-      if (totalQuantity >= 20) {
+      // Adicionar transportadoras privadas se for pedido grande
+      if (product.weight >= 2) {
         mockResponse.push(
           {
             id: '3',

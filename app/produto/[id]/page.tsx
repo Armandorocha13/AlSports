@@ -121,12 +121,6 @@ export default function ProductPage({ params }: ProductPageProps) {
               )}
             </div>
             
-            {/* Thumbnail Images */}
-            <div className="flex gap-2">
-              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
-              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
-              <div className="w-20 h-20 bg-gray-800 border border-yellow-400 rounded-lg"></div>
-            </div>
           </div>
 
           {/* Product Info */}

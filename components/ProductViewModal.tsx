@@ -156,12 +156,6 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   </button>
                 </div>
 
-                {/* Galeria de Imagens (placeholder) */}
-                <div className="flex gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-16 h-16 bg-gray-800 border border-yellow-400 rounded-lg"></div>
-                  ))}
-                </div>
               </div>
 
               {/* Informações do Produto */}
