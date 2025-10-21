@@ -198,7 +198,16 @@ export default function MedidasSubcategoryPage({ params }: SubcategoryPageProps)
 
         {/* Botão de Download */}
         <div className="text-center">
-          <button className="inline-flex items-center bg-primary-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200">
+          <button 
+            onClick={() => {
+              // Criar um link temporário para download
+              const link = document.createElement('a')
+              link.href = '/tabela-medidas.pdf'
+              link.download = `Tabela-de-Medidas-${tableData.title}.pdf`
+              link.click()
+            }}
+            className="inline-flex items-center bg-primary-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
+          >
             <Download className="mr-2" size={20} />
             Baixar Tabela (PDF)
           </button>

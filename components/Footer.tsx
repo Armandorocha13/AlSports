@@ -43,11 +43,7 @@ export default function Footer() {
                   Acessórios
                 </Link>
               </li>
-              <li>
-                <Link href="/categoria/bermudas-shorts" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  Bermudas & Shorts
-                </Link>
-              </li>
+             
             </ul>
           </div>
 
