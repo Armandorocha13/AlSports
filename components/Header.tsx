@@ -16,6 +16,13 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false) // Menu mobile
   const [isSearchOpen, setIsSearchOpen] = useState(false) // Barra de pesquisa
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false) // Menu do usuário
+  const [searchTerm, setSearchTerm] = useState('') // Termo de busca
+
+  // Função para fechar a barra de busca
+  const closeSearch = () => {
+    setIsSearchOpen(false)
+    setSearchTerm('')
+  }
   
   // Hooks para autenticação, carrinho e favoritos
   const { user, profile, signOut } = useAuth()
@@ -58,7 +65,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             {/* Botão de pesquisa */}
             <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              onClick={() => isSearchOpen ? closeSearch() : setIsSearchOpen(true)}
               className="p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200"
             >
               <Search size={20} />
@@ -236,14 +243,39 @@ export default function Header() {
         {/* Barra de pesquisa - exibe quando ativada */}
         {isSearchOpen && (
           <div className="mt-4 pb-4">
-            <div className="relative">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (searchTerm.trim()) {
+                  window.location.href = `/busca?q=${encodeURIComponent(searchTerm.trim())}`
+                }
+              }}
+              className="relative"
+            >
               <input
                 type="text"
                 placeholder="Buscar produtos..."
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 pr-12"
+                autoFocus
               />
-              <Search className="absolute right-3 top-2.5 text-gray-400" size={20} />
-            </div>
+              <div className="absolute right-3 top-2.5 flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="text-gray-400 hover:text-primary-400 transition-colors duration-200"
+                >
+                  <Search size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </div>
