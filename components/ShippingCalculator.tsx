@@ -112,40 +112,74 @@ export default function ShippingCalculator({ products, totalPieces = 0, onShippi
             </div>
           )}
           
-          {shippingOptions.map((option) => (
-            <div
-              key={option.id}
-              className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                selectedOption?.id === option.id
-                  ? 'border-primary-500 bg-primary-500/10'
-                  : 'border-gray-600 hover:border-gray-500'
-              }`}
-              onClick={() => handleOptionSelect(option)}
-            >
+          {shippingOptions
+            .filter(option => {
+              // Filtrar transportadoras privadas se não tiver 20+ peças
+              const isPrivateCarrier = ['Jadlog', 'Total Express', 'Loggi'].some(name => 
+                option.name.includes(name) || option.company.name.includes(name)
+              )
+              
+              if (isPrivateCarrier && totalPieces < 20) {
+                return false // Não mostrar transportadoras privadas se não tiver 20+ peças
+              }
+              
+              return true
+            })
+            .map((option) => {
+            const isSelected = selectedOption && selectedOption.id === option.id
+            return (
+              <div
+                key={option.id}
+                className={`border rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out transform ${
+                  isSelected
+                    ? 'border-primary-500 bg-primary-500/10 ring-2 ring-primary-500/20 scale-[1.02] shadow-lg'
+                    : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/50 hover:scale-[1.01]'
+                }`}
+                onClick={() => handleOptionSelect(option)}
+              >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
-                    <Package className="w-5 h-5 text-primary-400" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+                    isSelected 
+                      ? 'bg-primary-500' 
+                      : 'bg-gray-700'
+                  }`}>
+                    <Package className={`w-5 h-5 transition-colors duration-200 ${
+                      isSelected 
+                        ? 'text-white' 
+                        : 'text-primary-400'
+                    }`} />
                   </div>
                   
                   <div>
-                    <h5 className="font-medium text-white">{option.name}</h5>
+                    <h5 className={`font-medium transition-colors duration-200 ${
+                      isSelected ? 'text-primary-400' : 'text-white'
+                    }`}>{option.name}</h5>
                     <p className="text-sm text-gray-400">{option.company.name}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-lg font-bold text-primary-400">
+                  <div className={`text-lg font-bold transition-colors duration-200 ${
+                    isSelected ? 'text-primary-400' : 'text-primary-400'
+                  }`}>
                     {formatPrice(option.price)}
                   </div>
                   <div className="flex items-center gap-1 text-sm text-gray-400">
                     <Clock className="w-4 h-4" />
                     {formatDeliveryTime(option.delivery_time)}
                   </div>
+                  {isSelected && (
+                    <div className="flex items-center gap-1 text-xs text-primary-400 mt-1">
+                      <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse"></div>
+                      <span>Selecionado</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

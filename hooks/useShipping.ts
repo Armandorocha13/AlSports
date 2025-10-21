@@ -19,6 +19,7 @@ export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseSh
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedOption, setSelectedOption] = useState<ShippingOption | null>(null)
+  const [userHasSelected, setUserHasSelected] = useState(false)
 
   const calculateShipping = async () => {
     if (!fromCep || !toCep || products.length === 0) {
@@ -43,20 +44,21 @@ export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseSh
       const options = await superFreteService.getShippingOptions(
         fromCep,
         toCep,
-        productDimensions
+        productDimensions,
+        totalPieces
       )
 
       console.log('✅ Opções de frete recebidas:', options)
 
       setShippingOptions(options)
       
-      // Seleciona automaticamente a opção mais barata
-      if (options.length > 0) {
+      // Seleciona automaticamente a opção mais barata apenas se o usuário não fez uma seleção manual
+      if (options.length > 0 && !userHasSelected) {
         const cheapest = options.reduce((prev, current) => 
           prev.price < current.price ? prev : current
         )
         setSelectedOption(cheapest)
-        console.log('🎯 Opção selecionada:', cheapest)
+        console.log('🎯 Opção selecionada automaticamente:', cheapest)
       }
     } catch (err) {
       console.error('❌ Erro ao calcular frete:', err)
@@ -79,7 +81,7 @@ export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseSh
       const fallbackOptions = createFallbackOptions(fromCep, toCep, totalPieces)
       setShippingOptions(fallbackOptions)
       
-      if (fallbackOptions.length > 0) {
+      if (fallbackOptions.length > 0 && !userHasSelected) {
         setSelectedOption(fallbackOptions[0])
       }
     } finally {
@@ -88,15 +90,24 @@ export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseSh
   }
 
   useEffect(() => {
+    // Reset user selection when CEP changes (new destination)
+    if (toCep) {
+      setUserHasSelected(false)
+    }
     calculateShipping()
   }, [fromCep, toCep, products])
+
+  const handleSetSelectedOption = (option: ShippingOption | null) => {
+    setSelectedOption(option)
+    setUserHasSelected(true)
+  }
 
   return {
     shippingOptions,
     loading,
     error,
     selectedOption,
-    setSelectedOption,
+    setSelectedOption: handleSetSelectedOption,
     recalculate: calculateShipping
   }
 }
