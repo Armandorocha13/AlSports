@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Eye } from 'lucide-react'
+import { Eye, Heart } from 'lucide-react'
 import { Product } from '@/lib/types'
 import ProductViewModal from './ProductViewModal'
 
