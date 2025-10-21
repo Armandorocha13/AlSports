@@ -69,6 +69,8 @@ export default function FavoritesPage() {
           <p className="text-gray-400 mb-8 max-w-md mx-auto">
             Adicione produtos aos seus favoritos clicando no ícone de coração ❤️
           </p>
+          
+          
           <Link
             href="/"
             className="bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
