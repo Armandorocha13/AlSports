@@ -3,6 +3,7 @@
 // Importações necessárias para o componente
 import { useState, useEffect } from 'react' // Hooks do React para estado e efeitos
 import Image from 'next/image' // Componente otimizado de imagem do Next.js
+import { ChevronLeft, ChevronRight } from 'lucide-react' // Ícones de navegação
 
 // Interface que define a estrutura de um banner
 interface Banner {
@@ -50,6 +51,16 @@ export default function BannerCarousel() {
     return () => clearInterval(interval)
   }, [])
 
+  // Função para navegar para o banner anterior
+  const goToPrevious = () => {
+    setCurrentIndex(currentIndex === 0 ? banners.length - 1 : currentIndex - 1)
+  }
+
+  // Função para navegar para o próximo banner
+  const goToNext = () => {
+    setCurrentIndex(currentIndex === banners.length - 1 ? 0 : currentIndex + 1)
+  }
+
   // Função para ir diretamente para um banner específico (usado pelos dots)
   const goToSlide = (index: number) => {
     setCurrentIndex(index)
@@ -80,6 +91,28 @@ export default function BannerCarousel() {
         ))}
       </div>
 
+      {/* Botões de navegação - só aparecem se houver mais de um banner */}
+      {banners.length > 1 && (
+        <>
+          {/* Botão para voltar ao banner anterior */}
+          <button
+            onClick={goToPrevious} // Chama função de navegação anterior
+            className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            aria-label="Banner anterior" // Acessibilidade
+          >
+            <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" /> {/* Ícone de seta esquerda */}
+          </button>
+          
+          {/* Botão para avançar ao próximo banner */}
+          <button
+            onClick={goToNext} // Chama função de navegação próxima
+            className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            aria-label="Próximo banner" // Acessibilidade
+          >
+            <ChevronRight className="w-4 h-4 md:w-6 md:h-6" /> {/* Ícone de seta direita */}
+          </button>
+        </>
+      )}
 
       {/* Indicadores de posição (dots) - só aparecem se houver mais de um banner */}
       {banners.length > 1 && (

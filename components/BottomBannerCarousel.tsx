@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Banner {
   id: string
@@ -39,6 +40,14 @@ export default function BottomBannerCarousel() {
     return () => clearInterval(interval)
   }, [])
 
+  const goToPrevious = () => {
+    setCurrentIndex(currentIndex === 0 ? bottomBanners.length - 1 : currentIndex - 1)
+  }
+
+  const goToNext = () => {
+    setCurrentIndex(currentIndex === bottomBanners.length - 1 ? 0 : currentIndex + 1)
+  }
+
   const goToSlide = (index: number) => {
     setCurrentIndex(index)
   }
@@ -69,6 +78,22 @@ export default function BottomBannerCarousel() {
         ))}
       </div>
 
+      {/* Navigation Arrows */}
+      <button
+        onClick={goToPrevious}
+        className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+        aria-label="Banner anterior"
+      >
+        <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
+      </button>
+      
+      <button
+        onClick={goToNext}
+        className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+        aria-label="Próximo banner"
+      >
+        <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
+      </button>
 
       {/* Dots Indicator */}
       <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
