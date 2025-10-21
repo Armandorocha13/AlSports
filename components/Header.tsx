@@ -4,10 +4,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield } from 'lucide-react'
+import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield, Heart } from 'lucide-react'
 import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 // Componente do cabeçalho da aplicação
 export default function Header() {
@@ -16,9 +17,10 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false) // Barra de pesquisa
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false) // Menu do usuário
   
-  // Hooks para autenticação e carrinho
+  // Hooks para autenticação, carrinho e favoritos
   const { user, profile, signOut } = useAuth()
   const { getTotalItems, getTotal, getShippingInfo } = useCart()
+  const { getFavoritesCount } = useFavorites()
 
   return (
     <header className="bg-black shadow-lg sticky top-0 z-50 border-b border-gray-800">
@@ -94,6 +96,32 @@ export default function Header() {
               )}
             </a>
 
+            {/* Link dos favoritos com contador */}
+            <a
+              href="/favoritos"
+              className="relative p-2 text-gray-400 hover:text-red-400 transition-colors duration-200 group"
+              title={`Favoritos: ${getFavoritesCount()} item(s)`}
+            >
+              <Heart size={20} />
+              {/* Contador de favoritos */}
+              {getFavoritesCount() > 0 && (
+                <>
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
+                    {getFavoritesCount()}
+                  </span>
+                  {/* Tooltip com informações dos favoritos */}
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div className="p-3 space-y-1">
+                      <div className="font-semibold text-red-400">Favoritos</div>
+                      <div className="text-gray-300">
+                        {getFavoritesCount()} item(s) nos favoritos
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </a>
+
             {/* Menu do usuário - exibe se estiver logado */}
             {user ? (
               <div className="relative">
@@ -134,6 +162,14 @@ export default function Header() {
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Endereços
+                    </Link>
+                    {/* Link para favoritos do usuário */}
+                    <Link
+                      href="/favoritos"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      Favoritos
                     </Link>
                     
                     {/* Botão do painel admin - exibe apenas para administradores */}

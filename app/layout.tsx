@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
+import { FavoritesProvider } from '@/contexts/FavoritesContext'
 
 // Configuração da fonte Montserrat para toda a aplicação
 const montserrat = Montserrat({ 
@@ -34,6 +35,8 @@ export default function RootLayout({
         <AuthProvider>
           {/* Provedor do carrinho para gerenciar produtos no carrinho */}
           <CartProvider>
+            {/* Provedor de favoritos para gerenciar produtos favoritados */}
+            <FavoritesProvider>
             {/* Container principal com layout flexível */}
             <div className="min-h-screen flex flex-col">
               {/* Cabeçalho da aplicação */}
@@ -45,6 +48,7 @@ export default function RootLayout({
               {/* Rodapé da aplicação */}
               <Footer />
             </div>
+            </FavoritesProvider>
           </CartProvider>
         </AuthProvider>
       </body>

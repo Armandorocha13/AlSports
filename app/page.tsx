@@ -10,12 +10,14 @@ import CategoryCard from '@/components/CategoryCard'
 import AdminBanner from '@/components/AdminBanner'
 import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { useRef, useEffect, useState } from 'react'
 
 // Componente da página inicial da aplicação
 export default function HomePage() {
   const carouselRef = useRef<HTMLDivElement>(null)
   const [isAutoScroll, setIsAutoScroll] = useState(true)
+  const { favorites, getFavoritesCount } = useFavorites()
   // Filtra produtos em destaque limitados a 2 por subcategoria
   const featuredProducts = getFeaturedProductsLimited()
 

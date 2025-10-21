@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Eye, Heart } from 'lucide-react'
 import { Product } from '@/lib/types'
 import ProductViewModal from './ProductViewModal'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 interface ProductCardProps {
   product: Product
@@ -14,6 +15,8 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { isFavorite, toggleFavorite } = useFavorites()
+  
 
   const handleViewProduct = () => {
     setIsModalOpen(true)
@@ -159,13 +162,24 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
 
           {/* Wishlist Button */}
           <button 
-            className="absolute top-2 right-2 p-2 bg-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-700"
+            className={`absolute top-2 right-2 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+              isFavorite(product.id) 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-gray-800 hover:bg-gray-700'
+            }`}
             onClick={(e) => {
               e.stopPropagation()
-              // Lógica para favoritar
+              toggleFavorite(product)
             }}
           >
-            <Heart size={16} className="text-gray-300" />
+            <Heart 
+              size={16} 
+              className={`${
+                isFavorite(product.id) 
+                  ? 'text-white fill-white' 
+                  : 'text-gray-300'
+              }`} 
+            />
           </button>
         </div>
 

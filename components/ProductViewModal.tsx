@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { X, Heart, Share2, ShoppingCart } from 'lucide-react'
 import { Product } from '@/lib/types'
 import { useCart } from '@/contexts/CartContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { useRouter } from 'next/navigation'
 
 interface ProductViewModalProps {
@@ -15,6 +16,7 @@ interface ProductViewModalProps {
 
 export default function ProductViewModal({ product, isOpen, onClose }: ProductViewModalProps) {
   const { addItem } = useCart()
+  const { isFavorite, toggleFavorite } = useFavorites()
   const router = useRouter()
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
@@ -151,8 +153,22 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
                   </div>
 
                   {/* Botão de Favorito */}
-                  <button className="absolute top-4 right-4 p-3 bg-black/80 rounded-full hover:bg-yellow-400 transition-colors duration-200">
-                    <Heart size={20} className="text-white hover:text-black" />
+                  <button 
+                    className={`absolute top-4 right-4 p-3 rounded-full transition-colors duration-200 ${
+                      isFavorite(product.id) 
+                        ? 'bg-red-500 hover:bg-red-600' 
+                        : 'bg-black/80 hover:bg-yellow-400'
+                    }`}
+                    onClick={() => toggleFavorite(product)}
+                  >
+                    <Heart 
+                      size={20} 
+                      className={`${
+                        isFavorite(product.id) 
+                          ? 'text-white fill-white' 
+                          : 'text-white hover:text-black'
+                      }`} 
+                    />
                   </button>
                 </div>
 
