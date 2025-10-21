@@ -2,7 +2,7 @@
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Filter, Grid, List, X } from 'lucide-react'
+import { ArrowLeft, Filter, X } from 'lucide-react'
 import { categories, sampleProducts } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
 import { useState, useMemo, useEffect } from 'react'
@@ -28,7 +28,6 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
   }
 
   // Estados para controles
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('recent')
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 })
@@ -174,28 +173,6 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
                 Filtros
                 {showFilters && <X size={16} />}
               </button>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 border rounded-lg transition-colors duration-200 ${
-                    viewMode === 'grid'
-                      ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                      : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  <Grid size={16} />
-                </button>
-                <button 
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 border rounded-lg transition-colors duration-200 ${
-                    viewMode === 'list'
-                      ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                      : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  <List size={16} />
-                </button>
-              </div>
             </div>
             
             <div className="flex items-center gap-4">
@@ -322,17 +299,13 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
               </p>
             </div>
 
-            {/* Grid ou Lista */}
-            <div className={
-              viewMode === 'grid' 
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
-            }>
+            {/* Grid de Produtos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {displayProducts.map((product) => (
                 <ProductCard 
                   key={product.id} 
                   product={product} 
-                  viewMode={viewMode}
+                  viewMode="grid"
                 />
               ))}
             </div>

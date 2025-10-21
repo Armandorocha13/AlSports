@@ -9,8 +9,6 @@ import {
   Eye, 
   Trash2,
   Filter,
-  Grid,
-  List,
   Search
 } from 'lucide-react'
 import Link from 'next/link'
@@ -25,7 +23,6 @@ export default function FavoritesPage() {
   const { addItem } = useCart()
   
   
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -116,30 +113,7 @@ export default function FavoritesPage() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  viewMode === 'grid' 
-                    ? 'bg-primary-500 text-black' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                <Grid size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  viewMode === 'list' 
-                    ? 'bg-primary-500 text-black' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                <List size={16} />
-              </button>
-            </div>
-
+          <div className="flex items-center justify-end">
             <button
               onClick={clearFavorites}
               className="flex items-center text-red-400 hover:text-red-300 transition-colors duration-200"
@@ -160,20 +134,14 @@ export default function FavoritesPage() {
             <p className="text-gray-400">Tente ajustar sua busca</p>
           </div>
         ) : (
-          <div className={`grid gap-4 ${
-            viewMode === 'grid' 
-              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
-              : 'grid-cols-1'
-          }`}>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredFavorites.map((product) => (
               <div
                 key={product.id}
-                className={`bg-gray-800 rounded-lg overflow-hidden group ${
-                  viewMode === 'list' ? 'flex' : ''
-                }`}
+                className="bg-gray-800 rounded-lg overflow-hidden group"
               >
                 {/* Product Image */}
-                <div className={`relative ${viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'aspect-square'}`}>
+                <div className="relative aspect-square">
                   <Image
                     src={product.image}
                     alt={product.name}
@@ -200,7 +168,7 @@ export default function FavoritesPage() {
                 </div>
 
                 {/* Product Info */}
-                <div className={`p-3 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                <div className="p-3">
                   <h3 className="font-medium text-white text-sm leading-tight mb-2 line-clamp-2">
                     {product.name}
                   </h3>
