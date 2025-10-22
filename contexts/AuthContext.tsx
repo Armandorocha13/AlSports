@@ -243,27 +243,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Criar perfil do usuário apenas se o usuário foi criado com sucesso
       if (data.user) {
         console.log('Criando perfil para usuário:', data.user.id)
-        console.log('Dados do perfil:', {
+        // Preparar dados do perfil, removendo campos undefined/null
+        const profileInsertData: any = {
           id: data.user.id,
           email: data.user.email!,
-          full_name: userData.full_name,
-          phone: userData.phone,
-          cpf: userData.cpf,
-          birth_date: userData.birth_date,
+          full_name: userData.full_name || null,
+          phone: userData.phone || null,
+          cpf: userData.cpf || null,
           user_type: 'cliente'
-        })
+        }
+
+        // Adicionar birth_date apenas se fornecido
+        if (userData.birth_date) {
+          profileInsertData.birth_date = userData.birth_date
+        }
+
+        console.log('Dados do perfil a serem inseridos:', profileInsertData)
 
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            full_name: userData.full_name,
-            phone: userData.phone,
-            cpf: userData.cpf,
-            birth_date: userData.birth_date,
-            user_type: 'cliente'
-          })
+          .insert(profileInsertData)
           .select()
 
         if (profileError) {
@@ -274,9 +273,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             details: profileError.details,
             hint: profileError.hint
           })
-          // Se falhou ao criar o perfil, tentar deletar o usuário criado
-          await supabase.auth.admin.deleteUser(data.user.id)
-          return { error: { message: 'Erro ao criar perfil do usuário' } }
+          
+          // Não deletar o usuário, apenas retornar erro
+          return { error: { message: `Erro ao criar perfil: ${profileError.message}` } }
         } else {
           console.log('Perfil criado com sucesso:', profileData)
         }
