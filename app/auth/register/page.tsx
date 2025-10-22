@@ -121,7 +121,7 @@ export default function RegisterPage() {
         // Adicionar um pequeno delay para garantir que o redirecionamento aconteça
         setTimeout(() => {
           console.log('Executando redirecionamento...')
-          router.push('/auth/login?message=Conta criada com sucesso! Verifique seu email para confirmar.')
+          router.push('/?message=Conta criada com sucesso! Bem-vindo ao AL Sports.')
         }, 1000)
       }
     } catch (error) {
