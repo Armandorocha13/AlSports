@@ -249,8 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.user.email!,
           full_name: userData.full_name || null,
           phone: userData.phone || null,
-          cpf: userData.cpf || null,
-          user_type: 'cliente'
+          cpf: userData.cpf || null
         }
 
         // Adicionar birth_date apenas se fornecido
