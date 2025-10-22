@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#1a1a1a"/>
+  
+  <!-- Soccer ball base -->
+  <circle cx="16" cy="16" r="12" fill="white" stroke="#333" stroke-width="1"/>
+  
+  <!-- Soccer ball pattern - pentagons and hexagons -->
+  <!-- Center pentagon -->
+  <path d="M16 8L19.5 12.5H12.5L16 8Z" fill="#1a1a1a"/>
+  
+  <!-- Hexagons around center -->
+  <path d="M16 8L12.5 12.5L8 16L12.5 19.5L16 24L19.5 19.5L24 16L19.5 12.5L16 8Z" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+  
+  <!-- Additional pattern lines -->
+  <path d="M8 16L16 8L24 16L16 24L8 16Z" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+  <path d="M12.5 12.5L19.5 12.5L19.5 19.5L12.5 19.5L12.5 12.5Z" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+  
+  <!-- Small accent dots for detail -->
+  <circle cx="16" cy="16" r="1" fill="#1a1a1a"/>
+</svg>

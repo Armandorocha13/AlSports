@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: 'AL Sports - Mundo da Bola | Loja de Atacado de Roupas Esportivas',
   description: 'Especializada na venda por atacado de roupas esportivas. Futebol, NBA, Roupas de Treino, Conjuntos Infantis, Acessórios e muito mais.',
   keywords: 'roupas esportivas, atacado, futebol, NBA, treino, infantil, acessórios, AL Sports, mundo da bola',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 // Componente principal do layout da aplicação
