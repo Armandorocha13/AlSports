@@ -74,7 +74,7 @@ export default function ShippingCalculator({ products, totalPieces = 0, onShippi
              onClick={() => handleOptionSelect({
                id: 'pickup',
                name: 'Retirada',
-               company: { name: 'Loja Física' },
+               company: { id: 0, name: 'Loja Física', picture: '' },
                price: 0,
                delivery_time: 0,
                service_code: 'pickup'
