@@ -112,7 +112,7 @@ export default function HomePage() {
                   <RotateCcw className="text-black" size={24} />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">Trocas</h3>
-                <p className="text-gray-400">Política de trocas facilitada</p>
+                <p className="text-gray-400">Trocas facilitadas</p>
               </div>
             </div>
           </div>

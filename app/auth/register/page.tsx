@@ -322,14 +322,7 @@ export default function RegisterPage() {
                 className="h-4 w-4 text-primary-400 focus:ring-primary-500 border-gray-300 rounded"
               />
                 <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-300">
-                Eu concordo com os{' '}
-                <Link href="/terms" className="text-primary-400 hover:text-primary-300">
-                  Termos de Uso
-                </Link>{' '}
-                e{' '}
-                <Link href="/privacy" className="text-primary-400 hover:text-primary-300">
-                  Política de Privacidade
-                </Link>
+                Eu concordo com os termos e condições
               </label>
             </div>
 

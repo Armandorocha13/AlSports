@@ -39,6 +39,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/categoria/nfl" className="text-gray-400 hover:text-white transition-colors duration-200">
+                  NFL
+                </Link>
+              </li>
+              <li>
                 <Link href="/categoria/acessorios" className="text-gray-400 hover:text-white transition-colors duration-200">
                   Acessórios
                 </Link>

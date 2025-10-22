@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Truck, Clock, Package, AlertCircle } from 'lucide-react'
+import { Truck, Clock, Package, AlertCircle, MapPin } from 'lucide-react'
 import { useShipping } from '@/hooks/useShipping'
 import { ShippingOption } from '@/lib/shipping-service'
 
@@ -65,6 +65,43 @@ export default function ShippingCalculator({ products, totalPieces = 0, onShippi
           <p className="text-xs text-gray-400 mt-1">
             Enviando de Nova Iguaçu - RJ (26015-005)
           </p>
+        </div>
+      </div>
+
+      {/* Opção de Retirada */}
+      <div className="mb-6">
+        <div className="border border-gray-600 rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out transform hover:border-primary-500 hover:bg-primary-500/5 hover:scale-[1.01]"
+             onClick={() => handleOptionSelect({
+               id: 'pickup',
+               name: 'Retirada',
+               company: { name: 'Loja Física' },
+               price: 0,
+               delivery_time: 0,
+               service_code: 'pickup'
+             })}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-green-600">
+                <MapPin className="w-5 h-5 text-white" />
+              </div>
+              
+              <div>
+                <h5 className="font-medium text-white">Retirada na Loja</h5>
+                <p className="text-sm text-gray-400">Nova Iguaçu - RJ</p>
+                <p className="text-xs text-green-400 font-medium">Frete Grátis</p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <div className="text-lg font-bold text-green-400">
+                R$ 0,00
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-400">
+                <Clock className="w-4 h-4" />
+                Imediato
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

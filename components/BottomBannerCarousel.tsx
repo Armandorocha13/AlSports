@@ -53,7 +53,7 @@ export default function BottomBannerCarousel() {
   }
 
   return (
-    <div className="relative w-full h-[670px] overflow-hidden bg-black">
+    <div className="relative w-full h-[300px] md:h-[500px] lg:h-[670px] overflow-hidden bg-black">
       {/* Banner Images */}
       <div className="relative w-full h-full">
         {bottomBanners.map((banner, index) => (
@@ -67,7 +67,7 @@ export default function BottomBannerCarousel() {
               src={banner.image}
               alt={banner.title}
               fill
-              className="object-contain w-full h-full"
+              className="object-cover md:object-contain w-full h-full"
               style={{
                 maxWidth: '100%',
                 display: 'block'
@@ -81,7 +81,7 @@ export default function BottomBannerCarousel() {
       {/* Navigation Arrows */}
       <button
         onClick={goToPrevious}
-        className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+        className="absolute left-1 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-1.5 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
         aria-label="Banner anterior"
       >
         <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
@@ -89,19 +89,19 @@ export default function BottomBannerCarousel() {
       
       <button
         onClick={goToNext}
-        className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+        className="absolute right-1 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-1.5 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
         aria-label="Próximo banner"
       >
         <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
       </button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+      <div className="absolute bottom-1 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1.5 md:space-x-2 z-10">
         {bottomBanners.map((_, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-200 ${
+            className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full transition-all duration-200 ${
               index === currentIndex 
                 ? 'bg-yellow-400 shadow-lg' 
                 : 'bg-white bg-opacity-60 hover:bg-opacity-80'

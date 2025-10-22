@@ -316,6 +316,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
+      // Redirecionar para a página de login após logout
+      window.location.href = '/auth/login'
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
     }

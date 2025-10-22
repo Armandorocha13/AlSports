@@ -67,8 +67,8 @@ export default function BannerCarousel() {
   }
 
   return (
-    // Container principal do carrossel com altura fixa e fundo preto
-    <div className="relative w-full h-[450px] overflow-hidden bg-black">
+    // Container principal do carrossel com altura responsiva e fundo preto
+    <div className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-black">
       {/* Container das imagens dos banners */}
       <div className="relative w-full h-full">
         {/* Mapeia todos os banners e renderiza cada um */}
@@ -84,7 +84,7 @@ export default function BannerCarousel() {
               src={banner.image} // Caminho da imagem
               alt={banner.title} // Texto alternativo para acessibilidade
               fill // Preenche o container pai
-              className="object-contain w-full h-full" // Mantém proporção e preenche altura
+              className="object-cover md:object-contain w-full h-full" // Cover para mobile, contain para desktop
               priority={index === 0} // Prioriza carregamento da primeira imagem
             />
           </div>
@@ -97,7 +97,7 @@ export default function BannerCarousel() {
           {/* Botão para voltar ao banner anterior */}
           <button
             onClick={goToPrevious} // Chama função de navegação anterior
-            className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            className="absolute left-1 md:left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-1.5 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
             aria-label="Banner anterior" // Acessibilidade
           >
             <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" /> {/* Ícone de seta esquerda */}
@@ -106,7 +106,7 @@ export default function BannerCarousel() {
           {/* Botão para avançar ao próximo banner */}
           <button
             onClick={goToNext} // Chama função de navegação próxima
-            className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-2 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
+            className="absolute right-1 md:right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 bg-opacity-90 hover:bg-opacity-100 text-black p-1.5 md:p-3 rounded-full transition-all duration-200 shadow-lg z-10"
             aria-label="Próximo banner" // Acessibilidade
           >
             <ChevronRight className="w-4 h-4 md:w-6 md:h-6" /> {/* Ícone de seta direita */}
@@ -116,13 +116,13 @@ export default function BannerCarousel() {
 
       {/* Indicadores de posição (dots) - só aparecem se houver mais de um banner */}
       {banners.length > 1 && (
-        <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+        <div className="absolute bottom-1 md:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1.5 md:space-x-2 z-10">
           {/* Mapeia e renderiza um dot para cada banner */}
           {banners.map((_, index) => (
             <button
               key={index} // Chave única para o React
               onClick={() => goToSlide(index)} // Vai diretamente para o banner clicado
-              className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-200 ${
+              className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full transition-all duration-200 ${
                 index === currentIndex 
                   ? 'bg-yellow-400 shadow-lg' // Destaque para o banner atual
                   : 'bg-white bg-opacity-60 hover:bg-opacity-80' // Estilo para banners inativos
