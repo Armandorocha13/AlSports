@@ -76,8 +76,7 @@ export default function ShippingCalculator({ products, totalPieces = 0, onShippi
                name: 'Retirada',
                company: { id: 0, name: 'Loja Física', picture: '' },
                price: 0,
-               delivery_time: 0,
-               service_code: 'pickup'
+               delivery_time: 0
              })}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
