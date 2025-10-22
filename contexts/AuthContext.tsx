@@ -243,16 +243,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Criar perfil do usuário apenas se o usuário foi criado com sucesso
       if (data.user) {
         console.log('Criando perfil para usuário:', data.user.id)
-        // Preparar dados do perfil, removendo campos undefined/null
+        // Preparar dados do perfil com apenas campos essenciais
         const profileInsertData: any = {
           id: data.user.id,
-          email: data.user.email!,
-          full_name: userData.full_name || null,
-          phone: userData.phone || null,
-          cpf: userData.cpf || null
+          email: data.user.email!
         }
 
-        // Adicionar birth_date apenas se fornecido
+        // Adicionar campos opcionais apenas se fornecidos
+        if (userData.full_name) {
+          profileInsertData.full_name = userData.full_name
+        }
+        if (userData.phone) {
+          profileInsertData.phone = userData.phone
+        }
+        if (userData.cpf) {
+          profileInsertData.cpf = userData.cpf
+        }
         if (userData.birth_date) {
           profileInsertData.birth_date = userData.birth_date
         }
