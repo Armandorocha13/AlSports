@@ -72,6 +72,11 @@ function generateFallbackOptions(request: any) {
     sum + (product.insurance_value * product.quantity), 0
   )
   
+  // Calcular total de peças
+  const totalPieces = products.reduce((sum: number, product: any) => 
+    sum + product.quantity, 0
+  )
+  
   // Calcular preço base baseado no peso e distância
   let basePrice = 15 // Preço base
   basePrice += Math.ceil(totalWeight) * 2 // Adicionar por peso
@@ -80,7 +85,8 @@ function generateFallbackOptions(request: any) {
   // Garantir preço mínimo e máximo
   basePrice = Math.max(8, Math.min(50, basePrice))
   
-  return [
+  // Opções básicas sempre disponíveis
+  const options = [
     {
       id: '1',
       name: 'PAC',
@@ -112,4 +118,57 @@ function generateFallbackOptions(request: any) {
       }
     }
   ]
+
+  // Adicionar transportadoras privadas se tiver 20+ peças
+  if (totalPieces >= 20) {
+    options.push(
+      {
+        id: '3',
+        name: 'Jadlog',
+        price: Math.round(basePrice * 0.8), // 20% mais barato que PAC
+        delivery_time: 3,
+        delivery_range: {
+          min: 2,
+          max: 4
+        },
+        company: {
+          id: 3,
+          name: 'Jadlog',
+          picture: ''
+        }
+      },
+      {
+        id: '4',
+        name: 'Total Express',
+        price: Math.round(basePrice * 0.9), // 10% mais barato que PAC
+        delivery_time: 3,
+        delivery_range: {
+          min: 2,
+          max: 4
+        },
+        company: {
+          id: 4,
+          name: 'Total Express',
+          picture: ''
+        }
+      },
+      {
+        id: '5',
+        name: 'Loggi',
+        price: Math.round(basePrice * 1.1), // 10% mais caro que PAC, mas mais rápido
+        delivery_time: 1,
+        delivery_range: {
+          min: 1,
+          max: 2
+        },
+        company: {
+          id: 5,
+          name: 'Loggi',
+          picture: ''
+        }
+      }
+    )
+  }
+
+  return options
 }
