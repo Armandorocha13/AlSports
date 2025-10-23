@@ -44,6 +44,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     )
   }
 
+  // Verificar se o usuário é admin
+  if (profile?.user_type !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Acesso Negado</div>
+          <div className="text-gray-300 mb-6">Você não tem permissão para acessar esta área administrativa.</div>
+          <div className="text-gray-400 mb-6">
+            Tipo de usuário: {profile?.user_type || 'Não definido'}
+          </div>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-primary-500 text-black px-4 py-2 rounded hover:bg-primary-600 transition-colors"
+          >
+            Voltar ao Site
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
