@@ -208,7 +208,7 @@ export default function CartPage() {
         `✅ *Pedido salvo! Você pode acompanhar na aba "Meus Pedidos".*`
       )
 
-      const phoneNumber = '5521990708854'
+      const phoneNumber = '5521994595532'
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
         `Olá! Tenho um novo pedido para você:\n\n` +
         `*Número do Pedido:* ${order.code}\n` +

@@ -180,7 +180,7 @@ export class OrderGenerator {
     return methods[method as keyof typeof methods] || method
   }
 
-  generateWhatsAppUrl(order: OrderData, phoneNumber: string = '5521990708854'): string {
+  generateWhatsAppUrl(order: OrderData, phoneNumber: string = '5521994595532'): string {
     const message = this.formatOrderForWhatsApp(order)
     return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
   }

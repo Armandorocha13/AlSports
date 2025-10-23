@@ -498,7 +498,7 @@ INSERT INTO public.settings (key, value, description) VALUES
 ('shipping_cost', '15.00', 'Custo padrão do frete'),
 ('min_order_value', '50.00', 'Valor mínimo do pedido'),
 ('max_installments', '12', 'Máximo de parcelas'),
-('whatsapp_number', '"+5521990708854"', 'Número do WhatsApp'),
+('whatsapp_number', '"+5521994595532"', 'Número do WhatsApp'),
 ('instagram_url', '"https://instagram.com/alsports"', 'URL do Instagram'),
 ('facebook_url', '"https://facebook.com/alsports"', 'URL do Facebook');
 

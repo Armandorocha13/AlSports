@@ -228,7 +228,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   // Função para abrir pedido no WhatsApp
-  const openWhatsAppOrder = (order: any, phoneNumber: string = '5521990708854') => {
+  const openWhatsAppOrder = (order: any, phoneNumber: string = '5521994595532') => {
     const url = orderGenerator.generateWhatsAppUrl(order, phoneNumber)
     window.open(url, '_blank')
   }
