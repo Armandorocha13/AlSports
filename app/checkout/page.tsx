@@ -50,6 +50,14 @@ export default function CheckoutPage() {
     fetchAddresses()
   }, [user, items])
 
+  // Verificar se usuário tem endereços cadastrados
+  useEffect(() => {
+    if (addresses.length === 0 && user && items.length > 0) {
+      // Se não tem endereços, redirecionar para cadastro
+      router.push('/minha-conta/enderecos?redirectTo=/checkout&message=Para finalizar seu pedido, você precisa cadastrar um endereço de entrega.')
+    }
+  }, [addresses, user, items, router])
+
   const fetchAddresses = async () => {
     if (!user) return
 
@@ -69,7 +77,14 @@ export default function CheckoutPage() {
   }
 
   const handleCreateOrder = async () => {
-    if (!user || !selectedAddress || items.length === 0) return
+    if (!user || !selectedAddress || items.length === 0) {
+      if (!selectedAddress) {
+        alert('Por favor, selecione um endereço de entrega ou cadastre um novo endereço.')
+        router.push('/minha-conta/enderecos?redirectTo=/checkout')
+        return
+      }
+      return
+    }
 
     setLoading(true)
 
@@ -216,6 +231,35 @@ export default function CheckoutPage() {
     )
   }
 
+  // Verificar se não há endereços cadastrados
+  if (addresses.length === 0 && user && items.length > 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <Package className="h-16 w-16 text-primary-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Endereço Obrigatório</h2>
+          <p className="text-gray-600 mb-6">
+            Para finalizar seu pedido, você precisa cadastrar pelo menos um endereço de entrega.
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/minha-conta/enderecos?redirectTo=/checkout"
+              className="block bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors duration-200"
+            >
+              Cadastrar Endereço
+            </Link>
+            <Link
+              href="/carrinho"
+              className="block text-primary-600 hover:text-primary-700 transition-colors duration-200"
+            >
+              Voltar ao Carrinho
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (orderCreated && orderData) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
@@ -355,7 +399,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {selectedAddress && (
+                {selectedAddress ? (
                   <div className="mt-6">
                     <button
                       onClick={() => setStep(2)}
@@ -363,6 +407,20 @@ export default function CheckoutPage() {
                     >
                       Continuar para Pagamento
                     </button>
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <p className="text-yellow-800 text-sm">
+                        ⚠️ Você precisa selecionar um endereço de entrega para continuar.
+                      </p>
+                    </div>
+                    <Link
+                      href="/minha-conta/enderecos?redirectTo=/checkout"
+                      className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200 inline-block text-center"
+                    >
+                      Cadastrar Endereço
+                    </Link>
                   </div>
                 )}
               </div>
