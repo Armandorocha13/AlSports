@@ -198,6 +198,13 @@ export default function Header() {
                       </>
                     )}
                     
+                    {/* Debug info - remover depois */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="px-4 py-2 text-xs text-gray-500">
+                        Debug: user_type = {profile?.user_type || 'undefined'}
+                      </div>
+                    )}
+                    
                     {/* Botão de logout */}
                     <hr className="my-1" />
                     <button
