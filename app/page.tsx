@@ -11,12 +11,14 @@ import AdminBanner from '@/components/AdminBanner'
 import AdminDebug from '@/components/AdminDebug'
 import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRef, useEffect, useState } from 'react'
 
 // Componente da página inicial da aplicação
 export default function HomePage() {
   const carouselRef = useRef<HTMLDivElement>(null)
   const [isAutoScroll, setIsAutoScroll] = useState(true)
+  const { profile } = useAuth()
   // Filtra produtos em destaque limitados a 2 por subcategoria
   const featuredProducts = getFeaturedProductsLimited()
 
@@ -86,6 +88,19 @@ export default function HomePage() {
       <div className="container mx-auto px-4">
         <AdminBanner />
       </div>
+
+      {/* Botão Admin - apenas para administradores */}
+      {profile?.user_type === 'admin' && (
+        <div className="container mx-auto px-4 mb-6">
+          <Link
+            href="/admin"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-400 text-black px-6 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+          >
+            <Shield className="h-5 w-5 mr-2" />
+            Acessar Painel Admin
+          </Link>
+        </div>
+      )}
 
       {/* Debug component - apenas em desenvolvimento */}
       <AdminDebug />
