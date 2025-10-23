@@ -61,6 +61,17 @@ export default function Header() {
                 {category.name}
               </Link>
             ))}
+            
+            {/* Link para painel admin - apenas para administradores */}
+            {profile?.user_type === 'admin' && (
+              <Link
+                href="/admin"
+                className="flex items-center text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
+              >
+                <Shield className="h-4 w-4 mr-1" />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Área de ações: pesquisa, carrinho e menu do usuário */}
@@ -304,6 +315,18 @@ export default function Header() {
                   {category.name}
                 </Link>
               ))}
+              
+              {/* Link para painel admin no menu mobile - apenas para administradores */}
+              {profile?.user_type === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="flex items-center py-2 text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Painel Admin
+                </Link>
+              )}
             </div>
           </nav>
         </div>
