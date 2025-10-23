@@ -57,29 +57,28 @@ class SuperFreteService {
 
   async calculateShipping(request: ShippingRequest): Promise<ShippingResponse[]> {
     try {
-      console.log('🚚 Calculando frete via SuperFrete API...')
+      console.log('🚚 Calculando frete via API route local...')
       
-      const response = await fetch(`${this.baseUrl}/api/v0/me/shipment/calculate`, {
+      const response = await fetch('/api/shipping/calculate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'AL-Sports/1.0'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(request)
       })
 
       if (!response.ok) {
-        throw new Error(`SuperFrete API error: ${response.status} ${response.statusText}`)
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
       }
 
       const data = await response.json()
-      console.log('✅ Resposta da API SuperFrete:', data)
+      console.log('✅ Resposta da API route:', data)
       
       return data
       
     } catch (error) {
-      console.error('❌ Erro na API SuperFrete:', error)
+      console.error('❌ Erro na API route:', error)
       throw new Error(`Falha ao calcular frete: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
