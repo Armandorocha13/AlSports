@@ -175,14 +175,6 @@ export default function Header() {
                     >
                       Meus Pedidos
                     </Link>
-                    {/* Link para endereços do usuário */}
-                    <Link
-                      href="/minha-conta/enderecos"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      Endereços
-                    </Link>
                     {/* Link para favoritos do usuário */}
                     <Link
                       href="/favoritos"

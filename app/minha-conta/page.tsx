@@ -291,13 +291,6 @@ export default function MyAccountPage() {
                     <span>Meus Pedidos</span>
                   </Link>
                   <Link
-                    href="/minha-conta/enderecos"
-                    className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
-                  >
-                    <MapPin className="h-5 w-5 mr-3" />
-                    <span>Endereços</span>
-                  </Link>
-                  <Link
                     href="/minha-conta/configuracoes"
                     className="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
