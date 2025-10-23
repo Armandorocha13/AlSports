@@ -21,6 +21,9 @@ export default function CategoryCard({ category }: CategoryCardProps) {
               alt={category.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
             <div className="absolute inset-0 flex items-center justify-center">

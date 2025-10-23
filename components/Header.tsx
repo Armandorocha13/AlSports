@@ -44,6 +44,8 @@ export default function Header() {
                 height={160}
                 className="object-contain"
                 priority
+                quality={90}
+                sizes="(max-width: 768px) 150px, 200px"
               />
             </div>
           </Link>

@@ -86,6 +86,9 @@ export default function BannerCarousel() {
               fill // Preenche o container pai
               className="object-cover md:object-contain w-full h-full" // Cover para mobile, contain para desktop
               priority={index === 0} // Prioriza carregamento da primeira imagem
+              loading={index === 0 ? 'eager' : 'lazy'} // Lazy loading para imagens não prioritárias
+              quality={85} // Qualidade otimizada
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Tamanhos responsivos
             />
           </div>
         ))}
