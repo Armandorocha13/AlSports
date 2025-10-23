@@ -53,7 +53,6 @@ export default function AddressesPage() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [fromCheckout, setFromCheckout] = useState(false)
 
   const supabase = createClient()
 
@@ -67,20 +66,6 @@ export default function AddressesPage() {
       fetchAddresses()
     }
   }, [user, authLoading])
-
-  // Verificar se veio do checkout
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const redirectTo = urlParams.get('redirectTo')
-    const message = urlParams.get('message')
-    
-    if (redirectTo === '/checkout') {
-      setFromCheckout(true)
-      if (message) {
-        setSuccess(decodeURIComponent(message))
-      }
-    }
-  }, [])
 
   const fetchAddresses = async () => {
     if (!user) return
@@ -231,11 +216,7 @@ export default function AddressesPage() {
           return
         }
 
-        if (fromCheckout) {
-          setSuccess('Endereço criado com sucesso! Agora você pode finalizar seu pedido.')
-        } else {
-          setSuccess('Endereço criado com sucesso!')
-        }
+        setSuccess('Endereço criado com sucesso!')
       }
 
       // Se este endereço foi marcado como padrão, remover padrão dos outros
@@ -340,31 +321,20 @@ export default function AddressesPage() {
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center mb-4">
             <Link
-              href={fromCheckout ? "/carrinho" : "/minha-conta"}
-              className="flex items-center text-gray-600 hover:text-gray-900"
+              href="/minha-conta"
+              className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
             >
               <ArrowLeft className="h-5 w-5 mr-1" />
-              {fromCheckout ? "Voltar ao Carrinho" : "Voltar"}
+              Voltar
             </Link>
-            {fromCheckout && addresses.length > 0 && (
-              <Link
-                href="/checkout"
-                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200"
-              >
-                Finalizar Pedido
-              </Link>
-            )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Meus Endereços
           </h1>
           <p className="text-gray-600">
-            {fromCheckout 
-              ? "Cadastre um endereço para finalizar seu pedido" 
-              : "Gerencie seus endereços de entrega"
-            }
+            Gerencie seus endereços de entrega
           </p>
         </div>
 
