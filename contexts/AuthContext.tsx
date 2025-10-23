@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Adicionar user_types como 'cliente' por padrão
             const profileWithDefaultType = {
               ...profileWithoutUserType,
-              user_types: 'cliente'
+              user_types: 'cliente' as const as const
             }
             setProfile(profileWithDefaultType)
             return
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: userId,
             email: user?.email || 'usuario@exemplo.com',
             full_name: 'Usuário',
-            user_types: 'cliente'
+            user_types: 'cliente' as const
           })
           .select()
           .single()
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: null,
             cpf: null,
             birth_date: null,
-            user_types: 'cliente' as const,
+            user_types: 'cliente' as const as const,
             avatar_url: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
