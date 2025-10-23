@@ -28,6 +28,7 @@ export interface OrderData {
   }
   paymentMethod?: string
   notes?: string
+  cep?: string
   items: Array<{
     productName: string
     size: string
@@ -123,6 +124,11 @@ export class OrderGenerator {
       message += `• Nome: ${order.customerInfo.name}\n`
       message += `• Email: ${order.customerInfo.email}\n`
       message += `• Telefone: ${order.customerInfo.phone}\n`
+    }
+    
+    if (order.cep) {
+      message += `\n📍 *CEP PARA ENTREGA:*\n`
+      message += `• ${order.cep}\n`
     }
     
     if (order.shippingAddress) {

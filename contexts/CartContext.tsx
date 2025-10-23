@@ -195,7 +195,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     customerInfo?: { name: string; email: string; phone: string },
     shippingAddress?: any,
     paymentMethod?: string,
-    notes?: string
+    notes?: string,
+    cep?: string
   ) => {
     const shippingInfo = getShippingInfo()
     
@@ -221,6 +222,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       shippingAddress,
       paymentMethod,
       notes,
+      cep,
       items: orderItems
     })
   }

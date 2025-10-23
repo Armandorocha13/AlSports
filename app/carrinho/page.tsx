@@ -63,9 +63,9 @@ export default function CartPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [savedCarts, setSavedCarts] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(true)
-  const [couponCode, setCouponCode] = useState('')
-  const [couponDiscount, setCouponDiscount] = useState(0)
-  const [appliedCoupon, setAppliedCoupon] = useState('')
+  const [cepCode, setCepCode] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState('')
   const [showStockAlert, setShowStockAlert] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null)
@@ -134,24 +134,37 @@ export default function CartPage() {
     return getShippingCost()
   }
 
-  const getTotalWithCoupon = () => {
-    let total = getSubtotal() + getFinalShippingCost()
-    if (appliedCoupon === 'FREEGRATIS') {
-      total = getSubtotal() // Remove frete
-    } else if (couponDiscount > 0) {
-      total = total * (1 - couponDiscount / 100)
-    }
-    return total
+  const formatCep = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    return numbers.replace(/(\d{5})(\d{3})/, '$1-$2')
   }
 
-  const getTotalSavings = () => {
-    const originalTotal = items.reduce((sum, item) => 
-      sum + (item.product.price * item.quantity), 0
-    )
-    const currentSubtotal = getSubtotal()
-    const couponSavings = appliedCoupon === 'FREEGRATIS' ? getShippingCost() : 
-                          couponDiscount > 0 ? getTotal() * (couponDiscount / 100) : 0
-    return originalTotal - currentSubtotal + couponSavings
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setCepCode(formatCep(value))
+    setCepError('')
+  }
+
+  const handleCepSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cepCode || cepCode.length < 9) {
+      setCepError('CEP deve ter 8 dígitos')
+      return
+    }
+
+    setCepLoading(true)
+    setCepError('')
+    
+    try {
+      // Aqui você pode implementar a lógica para buscar informações do CEP
+      // Por enquanto, vamos apenas simular um sucesso
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('CEP consultado:', cepCode)
+    } catch (error) {
+      setCepError('Erro ao consultar CEP')
+    } finally {
+      setCepLoading(false)
+    }
   }
 
 
@@ -175,7 +188,8 @@ export default function CartPage() {
         customerInfo,
         undefined,
         'WhatsApp',
-        'Pedido finalizado via WhatsApp'
+        'Pedido finalizado via WhatsApp',
+        cepCode
       )
 
       console.log('📦 Pedido criado:', order)
@@ -198,7 +212,8 @@ export default function CartPage() {
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
         `Olá! Tenho um novo pedido para você:\n\n` +
         `*Número do Pedido:* ${order.code}\n` +
-        `*Total:* R$ ${getTotalWithCoupon().toFixed(2)}\n` +
+        `*Total:* R$ ${getTotal().toFixed(2)}\n` +
+        `*CEP para entrega:* ${cepCode || 'Não informado'}\n` +
         `*Itens:*\n${order.items.map((item: any) => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
         `Por favor, aguardo as instruções para pagamento e envio do comprovante.`
       )}`
@@ -358,28 +373,34 @@ export default function CartPage() {
         />
       </div>
 
-      {/* Coupon Section */}
+      {/* CEP Section */}
       <div className="bg-gray-800 mt-4 p-4">
-        <h3 className="font-medium text-white mb-3">Cupom de desconto</h3>
-        <div className="flex space-x-3">
+        <h3 className="font-medium text-white mb-3">CEP para envio do pedido</h3>
+        <form onSubmit={handleCepSubmit} className="flex space-x-3">
           <input
             type="text"
-            placeholder="Digite o cupom de desconto"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
+            placeholder="Digite seu CEP (ex: 12345-678)"
+            value={cepCode}
+            onChange={handleCepChange}
+            maxLength={9}
             className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
           <button
-            onClick={handleApplyCoupon}
-            className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200"
+            type="submit"
+            disabled={cepLoading}
+            className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Aplicar
+            {cepLoading ? 'Consultando...' : 'Consultar'}
           </button>
-        </div>
-        {appliedCoupon && (
-          <div className="mt-2 text-sm text-green-600">
-            Cupom {appliedCoupon} aplicado! 
-            {appliedCoupon === 'FREEGRATIS' ? ' Frete grátis!' : ` ${couponDiscount}% de desconto!`}
+        </form>
+        {cepError && (
+          <div className="mt-2 text-sm text-red-400">
+            {cepError}
+          </div>
+        )}
+        {cepCode && !cepError && (
+          <div className="mt-2 text-sm text-green-400">
+            CEP {cepCode} consultado com sucesso!
           </div>
         )}
       </div>
@@ -393,47 +414,24 @@ export default function CartPage() {
             <span>R$ {getSubtotal().toFixed(2).replace('.', ',')}</span>
           </div>
           
-          {/* Cupom de Desconto */}
-          {appliedCoupon && (
-            <div className="flex justify-between text-sm text-green-600">
-              <span>Desconto ({appliedCoupon})</span>
-              <span>
-                {appliedCoupon === 'FREEGRATIS' 
-                  ? `-R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
-                  : `-${couponDiscount}%`
-                }
-              </span>
-            </div>
-          )}
           
           <div className="flex justify-between text-sm">
             <span>Frete</span>
             <span>
               {selectedShippingOption ? (
-                appliedCoupon === 'FREEGRATIS' 
-                  ? 'Grátis' 
-                  : `R$ ${selectedShippingOption.price.toFixed(2).replace('.', ',')}`
+                `R$ ${selectedShippingOption.price.toFixed(2).replace('.', ',')}`
               ) : (
-                appliedCoupon === 'FREEGRATIS' 
-                  ? 'Grátis' 
-                  : `R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
+                `R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
               )}
             </span>
           </div>
           
-          {/* Economia Total */}
-          {getTotalSavings() > 0 && (
-            <div className="flex justify-between text-sm text-green-600 bg-green-50 p-2 rounded">
-              <span className="font-medium">💰 Economia Total</span>
-              <span className="font-medium">R$ {getTotalSavings().toFixed(2).replace('.', ',')}</span>
-            </div>
-          )}
           
           {/* Total Destacado */}
           <div className="border-t border-gray-600 pt-3 mt-3">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-white">Total a pagar:</span>
-              <span className="text-xl font-bold text-primary-400">R$ {getTotalWithCoupon().toFixed(2).replace('.', ',')}</span>
+              <span className="text-xl font-bold text-primary-400">R$ {getTotal().toFixed(2).replace('.', ',')}</span>
             </div>
           </div>
         </div>
@@ -443,7 +441,7 @@ export default function CartPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-400">Total a pagar:</span>
-          <span className="text-lg font-bold text-white">R$ {getTotalWithCoupon().toFixed(2).replace('.', ',')}</span>
+          <span className="text-lg font-bold text-white">R$ {getTotal().toFixed(2).replace('.', ',')}</span>
         </div>
         <button
           onClick={handleWhatsAppOrder}
