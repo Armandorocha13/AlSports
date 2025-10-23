@@ -55,141 +55,35 @@ class SuperFreteService {
     this.apiKey = apiKey
   }
 
-  async calculateShipping(request: ShippingRequest, products?: Array<{quantity: number}>, totalPieces?: number): Promise<ShippingResponse[]> {
+  async calculateShipping(request: ShippingRequest): Promise<ShippingResponse[]> {
     try {
-      console.log('🚚 Tentando calcular frete via SuperFrete...')
+      console.log('🚚 Calculando frete via SuperFrete API...')
       
-      // Como há problema de CORS, vamos simular uma resposta realista
-      // baseada na distância e peso para dar preços mais precisos
-      const fromCep = request.from.postal_code
-      const toCep = request.to.postal_code
-      const product = request.products[0]
-      
-      console.log('📦 Dados do produto:', product)
-      
-      // Calcular distância baseada nos CEPs
-      const distance = this.calculateDistance(fromCep, toCep)
-      const basePrice = this.calculateBasePrice(distance, product.weight)
-      
-      // Simular resposta realista da API SuperFrete
-      const mockResponse: ShippingResponse[] = [
-        {
-          id: '1',
-          name: 'PAC',
-          price: basePrice,
-          delivery_time: Math.max(3, Math.ceil(distance / 200)),
-          delivery_range: {
-            min: Math.max(3, Math.ceil(distance / 200)),
-            max: Math.max(5, Math.ceil(distance / 150))
-          },
-          company: {
-            id: 1,
-            name: 'Correios',
-            picture: ''
-          }
+      const response = await fetch(`${this.baseUrl}/shipment/calculate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'AL-Sports/1.0'
         },
-        {
-          id: '2',
-          name: 'SEDEX',
-          price: Math.round(basePrice * 1.5),
-          delivery_time: Math.max(1, Math.ceil(distance / 300)),
-          delivery_range: {
-            min: Math.max(1, Math.ceil(distance / 300)),
-            max: Math.max(2, Math.ceil(distance / 250))
-          },
-          company: {
-            id: 2,
-            name: 'Correios',
-            picture: ''
-          }
-        }
-      ]
+        body: JSON.stringify(request)
+      })
 
-      // Adicionar transportadoras privadas se tiver 20+ peças
-      if (totalPieces && totalPieces >= 20) {
-        mockResponse.push(
-          {
-            id: '3',
-            name: 'Jadlog',
-            price: Math.round(basePrice * 0.8),
-            delivery_time: Math.max(2, Math.ceil(distance / 250)),
-            delivery_range: {
-              min: Math.max(2, Math.ceil(distance / 250)),
-              max: Math.max(4, Math.ceil(distance / 200))
-            },
-            company: {
-              id: 3,
-              name: 'Jadlog',
-              picture: ''
-            }
-          },
-          {
-            id: '4',
-            name: 'Total Express',
-            price: Math.round(basePrice * 0.9),
-            delivery_time: Math.max(2, Math.ceil(distance / 280)),
-            delivery_range: {
-              min: Math.max(2, Math.ceil(distance / 280)),
-              max: Math.max(4, Math.ceil(distance / 220))
-            },
-            company: {
-              id: 4,
-              name: 'Total Express',
-              picture: ''
-            }
-          },
-          {
-            id: '5',
-            name: 'Loggi',
-            price: Math.round(basePrice * 1.2),
-            delivery_time: Math.max(1, Math.ceil(distance / 400)),
-            delivery_range: {
-              min: Math.max(1, Math.ceil(distance / 400)),
-              max: Math.max(2, Math.ceil(distance / 300))
-            },
-            company: {
-              id: 5,
-              name: 'Loggi',
-              picture: ''
-            }
-          }
-        )
+      if (!response.ok) {
+        throw new Error(`SuperFrete API error: ${response.status} ${response.statusText}`)
       }
 
-      console.log('✅ Preços calculados baseados na distância:', mockResponse)
-      return mockResponse
+      const data = await response.json()
+      console.log('✅ Resposta da API SuperFrete:', data)
+      
+      return data
       
     } catch (error) {
-      console.error('❌ Erro ao calcular frete:', error)
-      throw error
+      console.error('❌ Erro na API SuperFrete:', error)
+      throw new Error(`Falha ao calcular frete: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
 
-  private calculateDistance(fromCep: string, toCep: string): number {
-    // Calcular distância aproximada baseada nos CEPs
-    const fromRegion = parseInt(fromCep.substring(0, 2))
-    const toRegion = parseInt(toCep.substring(0, 2))
-    
-    // Distância baseada na região
-    if (fromRegion === toRegion) return 50 // Mesma região
-    if (Math.abs(fromRegion - toRegion) <= 2) return 200 // Regiões próximas
-    if (Math.abs(fromRegion - toRegion) <= 5) return 500 // Regiões distantes
-    return 1000 // Regiões muito distantes
-  }
-
-  private calculateBasePrice(distance: number, weight: number): number {
-    // Preço base baseado na distância e peso
-    let basePrice = 8 // Preço mínimo
-    
-    // Adicionar custo por distância
-    basePrice += Math.ceil(distance / 100) * 2
-    
-    // Adicionar custo por peso
-    basePrice += Math.ceil(weight) * 3
-    
-    // Garantir preço mínimo e máximo
-    return Math.max(8, Math.min(50, basePrice))
-  }
 
   async getShippingOptions(
     fromCep: string,
@@ -233,7 +127,7 @@ class SuperFreteService {
     }
 
     try {
-      const shippingOptions = await this.calculateShipping(request, products, totalPieces)
+      const shippingOptions = await this.calculateShipping(request)
       
       // Filtrar e mapear apenas opções válidas
       const validOptions = shippingOptions
@@ -249,8 +143,7 @@ class SuperFreteService {
 
       console.log('🚚 Opções válidas do SuperFrete:', validOptions)
       
-      // Reordenar por preço
-      return validOptions.sort((a, b) => a.price - b.price)
+      return validOptions
     } catch (error) {
       console.error('❌ Erro na API SuperFrete:', error)
       throw error

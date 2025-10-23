@@ -67,23 +67,19 @@ export function useShipping({ fromCep, toCep, products, totalPieces = 0 }: UseSh
       let errorMessage = 'Erro ao calcular frete'
       if (err instanceof Error) {
         if (err.message.includes('Failed to fetch')) {
-          errorMessage = 'Não foi possível conectar com a API de frete'
+          errorMessage = 'Não foi possível conectar com a API SuperFrete'
         } else if (err.message.includes('Network')) {
           errorMessage = 'Problema de conexão com a internet'
+        } else if (err.message.includes('SuperFrete API error')) {
+          errorMessage = 'Erro na API SuperFrete. Tente novamente.'
         } else {
           errorMessage = err.message
         }
       }
       
       setError(errorMessage)
-      
-      // Fallback com preços baseados na distância
-      const fallbackOptions = createFallbackOptions(fromCep, toCep, totalPieces)
-      setShippingOptions(fallbackOptions)
-      
-      if (fallbackOptions.length > 0 && !userHasSelected) {
-        setSelectedOption(fallbackOptions[0])
-      }
+      setShippingOptions([])
+      setSelectedOption(null)
     } finally {
       setLoading(false)
     }
@@ -127,114 +123,3 @@ function getDefaultProductDimensions(category: string) {
   return dimensions[category as keyof typeof dimensions] || dimensions['futebol']
 }
 
-// Função para criar opções de fallback baseadas na distância
-function createFallbackOptions(fromCep: string, toCep: string, totalPieces: number): ShippingOption[] {
-  // Extrair região do CEP de destino
-  const toRegion = toCep.substring(0, 2)
-  const fromRegion = fromCep.substring(0, 2)
-  
-  // Calcular preços baseados na distância
-  let basePrice = 15
-  let deliveryTime = 5
-  
-  if (toRegion === fromRegion) {
-    // Mesma região - mais barato
-    basePrice = 8
-    deliveryTime = 3
-  } else if (['01', '02', '03', '04', '05', '06', '07', '08', '09'].includes(toRegion)) {
-    // Região Sudeste - preço médio
-    basePrice = 12
-    deliveryTime = 4
-  } else if (['10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29'].includes(toRegion)) {
-    // Região Nordeste - preço médio-alto
-    basePrice = 18
-    deliveryTime = 6
-  } else if (['30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49'].includes(toRegion)) {
-    // Região Sul - preço médio
-    basePrice = 16
-    deliveryTime = 5
-  } else if (['50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69'].includes(toRegion)) {
-    // Região Centro-Oeste - preço médio-alto
-    basePrice = 20
-    deliveryTime = 7
-  } else if (['70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89'].includes(toRegion)) {
-    // Região Norte - preço alto
-    basePrice = 25
-    deliveryTime = 8
-  } else {
-    // CEP não reconhecido - preço padrão
-    basePrice = 15
-    deliveryTime = 5
-  }
-
-  // Opções básicas sempre disponíveis
-  const options: ShippingOption[] = [
-    {
-      id: 'pac-fallback',
-      name: 'PAC',
-      price: basePrice,
-      delivery_time: deliveryTime,
-      company: {
-        id: 1,
-        name: 'Correios',
-        picture: ''
-      }
-    },
-    {
-      id: 'sedex-fallback',
-      name: 'SEDEX',
-      price: Math.round(basePrice * 1.5),
-      delivery_time: Math.max(2, deliveryTime - 2),
-      company: {
-        id: 2,
-        name: 'Correios',
-        picture: ''
-      }
-    }
-  ]
-
-  // Adicionar transportadoras privadas APENAS se tiver 20+ peças
-  if (totalPieces >= 20) {
-    // Jadlog - mais barato que PAC
-    options.push({
-      id: 'jadlog-fallback',
-      name: 'Jadlog (20+ peças)',
-      price: Math.round(basePrice * 0.7), // 30% mais barato que PAC
-      delivery_time: Math.max(3, deliveryTime - 1),
-      company: {
-        id: 3,
-        name: 'Jadlog',
-        picture: ''
-      }
-    })
-
-    // Total Express - preço médio
-    options.push({
-      id: 'total-express-fallback',
-      name: 'Total Express (20+ peças)',
-      price: Math.round(basePrice * 0.8), // 20% mais barato que PAC
-      delivery_time: Math.max(2, deliveryTime - 2),
-      company: {
-        id: 4,
-        name: 'Total Express',
-        picture: ''
-      }
-    })
-
-    // Loggi - mais rápido
-    options.push({
-      id: 'loggi-fallback',
-      name: 'Loggi (20+ peças)',
-      price: Math.round(basePrice * 1.1), // 10% mais caro que PAC, mas mais rápido
-      delivery_time: Math.max(1, deliveryTime - 3),
-      company: {
-        id: 5,
-        name: 'Loggi',
-        picture: ''
-      }
-    })
-  }
-
-  // Ordenar por preço (mais barato primeiro)
-  return options.sort((a, b) => a.price - b.price)
-}
