@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       // Fallback: retornar opções simuladas baseadas nos dados do pedido
       const fallbackOptions = generateFallbackOptions(body)
       console.log('🔄 Usando opções de fallback:', fallbackOptions)
+      console.log('🔢 Total de peças no fallback:', body.products?.[0]?.quantity || 0)
       
       return NextResponse.json(fallbackOptions)
     }

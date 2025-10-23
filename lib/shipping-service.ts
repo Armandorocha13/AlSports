@@ -100,6 +100,7 @@ class SuperFreteService {
     // Calcular dimensões totais do pedido
     const totalWeight = products.reduce((sum, product) => sum + (product.weight * product.quantity), 0)
     const totalValue = products.reduce((sum, product) => sum + (product.value * product.quantity), 0)
+    const calculatedTotalPieces = products.reduce((sum, product) => sum + product.quantity, 0)
     
     // Usar as maiores dimensões para o cálculo
     const maxWidth = Math.max(...products.map(p => p.width))
@@ -120,12 +121,15 @@ class SuperFreteService {
         length: maxLength,
         weight: totalWeight,
         insurance_value: totalValue,
-        quantity: 1
+        quantity: calculatedTotalPieces // Usar total de peças real
       }],
       services: ['1', '2', '3', '4', '5'] // PAC, SEDEX, Jadlog, Total Express, Loggi
     }
 
     try {
+      console.log('🔢 Total de peças calculado:', calculatedTotalPieces)
+      console.log('📦 Dados do request:', request)
+      
       const shippingOptions = await this.calculateShipping(request)
       
       // Filtrar e mapear apenas opções válidas
@@ -141,6 +145,7 @@ class SuperFreteService {
         .sort((a, b) => a.price - b.price) // Ordenar por preço
 
       console.log('🚚 Opções válidas do SuperFrete:', validOptions)
+      console.log('🔢 Total de peças nas opções:', calculatedTotalPieces)
       
       return validOptions
     } catch (error) {
