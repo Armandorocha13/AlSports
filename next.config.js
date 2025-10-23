@@ -27,7 +27,6 @@ const nextConfig = {
   // Configurações experimentais
   experimental: {
     serverComponentsExternalPackages: ['@supabase/ssr'],
-    optimizeCss: true, // Otimizar CSS
   },
   // Headers de cache
   async headers() {
