@@ -171,8 +171,7 @@ export default function CartPage() {
         customerInfo,
         undefined,
         'WhatsApp',
-        'Pedido finalizado via WhatsApp',
-        cepCode
+        `Pedido finalizado via WhatsApp - CEP: ${cepCode}`
       )
 
       console.log('📦 Pedido criado:', order)
