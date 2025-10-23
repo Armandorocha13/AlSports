@@ -66,6 +66,14 @@ export default function CartPage() {
   const [cepCode, setCepCode] = useState('')
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError, setCepError] = useState('')
+  
+  // Estados para endereço completo
+  const [street, setStreet] = useState('')
+  const [number, setNumber] = useState('')
+  const [complement, setComplement] = useState('')
+  const [neighborhood, setNeighborhood] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
   const [showStockAlert, setShowStockAlert] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null)
@@ -355,36 +363,145 @@ export default function CartPage() {
         />
       </div>
 
-      {/* CEP Section */}
+      {/* Endereço Completo Section */}
       <div className="bg-gray-800 mt-4 p-4">
-        <h3 className="font-medium text-white mb-3">CEP para envio do pedido</h3>
-        <form onSubmit={handleCepSubmit} className="flex space-x-3">
-          <input
-            type="text"
-            placeholder="Digite seu CEP (ex: 12345-678)"
-            value={cepCode}
-            onChange={handleCepChange}
-            maxLength={9}
-            className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-          <button
-            type="submit"
-            disabled={cepLoading}
-            className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {cepLoading ? 'Consultando...' : 'Consultar'}
-          </button>
-        </form>
-        {cepError && (
-          <div className="mt-2 text-sm text-red-400">
-            {cepError}
+        <h3 className="font-medium text-white mb-4">Endereço para envio do pedido</h3>
+        
+        <div className="space-y-4">
+          {/* Rua e Número */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm text-gray-300 mb-1">Rua/Avenida</label>
+              <input
+                type="text"
+                placeholder="Digite o nome da rua ou avenida"
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Número</label>
+              <input
+                type="text"
+                placeholder="123"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
           </div>
-        )}
-        {cepCode && !cepError && (
-          <div className="mt-2 text-sm text-green-400">
-            CEP {cepCode} consultado com sucesso!
+
+          {/* Complemento */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Complemento (opcional)</label>
+            <input
+              type="text"
+              placeholder="Apartamento, casa, etc."
+              value={complement}
+              onChange={(e) => setComplement(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
           </div>
-        )}
+
+          {/* Bairro e Cidade */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Bairro</label>
+              <input
+                type="text"
+                placeholder="Digite o bairro"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Cidade</label>
+              <input
+                type="text"
+                placeholder="Digite a cidade"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Estado e CEP */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Estado</label>
+              <select 
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Selecione o estado</option>
+                <option value="RJ">Rio de Janeiro</option>
+                <option value="SP">São Paulo</option>
+                <option value="MG">Minas Gerais</option>
+                <option value="ES">Espírito Santo</option>
+                <option value="BA">Bahia</option>
+                <option value="PR">Paraná</option>
+                <option value="SC">Santa Catarina</option>
+                <option value="RS">Rio Grande do Sul</option>
+                <option value="GO">Goiás</option>
+                <option value="DF">Distrito Federal</option>
+                <option value="MT">Mato Grosso</option>
+                <option value="MS">Mato Grosso do Sul</option>
+                <option value="AC">Acre</option>
+                <option value="AL">Alagoas</option>
+                <option value="AP">Amapá</option>
+                <option value="AM">Amazonas</option>
+                <option value="CE">Ceará</option>
+                <option value="MA">Maranhão</option>
+                <option value="PA">Pará</option>
+                <option value="PB">Paraíba</option>
+                <option value="PE">Pernambuco</option>
+                <option value="PI">Piauí</option>
+                <option value="RN">Rio Grande do Norte</option>
+                <option value="RO">Rondônia</option>
+                <option value="RR">Roraima</option>
+                <option value="SE">Sergipe</option>
+                <option value="TO">Tocantins</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">CEP</label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="12345-678"
+                  value={cepCode}
+                  onChange={handleCepChange}
+                  maxLength={9}
+                  className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={handleCepSubmit}
+                  disabled={cepLoading}
+                  className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cepLoading ? 'Consultando...' : 'Consultar'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Status do CEP */}
+          {cepError && (
+            <div className="text-sm text-red-400">
+              {cepError}
+            </div>
+          )}
+          {cepCode && !cepError && (
+            <div className="text-sm text-green-400">
+              CEP {cepCode} consultado com sucesso!
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Order Summary */}
