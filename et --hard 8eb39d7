@@ -1,0 +1,10 @@
+[33m5717c6e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m feat: implementar redirecionamento automático para painel admin
+[33mf647cf7[m fix: corrigir verificação de admin para usar user_types
+[33m8eb39d7[m feat: adicionar botão admin na página principal
+[33m8be620b[m feat: adicionar link do painel admin no menu principal
+[33m7320430[m fix: adicionar tratamento robusto para erro de coluna user_type
+[33mc2d4fcd[m fix: criar script para adicionar coluna user_type na tabela profiles
+[33mafb0e48[m debug: adicionar componente de debug detalhado para admin
+[33m930c657[m debug: adicionar logs para debug do botão admin
+[33m3d2ae86[m fix: adicionar verificação de admin no layout do painel administrativo
+[33mcb50803[m feat: atualizar número do WhatsApp para +55 21 99459-5532
