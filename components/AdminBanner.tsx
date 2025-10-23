@@ -7,10 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 export default function AdminBanner() {
   const { profile } = useAuth()
 
-  // Debug info
-  console.log('AdminBanner - profile:', profile)
-  console.log('AdminBanner - user_types:', profile?.user_types)
-
   // Só mostra o banner se o usuário for admin
   if (profile?.user_types !== 'admin') {
     return null

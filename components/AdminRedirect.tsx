@@ -15,7 +15,6 @@ export default function AdminRedirect() {
       if (user.email === 'almundodabola@gmail.com') {
         // Verificar se já está na página admin
         if (window.location.pathname !== '/admin') {
-          console.log('🔄 Redirecionando admin para o painel...')
           router.push('/admin')
         }
       }
