@@ -49,7 +49,7 @@ export interface ShippingResponse {
 
 class SuperFreteService {
   private apiKey: string
-  private baseUrl = 'https://api.superfrete.com'
+  private baseUrl = 'https://api.superfrete.com.br'
 
   constructor(apiKey: string) {
     this.apiKey = apiKey
@@ -59,7 +59,7 @@ class SuperFreteService {
     try {
       console.log('🚚 Calculando frete via SuperFrete API...')
       
-      const response = await fetch(`${this.baseUrl}/shipment/calculate`, {
+      const response = await fetch(`${this.baseUrl}/api/v0/me/shipment/calculate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
