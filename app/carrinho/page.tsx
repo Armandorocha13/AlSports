@@ -199,13 +199,44 @@ export default function CartPage() {
       )
 
       const phoneNumber = '5521994595532'
+      // Montar informações do endereço
+      const enderecoCompleto = []
+      if (street) enderecoCompleto.push(street)
+      if (number) enderecoCompleto.push(`Nº ${number}`)
+      if (complement) enderecoCompleto.push(complement)
+      if (neighborhood) enderecoCompleto.push(neighborhood)
+      if (city) enderecoCompleto.push(city)
+      if (state) enderecoCompleto.push(state)
+      if (cepCode) enderecoCompleto.push(`CEP: ${cepCode}`)
+      
+      const enderecoFormatado = enderecoCompleto.length > 0 
+        ? enderecoCompleto.join(', ')
+        : 'Não informado'
+
+      // Montar informações do frete selecionado
+      const freteInfo = selectedShippingOption 
+        ? `*Frete:* ${selectedShippingOption.name} - R$ ${selectedShippingOption.price.toFixed(2)} (${selectedShippingOption.delivery_time} dias úteis)`
+        : 'Frete não selecionado'
+
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-        `Olá! Tenho um novo pedido para você:\n\n` +
-        `*Número do Pedido:* ${order.code}\n` +
-        `*Total:* R$ ${getTotal().toFixed(2)}\n` +
-        `*CEP para entrega:* ${cepCode || 'Não informado'}\n` +
-        `*Itens:*\n${order.items.map((item: any) => `- ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
-        `Por favor, aguardo as instruções para pagamento e envio do comprovante.`
+        `🛒 *NOVO PEDIDO - AL SPORTS*\n\n` +
+        `📋 *INFORMAÇÕES DO PEDIDO*\n` +
+        `*Número:* ${order.code}\n` +
+        `*Total:* R$ ${getTotal().toFixed(2)}\n\n` +
+        `👤 *DADOS DO CLIENTE*\n` +
+        `*Nome:* ${customerInfo.name}\n` +
+        `*Email:* ${customerInfo.email}\n` +
+        `*Telefone:* ${customerInfo.phone}\n\n` +
+        `📍 *ENDEREÇO DE ENTREGA*\n` +
+        `${enderecoFormatado}\n\n` +
+        `🚚 *FRETE*\n` +
+        `${freteInfo}\n\n` +
+        `📦 *ITENS DO PEDIDO*\n` +
+        `${order.items.map((item: any) => `• ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
+        `💳 *PAGAMENTO*\n` +
+        `Aguardando instruções para pagamento e envio do comprovante.\n\n` +
+        `✅ *PEDIDO CONFIRMADO*\n` +
+        `Obrigado pela preferência!`
       )}`
       window.open(whatsappUrl, '_blank')
 
