@@ -80,6 +80,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profileError) {
         console.error('Erro ao buscar perfil:', profileError)
+        
+        // Se o erro for "column user_type does not exist", tentar buscar sem essa coluna
+        if (profileError.message?.includes('user_type does not exist')) {
+          console.log('Coluna user_type não existe, buscando perfil sem essa coluna...')
+          
+          const { data: profileWithoutUserType, error: errorWithoutUserType } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, phone, cpf, birth_date, avatar_url, created_at, updated_at')
+            .eq('id', userId)
+            .single()
+            
+          if (profileWithoutUserType) {
+            // Adicionar user_type como 'cliente' por padrão
+            const profileWithDefaultType = {
+              ...profileWithoutUserType,
+              user_type: 'cliente'
+            }
+            setProfile(profileWithDefaultType)
+            return
+          }
+        }
+        
         console.log('Tentando criar perfil para usuário:', userId)
         
         // Tentar criar um perfil básico se não existir
