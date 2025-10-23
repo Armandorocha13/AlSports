@@ -8,6 +8,7 @@ import { sampleProducts, categories, getFeaturedProductsLimited } from '@/lib/da
 import ProductCard from '@/components/ProductCard'
 import CategoryCard from '@/components/CategoryCard'
 import AdminBanner from '@/components/AdminBanner'
+import AdminDebug from '@/components/AdminDebug'
 import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
 import { useRef, useEffect, useState } from 'react'
@@ -85,6 +86,9 @@ export default function HomePage() {
       <div className="container mx-auto px-4">
         <AdminBanner />
       </div>
+
+      {/* Debug component - apenas em desenvolvimento */}
+      <AdminDebug />
 
         {/* Seção de características da empresa */}
         <section className="hidden md:block py-16 bg-black">
