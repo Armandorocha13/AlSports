@@ -53,20 +53,20 @@ BEGIN
     END IF;
 END $$;
 
--- 4. Adicionar coluna user_type se não existir
+-- 4. Adicionar coluna user_types se não existir
 DO $$ 
 BEGIN
     IF NOT EXISTS (
         SELECT 1 
         FROM information_schema.columns 
         WHERE table_name = 'profiles' 
-        AND column_name = 'user_type'
+        AND column_name = 'user_types'
         AND table_schema = 'public'
     ) THEN
-        ALTER TABLE public.profiles ADD COLUMN user_type user_type DEFAULT 'cliente';
-        RAISE NOTICE 'Coluna user_type adicionada com sucesso';
+        ALTER TABLE public.profiles ADD COLUMN user_types user_types DEFAULT 'cliente';
+        RAISE NOTICE 'Coluna user_types adicionada com sucesso';
     ELSE
-        RAISE NOTICE 'Coluna user_type já existe';
+        RAISE NOTICE 'Coluna user_types já existe';
     END IF;
 END $$;
 

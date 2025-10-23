@@ -81,9 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileError) {
         console.error('Erro ao buscar perfil:', profileError)
         
-        // Se o erro for "column user_type does not exist", tentar buscar sem essa coluna
-        if (profileError.message?.includes('user_type does not exist')) {
-          console.log('Coluna user_type não existe, buscando perfil sem essa coluna...')
+        // Se o erro for "column user_types does not exist", tentar buscar sem essa coluna
+        if (profileError.message?.includes('user_types does not exist')) {
+          console.log('Coluna user_types não existe, buscando perfil sem essa coluna...')
           
           const { data: profileWithoutUserType, error: errorWithoutUserType } = await supabase
             .from('profiles')
@@ -92,10 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
             
           if (profileWithoutUserType) {
-            // Adicionar user_type como 'cliente' por padrão
+            // Adicionar user_types como 'cliente' por padrão
             const profileWithDefaultType = {
               ...profileWithoutUserType,
-              user_type: 'cliente'
+              user_types: 'cliente'
             }
             setProfile(profileWithDefaultType)
             return
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: userId,
             email: user?.email || 'usuario@exemplo.com',
             full_name: 'Usuário',
-            user_type: 'cliente'
+            user_types: 'cliente'
           })
           .select()
           .single()
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: null,
             cpf: null,
             birth_date: null,
-            user_type: 'cliente' as const,
+            user_types: 'cliente' as const,
             avatar_url: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -149,13 +149,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (rolesError) {
         console.error('Erro ao buscar roles:', rolesError)
-        // Se não conseguir buscar roles, usar o user_type do perfil como fallback
+        // Se não conseguir buscar roles, usar o user_types do perfil como fallback
         setProfile(profileData)
         return
       }
 
       // Determinar o tipo de usuário baseado nos roles
-      let userType = profileData.user_type || 'cliente' // usar o do perfil como fallback
+      let userType = profileData.user_types || 'cliente' // usar o do perfil como fallback
       
       // Verificar se o usuário tem role de admin na tabela user_roles
       if (userRoles && userRoles.length > 0) {
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Criar perfil com o tipo correto baseado nos roles
       const profileWithRole = {
         ...profileData,
-        user_type: userType
+        user_types: userType
       }
 
       setProfile(profileWithRole)
@@ -191,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone: null,
         cpf: null,
         birth_date: null,
-        user_type: 'cliente' as const,
+        user_types: 'cliente' as const,
         avatar_url: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

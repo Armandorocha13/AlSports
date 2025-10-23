@@ -9,10 +9,10 @@ export default function AdminBanner() {
 
   // Debug info
   console.log('AdminBanner - profile:', profile)
-  console.log('AdminBanner - user_type:', profile?.user_type)
+  console.log('AdminBanner - user_types:', profile?.user_types)
 
   // Só mostra o banner se o usuário for admin
-  if (profile?.user_type !== 'admin') {
+  if (profile?.user_types !== 'admin') {
     return null
   }
 

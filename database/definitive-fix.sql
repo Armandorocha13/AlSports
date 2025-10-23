@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
-    user_type TEXT DEFAULT 'cliente',
+    user_types TEXT DEFAULT 'cliente',
     phone TEXT,
     cpf TEXT,
     birth_date DATE,
@@ -21,15 +21,15 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Garantir que a coluna user_type existe
+-- 3. Garantir que a coluna user_types existe
 ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS user_type TEXT DEFAULT 'cliente';
+ADD COLUMN IF NOT EXISTS user_types TEXT DEFAULT 'cliente';
 
 -- 4. Inserir o usuário admin
 INSERT INTO public.profiles (
     email,
     full_name,
-    user_type,
+    user_types,
     created_at,
     updated_at
 ) VALUES (
@@ -39,7 +39,7 @@ INSERT INTO public.profiles (
     NOW(),
     NOW()
 ) ON CONFLICT (email) DO UPDATE SET
-    user_type = 'admin',
+    user_types = 'admin',
     full_name = 'Administrador',
     updated_at = NOW();
 
@@ -48,7 +48,7 @@ SELECT
     id,
     email,
     full_name,
-    user_type,
+    user_types,
     created_at
 FROM public.profiles 
 WHERE email = 'almundodabola@gmail.com';

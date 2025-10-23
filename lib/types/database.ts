@@ -17,7 +17,7 @@ export interface Database {
           phone: string | null
           cpf: string | null
           birth_date: string | null
-          user_type: 'cliente' | 'admin' | 'vendedor'
+          user_types: 'cliente' | 'admin' | 'vendedor'
           avatar_url: string | null
           created_at: string
           updated_at: string
@@ -29,7 +29,7 @@ export interface Database {
           phone?: string | null
           cpf?: string | null
           birth_date?: string | null
-          user_type?: 'cliente' | 'admin' | 'vendedor'
+          user_types?: 'cliente' | 'admin' | 'vendedor'
           avatar_url?: string | null
           created_at?: string
           updated_at?: string
@@ -41,7 +41,7 @@ export interface Database {
           phone?: string | null
           cpf?: string | null
           birth_date?: string | null
-          user_type?: 'cliente' | 'admin' | 'vendedor'
+          user_types?: 'cliente' | 'admin' | 'vendedor'
           avatar_url?: string | null
           created_at?: string
           updated_at?: string
@@ -576,7 +576,7 @@ export interface Database {
     }
     Enums: {
       order_status: 'aguardando_pagamento' | 'pagamento_confirmado' | 'preparando_pedido' | 'enviado' | 'em_transito' | 'entregue' | 'cancelado' | 'devolvido'
-      user_type: 'cliente' | 'admin' | 'vendedor'
+      user_types: 'cliente' | 'admin' | 'vendedor'
       payment_method: 'pix' | 'cartao_credito' | 'cartao_debito' | 'boleto' | 'transferencia'
       payment_status: 'pendente' | 'processando' | 'aprovado' | 'rejeitado' | 'cancelado'
     }
@@ -611,7 +611,7 @@ export type OrderTracking = Database['public']['Views']['order_tracking']['Row']
 
 // Enums
 export type OrderStatus = Enums<'order_status'>
-export type UserType = Enums<'user_type'>
+export type UserType = Enums<'user_types'>
 export type PaymentMethod = Enums<'payment_method'>
 export type PaymentStatus = Enums<'payment_status'>
 

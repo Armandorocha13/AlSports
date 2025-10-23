@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   cpf TEXT UNIQUE,
   birth_date DATE,
-  user_type user_type DEFAULT 'cliente',
+  user_types user_types DEFAULT 'cliente',
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

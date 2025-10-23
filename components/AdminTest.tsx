@@ -14,9 +14,9 @@ export default function AdminTest() {
         user_email: user.email,
         profile_id: profile.id,
         profile_email: profile.email,
-        user_type: profile.user_type,
+        user_types: profile.user_types,
         full_name: profile.full_name,
-        is_admin: profile.user_type === 'admin',
+        is_admin: profile.user_types === 'admin',
         timestamp: new Date().toISOString(),
         raw_profile: profile
       })
@@ -37,8 +37,8 @@ export default function AdminTest() {
         <div>Profile: {profile ? 'Carregado' : 'Não carregado'}</div>
         {profile && (
           <>
-            <div>User Type: <span className={profile.user_type === 'admin' ? 'text-green-400' : 'text-red-400'}>{profile.user_type || 'undefined'}</span></div>
-            <div>Is Admin: <span className={profile.user_type === 'admin' ? 'text-green-400' : 'text-red-400'}>{profile.user_type === 'admin' ? 'SIM' : 'NÃO'}</span></div>
+            <div>User Type: <span className={profile.user_types === 'admin' ? 'text-green-400' : 'text-red-400'}>{profile.user_types || 'undefined'}</span></div>
+            <div>Is Admin: <span className={profile.user_types === 'admin' ? 'text-green-400' : 'text-red-400'}>{profile.user_types === 'admin' ? 'SIM' : 'NÃO'}</span></div>
             <div>Email: {profile.email}</div>
             <div>Nome: {profile.full_name}</div>
           </>

@@ -14,9 +14,9 @@ export default function AdminDebug() {
         user_email: user.email,
         profile_id: profile.id,
         profile_email: profile.email,
-        user_type: profile.user_type,
+        user_types: profile.user_types,
         full_name: profile.full_name,
-        is_admin: profile.user_type === 'admin',
+        is_admin: profile.user_types === 'admin',
         timestamp: new Date().toISOString()
       })
     }
@@ -36,8 +36,8 @@ export default function AdminDebug() {
         <div>Profile: {profile ? 'Carregado' : 'Não carregado'}</div>
         {profile && (
           <>
-            <div>User Type: {profile.user_type || 'undefined'}</div>
-            <div>Is Admin: {profile.user_type === 'admin' ? 'Sim' : 'Não'}</div>
+            <div>User Type: {profile.user_types || 'undefined'}</div>
+            <div>Is Admin: {profile.user_types === 'admin' ? 'Sim' : 'Não'}</div>
             <div>Email: {profile.email}</div>
             <div>Nome: {profile.full_name}</div>
           </>

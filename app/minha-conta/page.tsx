@@ -306,7 +306,7 @@ export default function MyAccountPage() {
                   </Link>
                   
                   {/* Admin Panel Button */}
-                  {profile?.user_type === 'admin' && (
+                  {profile?.user_types === 'admin' && (
                     <Link
                       href="/admin"
                       className="flex items-center p-3 text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors duration-200 font-medium"

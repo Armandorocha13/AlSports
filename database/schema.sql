@@ -22,7 +22,7 @@ CREATE TYPE order_status AS ENUM (
 );
 
 -- Tipos de usuário
-CREATE TYPE user_type AS ENUM (
+CREATE TYPE user_types AS ENUM (
   'cliente',
   'admin',
   'vendedor'
@@ -58,7 +58,7 @@ CREATE TABLE public.profiles (
   phone TEXT,
   cpf TEXT UNIQUE,
   birth_date DATE,
-  user_type user_type DEFAULT 'cliente',
+  user_types user_types DEFAULT 'cliente',
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

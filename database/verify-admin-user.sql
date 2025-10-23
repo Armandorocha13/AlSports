@@ -5,7 +5,7 @@
 SELECT 
     p.id,
     p.email,
-    p.user_type,
+    p.user_types,
     p.full_name,
     p.created_at,
     p.updated_at
@@ -17,7 +17,7 @@ INSERT INTO public.profiles (
     id,
     email,
     full_name,
-    user_type,
+    user_types,
     created_at,
     updated_at
 ) VALUES (
@@ -28,7 +28,7 @@ INSERT INTO public.profiles (
     NOW(),
     NOW()
 ) ON CONFLICT (email) DO UPDATE SET
-    user_type = 'admin',
+    user_types = 'admin',
     full_name = 'Administrador',
     updated_at = NOW();
 
@@ -36,7 +36,7 @@ INSERT INTO public.profiles (
 SELECT 
     p.id,
     p.email,
-    p.user_type,
+    p.user_types,
     p.full_name,
     p.created_at,
     p.updated_at
@@ -47,7 +47,7 @@ WHERE p.email = 'almundodabola@gmail.com';
 SELECT 
     p.id,
     p.email,
-    p.user_type,
+    p.user_types,
     p.full_name
 FROM public.profiles p
-WHERE p.user_type = 'admin';
+WHERE p.user_types = 'admin';

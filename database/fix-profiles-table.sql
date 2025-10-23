@@ -47,18 +47,18 @@ BEGIN
     END IF;
 END $$;
 
--- Verificar se a coluna user_type existe
+-- Verificar se a coluna user_types existe
 DO $$ 
 BEGIN
-    -- Adicionar coluna user_type se não existir
+    -- Adicionar coluna user_types se não existir
     IF NOT EXISTS (
         SELECT 1 
         FROM information_schema.columns 
         WHERE table_name = 'profiles' 
-        AND column_name = 'user_type'
+        AND column_name = 'user_types'
         AND table_schema = 'public'
     ) THEN
-        ALTER TABLE public.profiles ADD COLUMN user_type user_type DEFAULT 'cliente';
+        ALTER TABLE public.profiles ADD COLUMN user_types user_types DEFAULT 'cliente';
     END IF;
 END $$;
 

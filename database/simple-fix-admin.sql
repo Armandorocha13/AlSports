@@ -8,16 +8,16 @@ WHERE table_name = 'profiles'
 AND table_schema = 'public'
 ORDER BY ordinal_position;
 
--- 2. Adicionar a coluna user_type se não existir
+-- 2. Adicionar a coluna user_types se não existir
 DO $$ 
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'profiles' 
-        AND column_name = 'user_type' 
+        AND column_name = 'user_types' 
         AND table_schema = 'public'
     ) THEN
-        ALTER TABLE public.profiles ADD COLUMN user_type TEXT DEFAULT 'cliente';
+        ALTER TABLE public.profiles ADD COLUMN user_types TEXT DEFAULT 'cliente';
     END IF;
 END $$;
 
@@ -25,14 +25,14 @@ END $$;
 SELECT column_name, data_type, column_default
 FROM information_schema.columns 
 WHERE table_name = 'profiles' 
-AND column_name = 'user_type' 
+AND column_name = 'user_types' 
 AND table_schema = 'public';
 
 -- 4. Atualizar ou inserir o usuário admin
 INSERT INTO public.profiles (
     email,
     full_name,
-    user_type,
+    user_types,
     created_at,
     updated_at
 ) VALUES (
@@ -42,7 +42,7 @@ INSERT INTO public.profiles (
     NOW(),
     NOW()
 ) ON CONFLICT (email) DO UPDATE SET
-    user_type = 'admin',
+    user_types = 'admin',
     full_name = 'Administrador',
     updated_at = NOW();
 
@@ -50,7 +50,7 @@ INSERT INTO public.profiles (
 SELECT 
     email,
     full_name,
-    user_type,
+    user_types,
     created_at
 FROM public.profiles 
 WHERE email = 'almundodabola@gmail.com';

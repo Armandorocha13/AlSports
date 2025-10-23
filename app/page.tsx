@@ -90,7 +90,7 @@ export default function HomePage() {
       </div>
 
       {/* Botão Admin - apenas para administradores */}
-      {profile?.user_type === 'admin' && (
+      {profile?.user_types === 'admin' && (
         <div className="container mx-auto px-4 mb-6">
           <Link
             href="/admin"

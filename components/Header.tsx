@@ -63,7 +63,7 @@ export default function Header() {
             ))}
             
             {/* Link para painel admin - apenas para administradores */}
-            {profile?.user_type === 'admin' && (
+            {profile?.user_types === 'admin' && (
               <Link
                 href="/admin"
                 className="flex items-center text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
@@ -193,7 +193,7 @@ export default function Header() {
                     </Link>
                     
                     {/* Botão do painel admin - exibe apenas para administradores */}
-                    {profile?.user_type === 'admin' && (
+                    {profile?.user_types === 'admin' && (
                       <>
                         <hr className="my-1" />
                         <Link
@@ -212,7 +212,7 @@ export default function Header() {
                     {/* Debug info - remover depois */}
                     {process.env.NODE_ENV === 'development' && (
                       <div className="px-4 py-2 text-xs text-gray-500">
-                        Debug: user_type = {profile?.user_type || 'undefined'}
+                        Debug: user_types = {profile?.user_types || 'undefined'}
                       </div>
                     )}
                     
@@ -317,7 +317,7 @@ export default function Header() {
               ))}
               
               {/* Link para painel admin no menu mobile - apenas para administradores */}
-              {profile?.user_type === 'admin' && (
+              {profile?.user_types === 'admin' && (
                 <Link
                   href="/admin"
                   className="flex items-center py-2 text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
