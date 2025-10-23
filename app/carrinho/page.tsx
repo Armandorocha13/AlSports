@@ -101,23 +101,6 @@ export default function CartPage() {
     alert('Carrinho salvo com sucesso!')
   }
 
-  const handleApplyCoupon = () => {
-    const validCoupons: { [key: string]: number } = {
-      'DESCONTO10': 10,
-      'ATACADO15': 15,
-      'PRIMEIRA20': 20,
-      'FREEGRATIS': 0 // Frete grátis
-    }
-    
-    if (validCoupons[couponCode.toUpperCase()] !== undefined) {
-      setCouponDiscount(validCoupons[couponCode.toUpperCase()])
-      setAppliedCoupon(couponCode.toUpperCase())
-      setCouponCode('')
-      alert(`Cupom ${couponCode.toUpperCase()} aplicado com sucesso!`)
-    } else {
-      alert('Cupom inválido')
-    }
-  }
 
   const handleAddToFavorites = (productId: string) => {
     setFavorites(prev => 
