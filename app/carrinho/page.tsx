@@ -1,597 +1,309 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { 
-  ShoppingCart, 
   Plus, 
   Minus, 
   Trash2, 
-  MessageCircle, 
-  Package, 
-  Truck, 
-  Percent, 
-  Tag,
+  ShoppingCart, 
   ArrowLeft,
-  CreditCard,
-  MapPin,
-  Heart,
-  Star,
-  Clock,
-  Gift,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Save,
-  Share2,
-  Eye,
-  X
+  Package,
+  Truck,
+  CreditCard
 } from 'lucide-react'
-import { useCart } from '@/contexts/CartContext'
-import { useAuth } from '@/contexts/AuthContext'
-import { DiscountCalculator } from '@/lib/discount-calculator'
-import { sampleProducts } from '@/lib/data'
-import { shippingService } from '@/lib/shipping'
-import ShippingCalculator from '@/components/ShippingCalculator'
+import Link from 'next/link'
 
-export default function CartPage() {
-  const router = useRouter()
+export default function CarrinhoPage() {
   const { user } = useAuth()
-  const {
-    items,
-    addItem,
-    removeItem,
-    updateQuantity,
-    getTotalItems,
-    getTotalPieces,
-    getSubtotal,
+  const { 
+    items, 
+    updateQuantity, 
+    removeItem, 
+    clearCart, 
+    getSubtotal, 
+    getShippingCost, 
     getTotal,
-    getItemPrice,
-    getShippingInfo,
-    getShippingCost,
-    canUseTransportadora,
-    getMissingForTransportadora,
-    createOrder,
-    clearCart,
-    openWhatsAppOrder,
-    saveOrderToDatabase,
-    getDiscountSummary,
-    getItemDiscount,
-    getNextDiscountThreshold
+    getTotalItems 
   } = useCart()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [savedCarts, setSavedCarts] = useState<any[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(true)
-  const [cepCode, setCepCode] = useState('')
-  const [cepLoading, setCepLoading] = useState(false)
-  const [cepError, setCepError] = useState('')
-  
-  // Estados para endereço completo
-  const [street, setStreet] = useState('')
-  const [number, setNumber] = useState('')
-  const [complement, setComplement] = useState('')
-  const [neighborhood, setNeighborhood] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [showStockAlert, setShowStockAlert] = useState(false)
-  const [favorites, setFavorites] = useState<string[]>([])
-  const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null)
-  
-  const shippingInfo = getShippingInfo()
-  const discountSummary = getDiscountSummary()
-
-  // Funções para novas funcionalidades
-  const getRelatedProducts = () => {
-    if (items.length === 0) return []
-    const currentCategories = Array.from(new Set(items.map(item => item.product.category)))
-    return sampleProducts
-      .filter(product => 
-        currentCategories.includes(product.category) && 
-        !items.some(item => item.product.id === product.id)
-      )
-      .slice(0, 4)
-  }
-
-  const handleSaveCart = () => {
+  // Redirecionar se não estiver logado
+  useEffect(() => {
     if (!user) {
-      alert('Faça login para salvar seu carrinho')
-      return
+      router.push('/auth/login')
     }
-    const cartData = {
-      id: Date.now().toString(),
-      name: `Carrinho ${new Date().toLocaleDateString()}`,
-      items: items,
-      total: getTotal(),
-      savedAt: new Date()
-    }
-    setSavedCarts(prev => [...prev, cartData])
-    alert('Carrinho salvo com sucesso!')
-  }
+  }, [user, router])
 
-
-  const handleAddToFavorites = (productId: string) => {
-    setFavorites(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    )
-  }
-
-  const getFinalShippingCost = () => {
-    if (selectedShippingOption) {
-      return selectedShippingOption.price
-    }
-    return getShippingCost()
-  }
-
-  const formatCep = (value: string) => {
-    const numbers = value.replace(/\D/g, '')
-    return numbers.replace(/(\d{5})(\d{3})/, '$1-$2')
-  }
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setCepCode(formatCep(value))
-    setCepError('')
-  }
-
-  const handleCepSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!cepCode || cepCode.length < 9) {
-      setCepError('CEP deve ter 8 dígitos')
-      return
-    }
-
-    setCepLoading(true)
-    setCepError('')
-    
-    try {
-      // Aqui você pode implementar a lógica para buscar informações do CEP
-      // Por enquanto, vamos apenas simular um sucesso
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('CEP consultado:', cepCode)
-    } catch (error) {
-      setCepError('Erro ao consultar CEP')
-    } finally {
-      setCepLoading(false)
+  const handleQuantityChange = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeItem(itemId)
+    } else {
+      updateQuantity(itemId, newQuantity)
     }
   }
 
+  const handleRemoveItem = (itemId: string) => {
+    removeItem(itemId)
+  }
 
-  const handleWhatsAppOrder = async () => {
-    if (!user) {
-      router.push('/auth/login?redirectTo=/carrinho')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const customerInfo = {
-        name: user.user_metadata?.full_name || 'Cliente',
-        email: user.email || '',
-        phone: user.user_metadata?.phone || ''
-      }
-
-      console.log('👤 Dados do cliente:', customerInfo)
-
-      const order = createOrder(
-        customerInfo,
-        undefined,
-        'WhatsApp',
-        `Pedido finalizado via WhatsApp - CEP: ${cepCode}`
-      )
-
-      console.log('📦 Pedido criado:', order)
-
-      // Salvar pedido no banco de dados
-      console.log('💾 Salvando pedido...')
-      const savedOrder = await saveOrderToDatabase(customerInfo, order)
-      console.log('✅ Pedido salvo:', savedOrder)
-
-      alert(
-        `🎉 Pedido Criado! Seu número de pedido é: *${order.code}*\n\n` +
-        `📝 *INSTRUÇÕES IMPORTANTES:*\n` +
-        `• Anote o número do pedido.\n` +
-        `• Envie o comprovante de pagamento junto com este número via WhatsApp.\n` +
-        `• Aguarde a confirmação do pagamento.\n\n` +
-        `✅ *Pedido salvo! Você pode acompanhar na aba "Meus Pedidos".*`
-      )
-
-      const phoneNumber = '5521994595532'
-      // Montar informações do endereço
-      const enderecoCompleto = []
-      if (street) enderecoCompleto.push(street)
-      if (number) enderecoCompleto.push(`Nº ${number}`)
-      if (complement) enderecoCompleto.push(complement)
-      if (neighborhood) enderecoCompleto.push(neighborhood)
-      if (city) enderecoCompleto.push(city)
-      if (state) enderecoCompleto.push(state)
-      if (cepCode) enderecoCompleto.push(`CEP: ${cepCode}`)
-      
-      const enderecoFormatado = enderecoCompleto.length > 0 
-        ? enderecoCompleto.join(', ')
-        : 'Não informado'
-
-      // Montar informações do frete selecionado
-      const freteInfo = selectedShippingOption 
-        ? `*Frete:* ${selectedShippingOption.name} - R$ ${selectedShippingOption.price.toFixed(2)} (${selectedShippingOption.delivery_time} dias úteis)`
-        : 'Frete não selecionado'
-
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-        `🛒 *NOVO PEDIDO - AL SPORTS*\n\n` +
-        `📋 *INFORMAÇÕES DO PEDIDO*\n` +
-        `*Número:* ${order.code}\n` +
-        `*Total:* R$ ${getTotal().toFixed(2)}\n\n` +
-        `👤 *DADOS DO CLIENTE*\n` +
-        `*Nome:* ${customerInfo.name}\n` +
-        `*Email:* ${customerInfo.email}\n` +
-        `*Telefone:* ${customerInfo.phone}\n\n` +
-        `📍 *ENDEREÇO DE ENTREGA*\n` +
-        `${enderecoFormatado}\n\n` +
-        `🚚 *FRETE*\n` +
-        `${freteInfo}\n\n` +
-        `📦 *ITENS DO PEDIDO*\n` +
-        `${order.items.map((item: any) => `• ${item.quantity}x ${item.productName} (${item.size}) - R$ ${item.totalPrice.toFixed(2)}`).join('\n')}\n\n` +
-        `💳 *PAGAMENTO*\n` +
-        `Aguardando instruções para pagamento e envio do comprovante.\n\n` +
-        `✅ *PEDIDO CONFIRMADO*\n` +
-        `Obrigado pela preferência!`
-      )}`
-      window.open(whatsappUrl, '_blank')
-
+  const handleClearCart = () => {
+    if (confirm('Tem certeza que deseja esvaziar o carrinho?')) {
       clearCart()
-      router.push('/minha-conta/pedidos')
-    } catch (error) {
-      console.error('Erro ao finalizar pedido:', error)
-      alert('Ocorreu um erro ao finalizar seu pedido. Por favor, tente novamente.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleContinueShopping = () => {
-    router.push('/')
+  const handleCheckout = () => {
+    if (items.length === 0) {
+      alert('Seu carrinho está vazio!')
+      return
+    }
+    router.push('/checkout')
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-text-light-primary dark:text-text-dark-primary text-xl mb-4">Acesso Negado</div>
+          <div className="text-text-light-secondary dark:text-text-dark-secondary mb-6">Você precisa estar logado para acessar o carrinho.</div>
+          <Link
+            href="/auth/login"
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+          >
+            Fazer Login
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-900">
-        {/* Mobile Header */}
-        <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-gray-300 hover:text-white"
+      <div className="min-h-screen bg-background-light dark:bg-background-dark">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary transition-colors"
             >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              <span className="font-medium">Carrinho</span>
-            </button>
-            <div className="text-sm text-gray-400">0 itens</div>
+              <ArrowLeft size={20} />
+              Continuar Comprando
+            </Link>
           </div>
-        </div>
 
-        <div className="bg-gray-800 p-12 text-center">
-          <ShoppingCart size={64} className="h-24 w-24 text-gray-400 mx-auto mb-6" />
-          <h2 className="text-2xl font-semibold text-white mb-4">Seu carrinho está vazio</h2>
-          <p className="text-gray-400 mb-8 max-w-md mx-auto">Adicione alguns produtos incríveis ao seu carrinho e aproveite nossos preços especiais de atacado.</p>
-          <button
-            onClick={handleContinueShopping}
-            className="bg-primary-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200"
-          >
-            Continuar Comprando
-          </button>
+          {/* Carrinho vazio */}
+          <div className="text-center py-16">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+              <ShoppingCart size={32} className="text-gray-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary mb-4">
+              Seu carrinho está vazio
+            </h1>
+            <p className="text-text-light-secondary dark:text-text-dark-secondary mb-8">
+              Que tal adicionar alguns produtos incríveis?
+            </p>
+            <Link
+              href="/"
+              className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+            >
+              <Package size={20} />
+              Explorar Produtos
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Mobile Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center text-gray-300 hover:text-white"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            <span className="font-medium">Carrinho</span>
-          </button>
-          <div className="text-sm text-gray-400">
-            {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}
+    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary transition-colors"
+            >
+              <ArrowLeft size={20} />
+              Continuar Comprando
+            </Link>
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+            <h1 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary">
+              Carrinho ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'})
+            </h1>
           </div>
-        </div>
-      </div>
-
-      {/* Product Items */}
-      <div className="bg-gray-800">
-        {items.map((item, index) => {
-          const discountInfo = getItemDiscount(item.product, item.quantity)
           
-          return (
-            <div key={`${item.product.id}-${item.selectedSize}-${item.selectedColor || 'default'}`} className="border-b border-gray-700 p-4">
-              <div className="flex items-start space-x-4">
-                {/* Product Image */}
-                <div className="flex-shrink-0">
-                  <img
-                    src={item.product.image}
-                    alt={item.product.name}
-                    className="h-20 w-20 object-cover rounded-lg"
-                  />
-                </div>
-                
-                {/* Product Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                             <h3 className="font-medium text-white text-sm leading-tight">
-                               {item.product.name}
-                             </h3>
-                             <p className="text-xs text-gray-400 mt-1">
-                               {item.selectedSize} • {item.selectedColor || 'Cor padrão'}
-                             </p>
-                             <p className="text-xs text-gray-400 mt-1">
-                               2-5 Dias úteis após a confirmação do pagamento
-                             </p>
-                    </div>
-                    
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeItem(item.product.id, item.selectedSize, item.selectedColor)}
-                      className="ml-2 p-1 text-gray-400 hover:text-red-400"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  
-                  {/* Quantity and Price */}
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity - 1, item.selectedColor)}
-                               className="w-8 h-8 flex items-center justify-center border border-gray-600 rounded-full hover:bg-gray-700"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity + 1, item.selectedColor)}
-                               className="w-8 h-8 flex items-center justify-center border border-gray-600 rounded-full hover:bg-gray-700"
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                    
-                    <div className="text-right">
-                             <div className="text-sm font-semibold text-white">
-                        R$ {(discountInfo.discountedPrice * item.quantity).toFixed(2).replace('.', ',')}
-                      </div>
-                      {discountInfo.discountPercentage > 0 && (
-                        <div className="text-xs text-green-600">
-                          Economia: R$ {discountInfo.savings.toFixed(2).replace('.', ',')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+          {items.length > 0 && (
+            <button
+              onClick={handleClearCart}
+              className="text-red-500 hover:text-red-600 transition-colors flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Esvaziar Carrinho
+            </button>
+          )}
+        </div>
 
-      {/* Shipping Calculator */}
-      <div className="mt-4">
-        <ShippingCalculator
-          products={items.map(item => ({
-            category: item.product.category,
-            value: getItemPrice(item.product, item.quantity),
-            quantity: item.quantity
-          }))}
-          totalPieces={getTotalPieces()}
-          onShippingSelect={setSelectedShippingOption}
-        />
-      </div>
-
-      {/* Endereço Completo Section */}
-      <div className="bg-gray-800 mt-4 p-4">
-        <h3 className="font-medium text-white mb-4">Endereço para envio do pedido</h3>
-        
-        <div className="space-y-4">
-          {/* Rua e Número */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm text-gray-300 mb-1">Rua/Avenida</label>
-              <input
-                type="text"
-                placeholder="Digite o nome da rua ou avenida"
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Número</label>
-              <input
-                type="text"
-                placeholder="123"
-                value={number}
-                onChange={(e) => setNumber(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Complemento */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Complemento (opcional)</label>
-            <input
-              type="text"
-              placeholder="Apartamento, casa, etc."
-              value={complement}
-              onChange={(e) => setComplement(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Bairro e Cidade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Bairro</label>
-              <input
-                type="text"
-                placeholder="Digite o bairro"
-                value={neighborhood}
-                onChange={(e) => setNeighborhood(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Cidade</label>
-              <input
-                type="text"
-                placeholder="Digite a cidade"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Estado e CEP */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Estado</label>
-              <select 
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="">Selecione o estado</option>
-                <option value="RJ">Rio de Janeiro</option>
-                <option value="SP">São Paulo</option>
-                <option value="MG">Minas Gerais</option>
-                <option value="ES">Espírito Santo</option>
-                <option value="BA">Bahia</option>
-                <option value="PR">Paraná</option>
-                <option value="SC">Santa Catarina</option>
-                <option value="RS">Rio Grande do Sul</option>
-                <option value="GO">Goiás</option>
-                <option value="DF">Distrito Federal</option>
-                <option value="MT">Mato Grosso</option>
-                <option value="MS">Mato Grosso do Sul</option>
-                <option value="AC">Acre</option>
-                <option value="AL">Alagoas</option>
-                <option value="AP">Amapá</option>
-                <option value="AM">Amazonas</option>
-                <option value="CE">Ceará</option>
-                <option value="MA">Maranhão</option>
-                <option value="PA">Pará</option>
-                <option value="PB">Paraíba</option>
-                <option value="PE">Pernambuco</option>
-                <option value="PI">Piauí</option>
-                <option value="RN">Rio Grande do Norte</option>
-                <option value="RO">Rondônia</option>
-                <option value="RR">Roraima</option>
-                <option value="SE">Sergipe</option>
-                <option value="TO">Tocantins</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">CEP</label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  placeholder="12345-678"
-                  value={cepCode}
-                  onChange={handleCepChange}
-                  maxLength={9}
-                  className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={handleCepSubmit}
-                  disabled={cepLoading}
-                  className="bg-primary-500 text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lista de itens */}
+          <div className="lg:col-span-2">
+            <div className="space-y-4">
+              {items.map((item) => (
+                <div
+                  key={`${item.id}-${item.size}-${item.color}`}
+                  className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
                 >
-                  {cepLoading ? 'Consultando...' : 'Consultar'}
+                  <div className="flex gap-4">
+                    {/* Imagem do produto */}
+                    <div className="relative w-20 h-20 flex-shrink-0">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover rounded-lg"
+                        sizes="80px"
+                      />
+                    </div>
+
+                    {/* Informações do produto */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-text-light-primary dark:text-text-dark-primary mb-1">
+                        {item.name}
+                      </h3>
+                      <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mb-2">
+                        {item.description}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm text-text-light-secondary dark:text-text-dark-secondary">
+                        <span>Tamanho: {item.size}</span>
+                        <span>Cor: {item.color}</span>
+                      </div>
+                    </div>
+
+                    {/* Preço e controles */}
+                    <div className="flex flex-col items-end gap-4">
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">
+                          R$ {(item.price * item.quantity).toFixed(2)}
+                        </div>
+                        <div className="text-sm text-text-light-secondary dark:text-text-dark-secondary">
+                          R$ {item.price.toFixed(2)} cada
+                        </div>
+                      </div>
+
+                      {/* Controles de quantidade */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="w-8 text-center font-medium text-text-light-primary dark:text-text-dark-primary">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+
+                      {/* Botão remover */}
+                      <button
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="text-red-500 hover:text-red-600 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 size={14} />
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Resumo do pedido */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sticky top-8">
+              <h2 className="text-lg font-semibold text-text-light-primary dark:text-text-dark-primary mb-6">
+                Resumo do Pedido
+              </h2>
+
+              <div className="space-y-4">
+                {/* Subtotal */}
+                <div className="flex justify-between">
+                  <span className="text-text-light-secondary dark:text-text-dark-secondary">
+                    Subtotal ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'})
+                  </span>
+                  <span className="font-medium text-text-light-primary dark:text-text-dark-primary">
+                    R$ {getSubtotal().toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Frete */}
+                <div className="flex justify-between">
+                  <span className="text-text-light-secondary dark:text-text-dark-secondary">
+                    Frete
+                  </span>
+                  <span className="font-medium text-text-light-primary dark:text-text-dark-primary">
+                    {getShippingCost() === 0 ? 'Grátis' : `R$ ${getShippingCost().toFixed(2)}`}
+                  </span>
+                </div>
+
+                {/* Linha divisória */}
+                <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+                {/* Total */}
+                <div className="flex justify-between text-lg font-bold">
+                  <span className="text-text-light-primary dark:text-text-dark-primary">Total</span>
+                  <span className="text-text-light-primary dark:text-text-dark-primary">
+                    R$ {getTotal().toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Informações de frete */}
+                {getSubtotal() < 200 && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+                      <Truck size={16} />
+                      <span>Frete grátis a partir de R$ 200,00</span>
+                    </div>
+                    <div className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                      Faltam R$ {(200 - getSubtotal()).toFixed(2)} para frete grátis
+                    </div>
+                  </div>
+                )}
+
+                {/* Botão de checkout */}
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading || items.length === 0}
+                  className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <CreditCard size={20} />
+                  {loading ? 'Processando...' : 'Finalizar Compra'}
                 </button>
+
+                {/* Informações de pagamento */}
+                <div className="text-xs text-text-light-secondary dark:text-text-dark-secondary text-center">
+                  <p>Pagamento seguro via PIX, cartão ou boleto</p>
+                  <p>Entrega em 3-5 dias úteis</p>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Status do CEP */}
-          {cepError && (
-            <div className="text-sm text-red-400">
-              {cepError}
-            </div>
-          )}
-          {cepCode && !cepError && (
-            <div className="text-sm text-green-400">
-              CEP {cepCode} consultado com sucesso!
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Order Summary */}
-      <div className="bg-gray-800 mt-4 p-4">
-        <h3 className="font-medium text-white mb-3">Resumo do Pedido</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Subtotal ({getTotalItems()} itens)</span>
-            <span>R$ {getSubtotal().toFixed(2).replace('.', ',')}</span>
-          </div>
-          
-          
-          <div className="flex justify-between text-sm">
-            <span>Frete</span>
-            <span>
-              {selectedShippingOption ? (
-                `R$ ${selectedShippingOption.price.toFixed(2).replace('.', ',')}`
-              ) : (
-                `R$ ${getShippingCost().toFixed(2).replace('.', ',')}`
-              )}
-            </span>
-          </div>
-          
-          
-          {/* Total Destacado */}
-          <div className="border-t border-gray-600 pt-3 mt-3">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-white">Total a pagar:</span>
-              <span className="text-xl font-bold text-primary-400">R$ {getTotal().toFixed(2).replace('.', ',')}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Action Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-gray-400">Total a pagar:</span>
-          <span className="text-lg font-bold text-white">R$ {getTotal().toFixed(2).replace('.', ',')}</span>
-        </div>
-        <button
-          onClick={handleWhatsAppOrder}
-          disabled={isLoading}
-          className="w-full bg-primary-500 text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-primary-400 transition-colors duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          ) : (
-            <MessageCircle size={20} />
-          )}
-          Fechar pedido
-        </button>
-      </div>
-
-      {/* Add bottom padding to prevent content from being hidden behind fixed button */}
-      <div className="h-24"></div>
     </div>
   )
 }
+

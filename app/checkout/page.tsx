@@ -2,195 +2,135 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CreditCard, Smartphone, Barcode, Truck, Package, CheckCircle, MessageCircle } from 'lucide-react'
-import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
-import { createClient } from '@/lib/supabase-client'
-import { Order, OrderItem, Address } from '@/lib/types/database'
+import { 
+  ArrowLeft, 
+  Search, 
+  MapPin, 
+  Truck,
+  CreditCard,
+  CheckCircle
+} from 'lucide-react'
+import Link from 'next/link'
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { user, profile } = useAuth()
-  const { 
-    items, 
-    getCartSummary, 
-    clearCart,
-    getTotalItems,
-    getSubtotal,
-    getTotal,
-    getShippingCost,
-    createOrder,
-    openWhatsAppOrder
-  } = useCart()
+  const { getCartSummary, createOrder, openWhatsAppOrder } = useCart()
   
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [addresses, setAddresses] = useState<Address[]>([])
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao_credito' | 'cartao_debito' | 'boleto' | 'transferencia'>('pix')
-  const [orderNotes, setOrderNotes] = useState('')
-  const [orderCreated, setOrderCreated] = useState(false)
-  const [orderData, setOrderData] = useState<Order | null>(null)
+  const [addressData, setAddressData] = useState({
+    fullName: '',
+    cep: '',
+    address: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    phone: '',
+    email: ''
+  })
+  const [shippingMethod, setShippingMethod] = useState('')
+  const [orderSummary, setOrderSummary] = useState<any>(null)
 
-  const supabase = createClient()
   const cartSummary = getCartSummary()
 
+  // Redirecionar se não estiver logado
   useEffect(() => {
     if (!user) {
-      router.push('/auth/login?redirectTo=/checkout')
-      return
+      router.push('/auth/login?redirect=/checkout')
     }
+  }, [user, router])
 
-    if (items.length === 0) {
-      router.push('/')
-      return
+  // Preencher dados do usuário se disponível
+  useEffect(() => {
+    if (profile) {
+      setAddressData(prev => ({
+        ...prev,
+        fullName: profile.full_name || '',
+        phone: profile.phone || '',
+        email: user?.email || ''
+      }))
     }
+  }, [profile, user])
 
-    fetchAddresses()
-  }, [user, items])
-
-  const fetchAddresses = async () => {
-    if (!user) return
-
-    const { data, error } = await supabase
-      .from('addresses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('is_default', { ascending: false })
-
-    if (error) {
-      console.error('Erro ao buscar endereços:', error)
-      return
+  const handleCepChange = async (cep: string) => {
+    setAddressData(prev => ({ ...prev, cep }))
+    
+    if (cep.length === 8) {
+      try {
+        // Simular busca de CEP
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        const data = await response.json()
+        
+        if (!data.erro) {
+          setAddressData(prev => ({
+            ...prev,
+            address: data.logradouro,
+            neighborhood: data.bairro,
+            city: data.localidade,
+            state: data.uf
+          }))
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error)
+      }
     }
-
-    setAddresses(data || [])
-    setSelectedAddress(data?.[0] || null)
   }
 
-  const handleCreateOrder = async () => {
-    if (!user || !selectedAddress || items.length === 0) return
+  const handleAddressSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setStep(2)
+  }
 
+  const handleShippingSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setStep(3)
+  }
+
+  const handleOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setLoading(true)
 
     try {
-      // Criar pedido no banco de dados
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          status: 'aguardando_pagamento',
-          subtotal: getSubtotal(),
-          shipping_cost: getShippingCost(),
-          discount_amount: 0,
-          total_amount: getTotal(),
-          shipping_address: {
-            name: selectedAddress.name,
-            street: selectedAddress.street,
-            number: selectedAddress.number,
-            complement: selectedAddress.complement,
-            neighborhood: selectedAddress.neighborhood,
-            city: selectedAddress.city,
-            state: selectedAddress.state,
-            zip_code: selectedAddress.zip_code
-          },
-          notes: orderNotes
-        })
-        .select()
-        .single()
-
-      if (orderError) {
-        throw orderError
+      const orderData = {
+        customer: addressData,
+        items: cartSummary.items,
+        shipping: shippingMethod,
+        total: cartSummary.total,
+        orderId: `ORD-${Date.now()}`,
+        createdAt: new Date().toISOString()
       }
 
-      // Criar itens do pedido
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        product_sku: item.product.id || '',
-        product_image_url: item.product.image,
-        size: item.selectedSize,
-        color: item.selectedColor,
-        quantity: item.quantity,
-        unit_price: cartSummary.subtotal / cartSummary.totalItems, // Preço médio
-        total_price: (cartSummary.subtotal / cartSummary.totalItems) * item.quantity
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) {
-        throw itemsError
-      }
-
-      // Criar registro de pagamento
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          order_id: order.id,
-          method: paymentMethod,
-          status: 'pendente',
-          amount: getTotal()
-        })
-
-      if (paymentError) {
-        throw paymentError
-      }
-
-      setOrderData(order)
-      setOrderCreated(true)
-      clearCart()
+      const result = await createOrder(orderData)
       
+      if (result.success) {
+        setOrderSummary(orderData)
+        openWhatsAppOrder(orderData)
+        setStep(4)
+      } else {
+        alert('Erro ao criar pedido: ' + result.error)
+      }
     } catch (error) {
-      console.error('Erro ao criar pedido:', error)
-      alert('Erro ao processar pedido. Tente novamente.')
+      console.error('Erro no checkout:', error)
+      alert('Erro ao processar pedido')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleWhatsAppOrder = () => {
-    if (!user || !selectedAddress) {
-      alert('Por favor, selecione um endereço de entrega')
-      return
-    }
-
-    // Criar pedido com todos os dados
-    const order = createOrder(
-      {
-        name: profile?.full_name || user.user_metadata?.full_name || 'Cliente',
-        email: user.email || '',
-        phone: profile?.phone || user.user_metadata?.phone || ''
-      },
-      {
-        name: selectedAddress.name,
-        street: selectedAddress.street,
-        number: selectedAddress.number,
-        complement: selectedAddress.complement,
-        neighborhood: selectedAddress.neighborhood,
-        city: selectedAddress.city,
-        state: selectedAddress.state,
-        zip_code: selectedAddress.zip_code
-      },
-      paymentMethod,
-      orderNotes
-    )
-
-    // Abrir WhatsApp com o pedido completo
-    openWhatsAppOrder(order)
-  }
-
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h2>
-          <p className="text-gray-600 mb-6">Você precisa estar logado para finalizar a compra.</p>
+          <div className="text-text-light-primary dark:text-text-dark-primary text-xl mb-4">Acesso Negado</div>
+          <div className="text-text-light-secondary dark:text-text-dark-secondary mb-6">Você precisa estar logado para finalizar a compra.</div>
           <Link
-            href="/auth/login?redirectTo=/checkout"
-            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200"
+            href="/auth/login?redirect=/checkout"
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors"
           >
             Fazer Login
           </Link>
@@ -199,359 +139,387 @@ export default function CheckoutPage() {
     )
   }
 
-  if (items.length === 0 && !orderCreated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Carrinho Vazio</h2>
-          <p className="text-gray-600 mb-6">Adicione produtos ao carrinho antes de finalizar a compra.</p>
-          <Link
-            href="/"
-            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200"
-          >
-            Continuar Comprando
+    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+      <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 sm:px-10 py-3">
+        <div className="flex items-center gap-4 text-gray-900 dark:text-white">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="size-6 text-primary">
+              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <path clipRule="evenodd" d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z" fill="currentColor" fillRule="evenodd"></path>
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">Sua Loja</h2>
           </Link>
         </div>
-      </div>
-    )
-  }
+        <Link href="/carrinho" className="flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+          </svg>
+        </Link>
+      </header>
 
-  if (orderCreated && orderData) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-3xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Pedido Criado com Sucesso!
-            </h1>
-            <p className="text-lg text-gray-600 mb-6">
-              Seu pedido <span className="font-semibold text-primary-600">{orderData.order_number}</span> foi criado e está aguardando pagamento.
-            </p>
-            
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <h4 className="font-semibold text-yellow-800 mb-2">📝 Instruções Importantes:</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• <strong>Anote o número do pedido:</strong> {orderData.order_number}</li>
-                <li>• Envie o comprovante de pagamento junto com este número</li>
-                <li>• Aguarde a confirmação do pagamento</li>
-                <li>• Você receberá atualizações por email</li>
-              </ul>
+      <main className="flex flex-1 justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col w-full max-w-2xl flex-1">
+          {/* Progress Steps */}
+          <div className="flex flex-wrap gap-2 p-4 text-sm sm:text-base">
+            <span className={`font-bold ${step >= 1 ? 'text-primary' : 'text-gray-500'}`}>1. Endereço</span>
+            <span className="text-gray-400 dark:text-gray-500 font-medium">/</span>
+            <span className={`font-medium ${step >= 2 ? 'text-primary' : 'text-gray-500'}`}>2. Resumo</span>
+            <span className="text-gray-400 dark:text-gray-500 font-medium">/</span>
+            <span className={`font-medium ${step >= 3 ? 'text-primary' : 'text-gray-500'}`}>3. Finalizar</span>
             </div>
             
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo do Pedido</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>R$ {orderData.subtotal.toFixed(2)}</span>
+          {/* Step 1: Address */}
+          {step === 1 && (
+            <div className="flex flex-wrap justify-between gap-3 p-4">
+              <div className="flex min-w-72 flex-col gap-2">
+                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Endereço de Entrega</p>
+                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Informe onde você quer receber seu pedido.</p>
                 </div>
-                <div className="flex justify-between">
-                  <span>Frete:</span>
-                  <span>R$ {orderData.shipping_cost.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between font-semibold text-lg border-t border-gray-200 pt-2">
-                  <span>Total:</span>
-                  <span>R$ {orderData.total_amount.toFixed(2)}</span>
+          )}
+
+          {/* Step 2: Shipping */}
+          {step === 2 && (
+            <div className="flex flex-wrap justify-between gap-3 p-4">
+              <div className="flex min-w-72 flex-col gap-2">
+                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Método de Entrega</p>
+                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Escolha como você quer receber seu pedido.</p>
                 </div>
+            </div>
+          )}
+
+          {/* Step 3: Payment */}
+          {step === 3 && (
+            <div className="flex flex-wrap justify-between gap-3 p-4">
+              <div className="flex min-w-72 flex-col gap-2">
+                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Finalizar Pedido</p>
+                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Revise seu pedido e confirme.</p>
               </div>
             </div>
+          )}
 
-            <div className="space-y-4">
-              <Link
-                href="/minha-conta/pedidos"
-                className="block w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200"
-              >
-                Acompanhar Pedido
-              </Link>
-              <Link
-                href="/"
-                className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
-              >
-                Continuar Comprando
-              </Link>
+          {/* Step 4: Success */}
+          {step === 4 && (
+            <div className="flex flex-wrap justify-between gap-3 p-4">
+              <div className="flex min-w-72 flex-col gap-2">
+                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Pedido Confirmado!</p>
+                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Seu pedido foi enviado para o WhatsApp.</p>
             </div>
           </div>
+          )}
+
+          {/* Forms */}
+          <div className="mt-6 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+            {step === 1 && (
+              <form onSubmit={handleAddressSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
+                  <label className="flex flex-col w-full">
+                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Nome Completo</p>
+                    <input 
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                      placeholder="Digite seu nome completo" 
+                      value={addressData.fullName}
+                      onChange={(e) => setAddressData(prev => ({ ...prev, fullName: e.target.value }))}
+                      required
+                    />
+                  </label>
+                  
+                  <label className="flex flex-col w-full">
+                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">CEP</p>
+                    <div className="flex w-full flex-1 items-stretch rounded-lg">
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-r-0 border-gray-300 dark:border-gray-700 dark:focus:border-primary bg-white dark:bg-gray-800 h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-2 text-base font-normal leading-normal" 
+                        placeholder="00000-000" 
+                        value={addressData.cep}
+                        onChange={(e) => handleCepChange(e.target.value.replace(/\D/g, ''))}
+                        maxLength={8}
+                        required
+                      />
+                      <div className="text-gray-500 dark:text-gray-400 flex border border-l-0 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 items-center justify-center px-4 rounded-r-lg">
+                        <Search className="h-5 w-5" />
         </div>
       </div>
-    )
-  }
+                  </label>
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center mb-8">
-          <Link
-            href="/"
-            className="p-2 text-gray-600 hover:text-gray-900 transition-colors duration-200"
-          >
-            <ArrowLeft size={24} />
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 ml-4">
-            Finalizar Compra
-          </h1>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Endereço</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="Rua, Avenida..." 
+                        value={addressData.address}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, address: e.target.value }))}
+                        required
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Número</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="123" 
+                        value={addressData.number}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, number: e.target.value }))}
+                        required
+                      />
+                    </label>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Step 1: Endereço de Entrega */}
-            {step === 1 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Endereço de Entrega
-                </h2>
-                
-                {addresses.length > 0 ? (
-                  <div className="space-y-4">
-                    {addresses.map((address) => (
-                      <div
-                        key={address.id}
-                        className={`border rounded-lg p-4 cursor-pointer transition-colors duration-200 ${
-                          selectedAddress?.id === address.id
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedAddress(address)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium text-gray-900">{address.name}</h3>
-                            <p className="text-sm text-gray-600">
-                              {address.street}, {address.number}
-                              {address.complement && `, ${address.complement}`}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {address.neighborhood}, {address.city} - {address.state}
-                            </p>
-                            <p className="text-sm text-gray-600">CEP: {address.zip_code}</p>
+                  <label className="flex flex-col w-full">
+                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Complemento (Opcional)</p>
+                    <input 
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                      placeholder="Apartamento, casa..." 
+                      value={addressData.complement}
+                      onChange={(e) => setAddressData(prev => ({ ...prev, complement: e.target.value }))}
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Bairro</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="Centro" 
+                        value={addressData.neighborhood}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                        required
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Cidade</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="São Paulo" 
+                        value={addressData.city}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
+                        required
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Estado</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="SP" 
+                        value={addressData.state}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value }))}
+                        required
+                      />
+                    </label>
                           </div>
-                          {address.is_default && (
-                            <span className="bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded-full">
-                              Padrão
-                            </span>
-                          )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Telefone</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="(11) 99999-9999" 
+                        value={addressData.phone}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, phone: e.target.value }))}
+                        required
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col w-full">
+                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">E-mail</p>
+                      <input 
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        placeholder="seu@email.com" 
+                        type="email"
+                        value={addressData.email}
+                        onChange={(e) => setAddressData(prev => ({ ...prev, email: e.target.value }))}
+                        required
+                      />
+                    </label>
                         </div>
                       </div>
-                    ))}
-                    
-                    <Link
-                      href="/minha-conta/enderecos"
-                      className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-600 hover:border-gray-400 transition-colors duration-200"
-                    >
-                      + Adicionar Novo Endereço
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">Nenhum endereço cadastrado</p>
-                    <Link
-                      href="/minha-conta/enderecos"
-                      className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200"
-                    >
-                      Cadastrar Endereço
-                    </Link>
-                  </div>
-                )}
 
-                {selectedAddress && (
-                  <div className="mt-6">
+                <div className="flex justify-end">
                     <button
-                      onClick={() => setStep(2)}
-                      className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200"
+                    type="submit"
+                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
                     >
-                      Continuar para Pagamento
+                    Continuar
                     </button>
                   </div>
-                )}
-              </div>
+              </form>
             )}
 
-            {/* Step 2: Método de Pagamento */}
             {step === 2 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Método de Pagamento
-                </h2>
-
+              <form onSubmit={handleShippingSubmit} className="flex flex-col gap-6">
                 <div className="space-y-4">
-                  <div
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors duration-200 ${
-                      paymentMethod === 'pix'
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setPaymentMethod('pix')}
-                  >
-                    <div className="flex items-center">
-                      <Smartphone className="h-6 w-6 text-primary-600 mr-3" />
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="radio" 
+                        id="transportadora" 
+                        name="shipping" 
+                        value="transportadora"
+                        checked={shippingMethod === 'transportadora'}
+                        onChange={(e) => setShippingMethod(e.target.value)}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="transportadora" className="flex items-center gap-3 cursor-pointer">
+                        <Truck className="h-5 w-5 text-primary" />
                       <div>
-                        <h3 className="font-medium text-gray-900">PIX</h3>
-                        <p className="text-sm text-gray-600">Pagamento instantâneo</p>
+                          <p className="font-medium">Transportadora</p>
+                          <p className="text-sm text-gray-500">Frete grátis - 3-5 dias úteis</p>
                       </div>
+                      </label>
                     </div>
                   </div>
 
-                  <div
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors duration-200 ${
-                      paymentMethod === 'cartao_credito'
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setPaymentMethod('cartao_credito')}
-                  >
-                    <div className="flex items-center">
-                      <CreditCard className="h-6 w-6 text-primary-600 mr-3" />
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="radio" 
+                        id="superfrete" 
+                        name="shipping" 
+                        value="superfrete"
+                        checked={shippingMethod === 'superfrete'}
+                        onChange={(e) => setShippingMethod(e.target.value)}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="superfrete" className="flex items-center gap-3 cursor-pointer">
+                        <MapPin className="h-5 w-5 text-primary" />
                       <div>
-                        <h3 className="font-medium text-gray-900">Cartão de Crédito</h3>
-                        <p className="text-sm text-gray-600">Parcelamento disponível</p>
+                          <p className="font-medium">Super Frete</p>
+                          <p className="text-sm text-gray-500">R$ 15,00 - 5-7 dias úteis</p>
                       </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors duration-200 ${
-                      paymentMethod === 'boleto'
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setPaymentMethod('boleto')}
-                  >
-                    <div className="flex items-center">
-                      <Barcode className="h-6 w-6 text-primary-600 mr-3" />
-                      <div>
-                        <h3 className="font-medium text-gray-900">Boleto Bancário</h3>
-                        <p className="text-sm text-gray-600">Pagamento em até 3 dias úteis</p>
-                      </div>
+                      </label>
                     </div>
                   </div>
                 </div>
 
-                {/* Observações */}
-                <div className="mt-6">
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-                    Observações do Pedido (opcional)
-                  </label>
-                  <textarea
-                    id="notes"
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Instruções especiais para entrega, observações sobre o pedido, etc."
-                  />
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <div className="flex space-x-4">
+                <div className="flex justify-between">
                     <button
+                    type="button"
                       onClick={() => setStep(1)}
-                      className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
+                    className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
                     >
+                    <ArrowLeft className="h-4 w-4" />
                       Voltar
                     </button>
                     <button
-                      onClick={handleCreateOrder}
-                      disabled={loading}
-                      className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Processando...' : 'Finalizar Pedido'}
+                    type="submit"
+                    disabled={!shippingMethod}
+                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Continuar
                     </button>
                   </div>
-                  
-                  <button
-                    onClick={handleWhatsAppOrder}
-                    className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center"
-                  >
-                    <MessageCircle size={20} className="mr-2" />
-                    Finalizar pelo WhatsApp
-                  </button>
-                </div>
-              </div>
+              </form>
             )}
-          </div>
 
-          {/* Sidebar - Resumo do Pedido */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Resumo do Pedido
-              </h3>
-
-              {/* Itens */}
-              <div className="space-y-3 mb-6">
-                {items.map((item, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      className="h-12 w-12 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {item.product.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.selectedSize} • {item.quantity}x
+            {step === 3 && (
+              <form onSubmit={handleOrderSubmit} className="flex flex-col gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Resumo do Pedido</h3>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Endereço de Entrega</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {addressData.fullName}<br />
+                      {addressData.address}, {addressData.number}<br />
+                      {addressData.neighborhood}, {addressData.city} - {addressData.state}<br />
+                      CEP: {addressData.cep}
                       </p>
                     </div>
-                    <p className="text-sm font-medium text-gray-900">
-                      R$ {(cartSummary.subtotal / cartSummary.totalItems * item.quantity).toFixed(2)}
+
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Método de Entrega</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {shippingMethod === 'transportadora' ? 'Transportadora - Frete Grátis' : 'Super Frete - R$ 15,00'}
                     </p>
                   </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Itens do Pedido</h4>
+                    {cartSummary.items.map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{item.name} x{item.quantity}</span>
+                        <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
                 ))}
-              </div>
-
-              {/* Totais */}
-              <div className="space-y-2 border-t border-gray-200 pt-4">
+                    <div className="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2">
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal ({getTotalItems()} itens)</span>
-                  <span>R$ {getSubtotal().toFixed(2)}</span>
+                        <span>Subtotal:</span>
+                        <span>R$ {cartSummary.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Frete</span>
-                  <span>
-                    {cartSummary.shippingInfo.method === 'transportadora' 
-                      ? 'GRÁTIS' 
-                      : `R$ ${getShippingCost().toFixed(2)}`
-                    }
-                  </span>
+                        <span>Frete:</span>
+                        <span>{cartSummary.shipping === 0 ? 'Grátis' : `R$ ${cartSummary.shipping.toFixed(2)}`}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span>Total:</span>
+                        <span>R$ {cartSummary.total.toFixed(2)}</span>
+                      </div>
                 </div>
-                <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
-                  <span>Total</span>
-                  <span>R$ {getTotal().toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Informações de Frete */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center text-sm text-gray-600">
-                  {cartSummary.shippingInfo.method === 'transportadora' ? (
-                    <Truck className="h-4 w-4 mr-2 text-green-600" />
-                  ) : (
-                    <Package className="h-4 w-4 mr-2 text-primary-400" />
-                  )}
-                  <span>
-                    {cartSummary.shippingInfo.method === 'transportadora' 
-                      ? 'Transportadora (GRÁTIS)' 
-                      : 'Super Frete'
-                    }
-                  </span>
+                <div className="flex justify-between">
+                  <button 
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Voltar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Finalizar Pedido
+                      </>
+                    )}
+                  </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {cartSummary.shippingInfo.estimatedDays}
+              </form>
+            )}
+
+            {step === 4 && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+                <h3 className="text-xl font-semibold mb-2">Pedido Confirmado!</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Seu pedido foi enviado para o WhatsApp. Em breve entraremos em contato para confirmar os detalhes.
                 </p>
-                {!cartSummary.canUseTransportadora && (
-                  <p className="text-xs text-primary-600 mt-1">
-                    Faltam {cartSummary.missingForTransportadora} peças para frete grátis
-                  </p>
-                )}
-              </div>
+                <div className="flex gap-4 justify-center">
+                  <Link
+                    href="/"
+                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                  >
+                    Continuar Comprando
+                  </Link>
+                  <Link
+                    href="/minha-conta/pedidos"
+                    className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    Ver Pedidos
+                  </Link>
             </div>
           </div>
+            )}
         </div>
       </div>
+      </main>
     </div>
   )
 }

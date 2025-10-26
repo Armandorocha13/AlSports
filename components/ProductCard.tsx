@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Eye, Heart } from 'lucide-react'
+import { useCart } from '@/contexts/CartContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { Product } from '@/lib/types'
+import { Eye, Heart, ShoppingCart } from 'lucide-react'
+import Image from 'next/image'
+import { useState } from 'react'
 import ProductViewModal from './ProductViewModal'
 
 interface ProductCardProps {
@@ -14,6 +15,8 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { addItem } = useCart()
+  const { isFavorite, toggleFavorite } = useFavorites()
 
   const handleViewProduct = () => {
     setIsModalOpen(true)
@@ -21,6 +24,23 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
 
   const handleCardClick = () => {
     setIsModalOpen(true)
+  }
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.wholesalePrice,
+      image: product.image,
+      description: product.description,
+      size: product.sizes[0] // Tamanho padrão
+    })
+  }
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    toggleFavorite(product)
   }
 
   const getPriceRange = () => {
@@ -64,13 +84,14 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
 
               {/* Wishlist Button */}
               <button 
-                className="absolute top-1 right-1 p-1 bg-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-700"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // Lógica para favoritar
-                }}
+                className={`absolute top-1 right-1 p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                  isFavorite(product.id) 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-gray-800 hover:bg-gray-700'
+                }`}
+                onClick={handleToggleFavorite}
               >
-                <Heart size={12} className="text-gray-300" />
+                <Heart size={12} className={isFavorite(product.id) ? 'text-white' : 'text-gray-300'} />
               </button>
             </div>
 
@@ -112,17 +133,26 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
                   </p>
                 </div>
 
-                {/* View Product Button */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleViewProduct()
-                  }}
-                  className="bg-primary-500 text-black py-2 px-4 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center gap-2"
-                >
-                  <Eye size={16} />
-                  Ver Produto
-                </button>
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleAddToCart}
+                    className="bg-green-600 text-white py-2 px-3 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center gap-1"
+                  >
+                    <ShoppingCart size={14} />
+                    Adicionar
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewProduct()
+                    }}
+                    className="bg-primary-500 text-black py-2 px-3 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center gap-1"
+                  >
+                    <Eye size={14} />
+                    Ver
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -198,17 +228,26 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
               </p>
             </div>
 
-          {/* View Product Button */}
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              handleViewProduct()
-            }}
-            className="w-full bg-primary-500 text-black py-2 px-4 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <Eye size={16} />
-            Ver Produto
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button 
+              onClick={handleAddToCart}
+              className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-1"
+            >
+              <ShoppingCart size={14} />
+              Adicionar
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleViewProduct()
+              }}
+              className="flex-1 bg-primary-500 text-black py-2 px-3 rounded-lg font-medium hover:bg-primary-400 transition-colors duration-200 flex items-center justify-center gap-1"
+            >
+              <Eye size={14} />
+              Ver
+            </button>
+          </div>
         </div>
       </div>
 

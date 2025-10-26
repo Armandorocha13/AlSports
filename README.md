@@ -1,181 +1,123 @@
-# AL Sports - E-commerce de Atacado Esportivo
+# AL Sports - E-commerce de Roupas Esportivas
 
-Uma plataforma completa de e-commerce desenvolvida com Next.js 14, especializada na venda por atacado de roupas esportivas.
+## 📁 Estrutura do Projeto
 
-## 🚀 Características
-
-- **Design Responsivo**: Otimizado para todos os dispositivos
-- **Navegação Intuitiva**: 6 categorias principais com subcategorias organizadas
-- **Carrinho de Compras**: Sistema completo com persistência local
-- **Preços de Atacado**: Foco em revendedores com preços especiais
-- **Interface Moderna**: Design limpo e profissional
-
-## 📋 Categorias Disponíveis
-
-### 1. FUTEBOL
-- Lançamento (25/26)
-- Temporada 24/25
-- Temporada 23/24
-- Versão Jogador
-- Retrô
-- Versão Feminina
-- Regatas
-- Promoção
-- Pedido Extra (R$1,00)
-
-### 2. ROUPAS DE TREINO
-- Agasalho Completo
-- Calça
-- Casaco
-- Camisa + Short
-- Regata + Short
-- Corta Vento
-- Promoção
-- Conjunto Time Chinês (Kit Europeu/Brasileiro)
-
-### 3. NBA
-- NBA Silk
-- NBA Bordada
-
-### 4. CONJUNTOS INFANTIS
-- Kit Infantil 25/26
-- Kit Infantil 24/25
-- Kit Infantil Retrô
-- Kit Infantil 23/24
-- Promoção
-
-### 5. ACESSÓRIOS
-- NFL (Camisas)
-- Bonés Times
-- Bonés Casuais
-- Meias Times
-- Meias Casuais
-
-### 6. BERMUDAS & SHORTS
-- Short Masculino
-- Short Feminino
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Next.js 14** - Framework React com App Router
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Estilização utilitária
-- **Lucide React** - Ícones modernos
-- **Framer Motion** - Animações suaves
-
-## 📦 Instalação
-
-1. Clone o repositório:
-```bash
-git clone <url-do-repositorio>
-cd al-sports-ecommerce
+```
+AlSports/
+├── app/                    # Páginas e rotas da aplicação
+├── components/            # Componentes React reutilizáveis
+├── contexts/              # Contextos React (Auth, Cart, Favorites)
+├── hooks/                 # Hooks customizados
+├── lib/                   # Bibliotecas e utilitários
+├── public/                # Arquivos estáticos
+├── tests/                 # Testes
+├── docs/                  # Documentação
+└── [arquivos de config]   # Configurações do projeto
 ```
 
-2. Instale as dependências:
+## 🚀 Como Executar
+
+### Instalação Inicial
 ```bash
 npm install
 ```
 
-3. Execute o projeto em modo de desenvolvimento:
+### Desenvolvimento
 ```bash
 npm run dev
 ```
 
-4. Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
-
-## 🏗️ Estrutura do Projeto
-
-```
-al-sports-ecommerce/
-├── app/                    # App Router do Next.js
-│   ├── categoria/         # Páginas de categorias
-│   ├── produto/           # Páginas de produtos
-│   ├── globals.css        # Estilos globais
-│   ├── layout.tsx         # Layout principal
-│   ├── page.tsx           # Homepage
-│   └── not-found.tsx      # Página 404
-├── components/            # Componentes reutilizáveis
-│   ├── Header.tsx         # Cabeçalho com navegação
-│   ├── Footer.tsx         # Rodapé
-│   ├── ProductCard.tsx    # Card de produto
-│   ├── CategoryCard.tsx   # Card de categoria
-│   └── Cart.tsx           # Carrinho de compras
-├── hooks/                 # Hooks customizados
-│   └── useCart.ts         # Hook do carrinho
-├── lib/                   # Utilitários e dados
-│   └── data.ts            # Dados das categorias e produtos
-└── public/                # Arquivos estáticos
-```
-
-## 🎨 Funcionalidades Principais
-
-### Navegação
-- Menu principal com 6 categorias
-- Páginas dedicadas para cada categoria
-- Grid de subcategorias em cada página
-- Breadcrumbs para navegação
-
-### Produtos
-- Cards de produtos com informações completas
-- Páginas de detalhe com galeria de imagens
-- Sistema de tamanhos
-- Preços de atacado destacados
-
-### Carrinho
-- Adicionar/remover produtos
-- Ajustar quantidades
-- Cálculo automático de frete
-- Persistência no localStorage
-- Entrega rápida e segura
-
-### Design Responsivo
-- Mobile-first approach
-- Breakpoints otimizados
-- Menu mobile com hamburger
-- Grid responsivo para produtos
-
-## 🚀 Deploy
-
-Para fazer o deploy em produção:
-
-1. Build do projeto:
+### Build e Deploy
 ```bash
 npm run build
+npm run start
 ```
 
-2. Inicie o servidor de produção:
+### Testes
 ```bash
-npm start
+# Todos os testes
+npm run test
+
+# Testes com cobertura
+npm run test:coverage
+
+# Testes específicos
+npm run test:auth
+npm run test:cart
+npm run test:admin
 ```
 
-## 📱 Responsividade
+## 🛠️ Tecnologias
 
-O projeto foi desenvolvido com foco em responsividade:
+### Frontend
+- **Next.js 14** - Framework React
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS** - Estilização
+- **Supabase** - Autenticação e banco de dados
+- **Jest** - Testes unitários
+- **React Testing Library** - Testes de componentes
 
-- **Mobile**: < 768px
-- **Tablet**: 768px - 1024px
-- **Desktop**: > 1024px
+### Backend
+- **Supabase** - Backend-as-a-Service
+- **Node.js** - Runtime JavaScript
+- **TypeScript** - Tipagem estática
+- **Zod** - Validação de dados
+- **Nodemailer** - Envio de emails
 
-## 🎯 Próximos Passos
+## 📋 Funcionalidades
 
-- [ ] Integração com sistema de pagamento
-- [ ] Sistema de autenticação de usuários
-- [ ] Painel administrativo
-- [ ] Sistema de estoque
-- [ ] Relatórios de vendas
-- [ ] Integração com APIs de frete
+### 🛒 E-commerce
+- Catálogo de produtos por categoria
+- Carrinho de compras
+- Sistema de favoritos
+- Checkout completo
+- Cálculo de frete
 
-## 📞 Contato
+### 👤 Autenticação
+- Login e registro
+- Recuperação de senha
+- Perfil do usuário
+- Middleware de proteção
 
-Para dúvidas ou sugestões, entre em contato:
+### 🎨 Painel Administrativo
+- Dashboard com estatísticas
+- Gerenciamento de produtos
+- Gerenciamento de categorias
+- Configurações de aparência
+- Gestão de pedidos
 
-- **Email**: contato@alsports.com.br
-- **Telefone**: (11) 99999-9999
+### 🧪 Testes
+- Testes de autenticação
+- Testes de carrinho
+- Testes de checkout
+- Testes de segurança
+- Testes de performance
+
+## 🔧 Scripts Disponíveis
+
+- `npm run dev` - Servidor de desenvolvimento
+- `npm run build` - Build de produção
+- `npm run start` - Servidor de produção
+- `npm run lint` - Linting do código
+- `npm run test` - Executar testes
+- `npm run test:coverage` - Testes com cobertura
+
+## 📚 Documentação
+
+Consulte a pasta `docs/` para documentação detalhada:
+- Guias de teste
+- Relatórios de otimização
+- Documentação de API
+- Guias de desenvolvimento
+
+## 🤝 Contribuição
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
 
 ## 📄 Licença
 
-Este projeto é propriedade da AL Sports e está protegido por direitos autorais.
-
----
-
-Desenvolvido com ❤️ para o atacado esportivo brasileiro.
+Este projeto é privado e pertence à AL Sports.

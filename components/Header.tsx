@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, Search, User, LogOut, ShoppingCart, Settings, Shield, Heart } from 'lucide-react'
+import { Menu, X, Search, User, LogOut, Settings, Heart, ShoppingCart, Shield } from 'lucide-react'
 import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -26,7 +26,7 @@ export default function Header() {
   
   // Hooks para autenticação, carrinho e favoritos
   const { user, profile, signOut } = useAuth()
-  const { getTotalItems, getTotal, getShippingInfo } = useCart()
+  const { getTotalItems, getTotal } = useCart()
   const { getFavoritesCount } = useFavorites()
 
   return (
@@ -62,16 +62,6 @@ export default function Header() {
               </Link>
             ))}
             
-            {/* Link para painel admin - apenas para administradores */}
-            {profile?.user_types === 'admin' && (
-              <Link
-                href="/admin"
-                className="flex items-center text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
-              >
-                <Shield className="h-4 w-4 mr-1" />
-                Admin
-              </Link>
-            )}
           </nav>
 
           {/* Área de ações: pesquisa, carrinho e menu do usuário */}
@@ -84,8 +74,8 @@ export default function Header() {
               <Search size={20} />
             </button>
 
-            {/* Link do carrinho com contador e tooltip */}
-            <a
+            {/* Link do carrinho com contador */}
+            <Link
               href="/carrinho"
               className="relative p-2 text-gray-400 hover:text-primary-400 transition-colors duration-200 group"
               title={`Carrinho: ${getTotalItems()} item(s) - R$ ${getTotal().toFixed(2)}`}
@@ -93,28 +83,11 @@ export default function Header() {
               <ShoppingCart size={20} />
               {/* Contador de itens no carrinho */}
               {getTotalItems() > 0 && (
-                <>
-                  <span className="absolute -top-1 -right-1 bg-primary-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
-                    {getTotalItems()}
-                  </span>
-                  {/* Tooltip com informações do carrinho */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                    <div className="p-3 space-y-1">
-                      <div className="font-semibold text-primary-400">Carrinho</div>
-                      <div className="text-gray-300">
-                        {getTotalItems()} item(s) no carrinho
-                      </div>
-                      <div className="text-gray-300">
-                        Total: R$ {getTotal().toFixed(2)}
-                      </div>
-                      <div className="text-gray-400 text-xs">
-                        {getShippingInfo().method === 'transportadora' ? '🚛 Transportadora' : '📦 Super Frete'}
-                      </div>
-                    </div>
-                  </div>
-                </>
+                <span className="absolute -top-1 -right-1 bg-primary-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
+                  {getTotalItems()}
+                </span>
               )}
-            </a>
+            </Link>
 
             {/* Link dos favoritos com contador */}
             <a
@@ -184,23 +157,17 @@ export default function Header() {
                       Favoritos
                     </Link>
                     
-                    {/* Botão do painel admin - exibe apenas para administradores */}
-                    {profile?.user_types === 'admin' && (
-                      <>
-                        <hr className="my-1" />
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 text-sm text-white bg-primary-500 hover:bg-primary-600 font-medium"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          <div className="flex items-center">
-                            <Shield className="h-4 w-4 mr-2" />
-                            Painel Admin
-                          </div>
-                        </Link>
-                      </>
-                    )}
-                    
+                    {/* Link para painel administrativo */}
+                    <Link
+                      href="/admin"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <div className="flex items-center">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Painel Admin
+                      </div>
+                    </Link>
                     
                     {/* Botão de logout */}
                     <hr className="my-1" />
@@ -302,40 +269,11 @@ export default function Header() {
                 </Link>
               ))}
               
-              {/* Link para painel admin no menu mobile - apenas para administradores */}
-              {profile?.user_types === 'admin' && (
-                <Link
-                  href="/admin"
-                  className="flex items-center py-2 text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Painel Admin
-                </Link>
-              )}
             </div>
           </nav>
         </div>
       )}
 
-      {/* Botão flutuante do carrinho para mobile */}
-      {getTotalItems() > 0 && (
-        <div className="fixed bottom-6 right-6 z-40 lg:hidden">
-          <a
-            href="/carrinho"
-            className="bg-primary-500 hover:bg-primary-400 text-black p-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 block"
-          >
-            <div className="flex flex-col items-center">
-              <ShoppingCart size={24} />
-              <span className="text-xs font-semibold mt-1">
-                {getTotalItems()}
-              </span>
-            </div>
-            {/* Animação de pulso */}
-            <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
-          </a>
-        </div>
-      )}
     </header>
   )
 }

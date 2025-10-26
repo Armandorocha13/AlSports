@@ -13,6 +13,7 @@ export interface Product {
   category: string;
   subcategory: string;
   featured: boolean;
+  onSale?: boolean;
   priceRanges: Array<{
     min: number;
     price: number;

@@ -1,21 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Heart, 
-  ArrowLeft, 
-  ShoppingCart, 
-  Eye, 
-  Trash2,
-  Filter,
-  Search
-} from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { useFavorites } from '@/contexts/FavoritesContext'
-import { useCart } from '@/contexts/CartContext'
 import ProductViewModal from '@/components/ProductViewModal'
+import { useCart } from '@/contexts/CartContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
+import {
+    ArrowLeft,
+    Eye,
+    Heart,
+    Search,
+    ShoppingCart,
+    Trash2
+} from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function FavoritesPage() {
   const router = useRouter()
@@ -39,8 +38,15 @@ export default function FavoritesPage() {
   }
 
   const handleAddToCart = (product: any) => {
-    // Adicionar ao carrinho com tamanho e cor padrão
-    addItem(product, 'M', 1)
+    // Adicionar ao carrinho com tamanho padrão
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.wholesalePrice,
+      image: product.image,
+      description: product.description,
+      size: product.sizes[0] || 'M'
+    })
   }
 
   if (favorites.length === 0) {

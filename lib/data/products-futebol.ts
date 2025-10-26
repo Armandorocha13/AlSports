@@ -23,7 +23,7 @@ export const futebolProducts = [
   },
   {
     id: '5',
-    name: 'Camisa Retrô Flamengo 2009 ',
+    name: 'Camisa Retrô Flamengo 2009',
     price: 130.00, // Preço de varejo
     wholesalePrice: 130.00,
     image: '/images/Futebol/CamisasFutebolRetro/Flamengo2009.png',
@@ -40,7 +40,7 @@ export const futebolProducts = [
   },
   {
     id: '7',
-    name: 'Camisa  2 do Flamengo versão jogador 2024/25',
+    name: 'Camisa 2 do Flamengo versão jogador 2024/25',
     price: 95.00, // Preço de varejo
     wholesalePrice: 95.00,
     image: '/images/Futebol/CamisaJogador/JogadorFlamengo2.jpg',
@@ -123,15 +123,15 @@ export const futebolProducts = [
       { min: 5, price: 85.00 } // 5+ REGATAS
     ]
   },
-   {
-     id: '34', 
-     name: 'Regata Inter Miami 2024/25',
-     price: 95.00, // Preço de varejo
-     wholesalePrice: 95.00,
-     image: '/images/Futebol/CamisasFutebolRegatas/RegataInterMiami.jpg',
-     description: 'Regata tailandesa do Inter Miami temporada 2024/25.',
-     sizes: ['P'],
-     category: 'futebol',
+  {
+    id: '34',
+    name: 'Regata Inter Miami 2024/25',
+    price: 95.00, // Preço de varejo
+    wholesalePrice: 95.00,
+    image: '/images/Futebol/CamisasFutebolRegatas/RegataInterMiami.jpg',
+    description: 'Regata tailandesa do Inter Miami temporada 2024/25.',
+    sizes: ['P'],
+    category: 'futebol',
     subcategory: 'regatas',
     featured: true,
     priceRanges: [

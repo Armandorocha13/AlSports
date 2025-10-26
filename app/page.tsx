@@ -1,16 +1,13 @@
 'use client'
 
 // Importações necessárias para a página inicial
-import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, Star, Truck, Shield, RotateCcw } from 'lucide-react'
-import { sampleProducts, categories, getFeaturedProductsLimited } from '@/lib/data'
-import ProductCard from '@/components/ProductCard'
-import CategoryCard from '@/components/CategoryCard'
-import AdminBanner from '@/components/AdminBanner'
 import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
-import { useRef, useEffect, useState } from 'react'
+import CategoryCard from '@/components/CategoryCard'
+import ProductCard from '@/components/ProductCard'
+import { categories, getFeaturedProductsLimited } from '@/lib/data'
+import { RotateCcw, Shield, Truck } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 // Componente da página inicial da aplicação
 export default function HomePage() {
@@ -81,10 +78,6 @@ export default function HomePage() {
       {/* Carrossel de Banners */}
       <BannerCarousel />
 
-      {/* Banner administrativo - Exibe informações para administradores */}
-      <div className="container mx-auto px-4">
-        <AdminBanner />
-      </div>
 
 
         {/* Seção de características da empresa */}

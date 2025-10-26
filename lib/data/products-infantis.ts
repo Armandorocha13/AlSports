@@ -20,7 +20,7 @@ export const infantisProducts = [
     ]
   },
   {
-    id: '11',
+    id: '12',
     name: 'Kit Infantil Flamengo 2025/26',
     price: 100.00, // Preço de varejo
     wholesalePrice: 100.00,
@@ -85,7 +85,7 @@ export const infantisProducts = [
     ]
   },
   {
-    id: '16',
+    id: '17',
     name: 'Kit Infantil Brasil retrô',
     price: 100.00, // Preço de varejo
     wholesalePrice: 100.00,

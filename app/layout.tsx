@@ -7,7 +7,6 @@ import Footer from '@/components/Footer'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
-import AdminRedirect from '@/components/AdminRedirect'
 
 // Configuração da fonte Montserrat para toda a aplicação
 const montserrat = Montserrat({ 
@@ -43,8 +42,6 @@ export default function RootLayout({
           <CartProvider>
             {/* Provedor de favoritos para gerenciar produtos favoritados */}
             <FavoritesProvider>
-            {/* Redirecionamento automático para admin */}
-            <AdminRedirect />
             {/* Container principal com layout flexível */}
             <div className="min-h-screen flex flex-col">
               {/* Cabeçalho da aplicação */}

@@ -22,7 +22,7 @@ export const nbaProducts = [
   },
   {
     id: '4',
-    name: 'Camisa Chicago Bulls Jordan  ',
+    name: 'Camisa Chicago Bulls Jordan',
     price: 130.00, // Preço de varejo
     wholesalePrice: 130.00,
     image: '/images/NBA/bullsJordan.jpg',

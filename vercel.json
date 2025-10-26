@@ -1,8 +1,28 @@
 {
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_SUPABASE_URL": "https://nzrzgtwhgousnnvxjyhf.supabase.co",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56cnpndHdoZ291c25udnhqeWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODc1OTAsImV4cCI6MjA3NTI2MzU5MH0.RxeZfgwMfUAr6iGDCb4gsB_lDLYYgyWj70hCaC3CE7o"
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key"
+  },
+  "functions": {
+    "frontend/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
     }
   }
 }

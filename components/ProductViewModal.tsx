@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
-import { X, Heart, Share2, ShoppingCart } from 'lucide-react'
-import { Product } from '@/lib/types'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { Product } from '@/lib/types'
+import { Heart, Share2, ShoppingCart, X } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 interface ProductViewModalProps {
   product: Product | null
@@ -78,17 +78,29 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
 
     setIsAdding(true)
 
-    // Simular delay de adição
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Adicionar ao carrinho
-    addItem(product, selectedSize, quantity, selectedColor || undefined)
-
-    setIsAdding(false)
-    onClose()
-    
-    // Redirecionar para a página do carrinho
-    router.push('/carrinho')
+    try {
+      // Adicionar item ao carrinho
+      for (let i = 0; i < quantity; i++) {
+        addItem({
+          id: product.id,
+          name: product.name,
+          price: getCurrentPrice(),
+          image: product.image,
+          description: product.description,
+          size: selectedSize,
+          color: selectedColor
+        })
+      }
+      
+      // Feedback visual
+      alert(`${quantity}x ${product.name} adicionado(s) ao carrinho!`)
+      onClose()
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error)
+      alert('Erro ao adicionar produto ao carrinho')
+    } finally {
+      setIsAdding(false)
+    }
   }
 
   const getPriceRangeInfo = () => {

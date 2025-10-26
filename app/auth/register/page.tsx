@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from 'lucide-react'
@@ -22,8 +22,16 @@ export default function RegisterPage() {
   const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState('')
   
-  const { signUp } = useAuth()
+  const { signUp, user, loading: authLoading } = useAuth()
   const router = useRouter()
+
+  // Redirecionar automaticamente se o usuário estiver logado
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('Usuário já autenticado, redirecionando...')
+      router.push('/?message=Bem-vindo de volta!')
+    }
+  }, [user, authLoading, router])
 
 
 
@@ -118,11 +126,27 @@ export default function RegisterPage() {
       } else {
         console.log('Cadastro realizado com sucesso, redirecionando...')
         setRedirecting(true)
-        // Adicionar um pequeno delay para garantir que o redirecionamento aconteça
+        
+        // Aguardar um pouco para garantir que o estado de autenticação seja atualizado
         setTimeout(() => {
           console.log('Executando redirecionamento...')
-          router.push('/?message=Conta criada com sucesso! Bem-vindo ao AL Sports.')
-        }, 1000)
+          try {
+            // Tentar usar router.push primeiro
+            router.push('/?message=Conta criada com sucesso! Bem-vindo ao AL Sports.')
+            
+            // Se o router.push não funcionar, usar window.location.href como fallback
+            setTimeout(() => {
+              if (window.location.pathname === '/auth/register') {
+                console.log('Router.push falhou, usando window.location.href...')
+                window.location.href = '/?message=Conta criada com sucesso! Bem-vindo ao AL Sports.'
+              }
+            }, 2000)
+          } catch (error) {
+            console.error('Erro no redirecionamento:', error)
+            // Fallback para window.location.href
+            window.location.href = '/?message=Conta criada com sucesso! Bem-vindo ao AL Sports.'
+          }
+        }, 1500)
       }
     } catch (error) {
       setError('Erro interno do servidor')
@@ -160,6 +184,15 @@ export default function RegisterPage() {
             {error && (
               <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
                 {error}
+              </div>
+            )}
+
+            {redirecting && (
+              <div className="bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded-md text-sm">
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-200 mr-2"></div>
+                  Conta criada com sucesso! Redirecionando...
+                </div>
               </div>
             )}
 
