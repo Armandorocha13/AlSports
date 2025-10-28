@@ -490,6 +490,60 @@ class AdminService {
       throw new Error('Erro ao deletar produto')
     }
   }
+
+  /**
+   * Deleta um pedido
+   */
+  async deleteOrder(orderId: string): Promise<boolean> {
+    try {
+      // Buscar pedido pelo order_number ou id
+      const { data: orderData } = await this.supabase
+        .from('orders')
+        .select('id')
+        .or(`order_number.eq.${orderId},id.eq.${orderId}`)
+        .single()
+
+      if (!orderData) {
+        console.error('Pedido não encontrado:', orderId)
+        return false
+      }
+
+      // Deletar histórico de status primeiro
+      await this.supabase
+        .from('order_status_history')
+        .delete()
+        .eq('order_id', orderData.id)
+
+      // Deletar pagamentos
+      await this.supabase
+        .from('payments')
+        .delete()
+        .eq('order_id', orderData.id)
+
+      // Deletar itens do pedido
+      await this.supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', orderData.id)
+
+      // Finalmente, deletar o pedido
+      const { error: deleteError } = await this.supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderData.id)
+
+      if (deleteError) {
+        console.error('Erro ao deletar pedido:', deleteError)
+        return false
+      }
+
+      console.log(`Pedido ${orderId} deletado com sucesso`)
+      return true
+    } catch (error) {
+      console.error('Erro ao deletar pedido:', error)
+      throw new Error('Erro ao deletar pedido')
+    }
+  }
 }
 
 export const adminService = new AdminService()

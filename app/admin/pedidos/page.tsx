@@ -5,6 +5,8 @@ import {
   Search, 
   Filter, 
   Eye, 
+  Edit,
+  Trash2,
   CheckCircle,
   Clock,
   XCircle,
@@ -12,7 +14,8 @@ import {
   Package,
   User,
   Calendar,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react'
 import { adminService, AdminOrder } from '@/lib/admin-service'
 
@@ -25,6 +28,10 @@ export default function PedidosPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [sortBy, setSortBy] = useState('createdAt')
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [deletingOrder, setDeletingOrder] = useState<string | null>(null)
 
   // Carregar pedidos do serviço
   useEffect(() => {
@@ -111,16 +118,69 @@ export default function PedidosPage() {
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      await adminService.updateOrderStatus(orderId, newStatus)
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: newStatus as any, updatedAt: new Date().toISOString() }
-          : order
-      ))
-      alert('Status do pedido atualizado com sucesso!')
+      setUpdatingStatus(orderId)
+      const success = await adminService.updateOrderStatus(orderId, newStatus)
+      
+      if (success) {
+        setOrders(prev => prev.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus as any, updatedAt: new Date().toISOString() }
+            : order
+        ))
+      } else {
+        alert('Erro ao atualizar status do pedido')
+      }
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
       alert('Erro ao atualizar status do pedido')
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order)
+    setShowModal(true)
+  }
+
+  const handleEdit = (order: Order) => {
+    // TODO: Implementar edição de pedido
+    alert(`Editar pedido ${order.id}`)
+  }
+
+  const handleDelete = async (orderId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
+    try {
+      setDeletingOrder(orderId)
+      const success = await adminService.deleteOrder(orderId)
+      
+      if (success) {
+        setOrders(prev => prev.filter(order => order.id !== orderId))
+        alert('Pedido excluído com sucesso!')
+      } else {
+        alert('Erro ao excluir pedido')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir pedido:', error)
+      alert('Erro ao excluir pedido')
+    } finally {
+      setDeletingOrder(null)
+    }
+  }
+
+  const reloadOrders = async () => {
+    try {
+      setLoading(true)
+      const ordersData = await adminService.getOrders()
+      setOrders(ordersData)
+    } catch (error) {
+      console.error('Erro ao recarregar pedidos:', error)
+      alert('Erro ao recarregar pedidos')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -329,7 +389,8 @@ export default function PedidosPage() {
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                        className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-full border-0 ${statusInfo.color}`}
+                        disabled={updatingStatus === order.id}
+                        className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-full border-0 ${statusInfo.color} disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <option value="pending">Pendente</option>
                         <option value="confirmed">Confirmado</option>
@@ -337,6 +398,9 @@ export default function PedidosPage() {
                         <option value="delivered">Entregue</option>
                         <option value="cancelled">Cancelado</option>
                       </select>
+                      {updatingStatus === order.id && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mt-1 ml-2"></div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center">
@@ -346,8 +410,31 @@ export default function PedidosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <button 
+                          onClick={() => handleViewDetails(order)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Ver detalhes"
+                        >
                           <Eye className="h-5 w-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleEdit(order)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"
+                          title="Editar pedido"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(order.id)}
+                          disabled={deletingOrder === order.id}
+                          className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Excluir pedido"
+                        >
+                          {deletingOrder === order.id ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -373,6 +460,133 @@ export default function PedidosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Detalhes */}
+      {showModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header do Modal */}
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Detalhes do Pedido - {selectedOrder.id}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowModal(false)
+                  setSelectedOrder(null)
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6 space-y-6">
+              {/* Informações do Cliente */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Cliente
+                </h3>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-gray-900 dark:text-white">Nome:</span> {selectedOrder.customer.name}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-gray-900 dark:text-white">Email:</span> {selectedOrder.customer.email}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-gray-900 dark:text-white">Telefone:</span> {selectedOrder.customer.phone}
+                  </p>
+                </div>
+              </div>
+
+              {/* Endereço de Entrega */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Endereço de Entrega
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {selectedOrder.shippingAddress}
+                </p>
+              </div>
+
+              {/* Itens do Pedido */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Itens do Pedido ({selectedOrder.items.length})
+                </h3>
+                <div className="space-y-3">
+                  {selectedOrder.items.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Quantidade: {item.quantity} × R$ {item.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        R$ {(item.quantity * item.price).toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Informações de Pagamento e Total */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Pagamento
+                  </h3>
+                  <span className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-full border-0 ${getStatusInfo(selectedOrder.status).color}`}>
+                    {getStatusInfo(selectedOrder.status).label}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-gray-900 dark:text-white">Método:</span> {selectedOrder.paymentMethod}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-gray-900 dark:text-white">Data:</span> {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: 'long', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                    <div className="flex justify-between items-center">
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        Total:
+                      </p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        R$ {selectedOrder.total.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowModal(false)
+                  setSelectedOrder(null)
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
