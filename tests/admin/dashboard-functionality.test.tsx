@@ -2,7 +2,7 @@
  * Testes de funcionalidade para o Dashboard Admin
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import AdminDashboard from '@/app/admin/page'
 import { adminService } from '@/lib/admin-service'
 
@@ -45,7 +45,9 @@ describe('Dashboard Admin - Funcionalidades', () => {
 
       adminService.getStats.mockResolvedValue(mockStats)
 
-      render(<AdminDashboard />)
+      await act(async () => {
+        render(<AdminDashboard />)
+      })
 
       await waitFor(() => {
         expect(screen.getByText('Dashboard')).toBeInTheDocument()
@@ -304,11 +306,20 @@ describe('Dashboard Admin - Funcionalidades', () => {
 
       adminService.getStats.mockResolvedValue(mockStats)
 
-      render(<AdminDashboard />)
+      await act(async () => {
+        render(<AdminDashboard />)
+      })
 
       await waitFor(() => {
-        const productLink = screen.getByText('Acessar').closest('a')
-        expect(productLink).toHaveAttribute('href', '/admin/produtos')
+        // Usar getAllByText para encontrar todos os links "Acessar"
+        const accessLinks = screen.getAllByText('Acessar')
+        expect(accessLinks.length).toBeGreaterThan(0)
+        
+        // Verificar se pelo menos um link aponta para produtos
+        const productLink = accessLinks.find(link => 
+          link.closest('a')?.getAttribute('href') === '/admin/produtos'
+        )
+        expect(productLink).toBeDefined()
       })
     })
   })
@@ -342,10 +353,14 @@ describe('Dashboard Admin - Funcionalidades', () => {
 
       adminService.getStats.mockResolvedValue(mockStats)
 
-      render(<AdminDashboard />)
+      await act(async () => {
+        render(<AdminDashboard />)
+      })
 
       await waitFor(() => {
-        expect(screen.getByText('0')).toBeInTheDocument()
+        // Usar getAllByText para encontrar elementos com "0"
+        const zeroElements = screen.getAllByText('0')
+        expect(zeroElements.length).toBeGreaterThan(0)
       })
     })
   })
