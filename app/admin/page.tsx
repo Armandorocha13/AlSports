@@ -1,21 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  BarChart3,
-  DollarSign,
-  Eye,
-  Plus
+import { adminService, AdminStats } from '@/lib/admin-service'
+import {
+    BarChart3,
+    DollarSign,
+    Package,
+    ShoppingCart,
+    Users
 } from 'lucide-react'
 import Link from 'next/link'
-import { adminService, AdminStats } from '@/lib/admin-service'
+import { useEffect, useState } from 'react'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats>({
@@ -89,7 +83,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="px-6 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-wrap justify-between gap-3 items-center">
         <h1 className="text-gray-900 text-3xl font-bold leading-tight tracking-tight">Dashboard</h1>
@@ -97,10 +91,10 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-gray-200">
+        <div className="flex flex-col gap-3 rounded-xl p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <p className="text-gray-600 text-base font-medium leading-normal">Total de Pedidos</p>
-            <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+            <div className="w-10 h-10 flex items-center justify-center bg-yellow-100 rounded-lg">
               <ShoppingCart className="h-5 w-5 text-yellow-600" />
             </div>
           </div>
@@ -114,10 +108,10 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-gray-200">
+        <div className="flex flex-col gap-3 rounded-xl p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <p className="text-gray-600 text-base font-medium leading-normal">Faturamento Total</p>
-            <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+            <div className="w-10 h-10 flex items-center justify-center bg-yellow-100 rounded-lg">
               <DollarSign className="h-5 w-5 text-yellow-600" />
             </div>
           </div>
@@ -131,10 +125,10 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-gray-200">
+        <div className="flex flex-col gap-3 rounded-xl p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <p className="text-gray-600 text-base font-medium leading-normal">Produtos Ativos</p>
-            <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+            <div className="w-10 h-10 flex items-center justify-center bg-yellow-100 rounded-lg">
               <Package className="h-5 w-5 text-yellow-600" />
             </div>
           </div>
@@ -148,10 +142,10 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-gray-200">
+        <div className="flex flex-col gap-3 rounded-xl p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <p className="text-gray-600 text-base font-medium leading-normal">Usuários Ativos</p>
-            <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+            <div className="w-10 h-10 flex items-center justify-center bg-yellow-100 rounded-lg">
               <Users className="h-5 w-5 text-yellow-600" />
             </div>
           </div>
@@ -168,18 +162,18 @@ export default function AdminDashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-gray-900 text-xl font-bold leading-tight tracking-tight mb-4">Acesso Rápido</h2>
+        <h2 className="text-gray-900 text-xl font-bold leading-tight tracking-tight mb-6">Acesso Rápido</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {quickActions.map((action) => (
-            <div key={action.name} className="flex flex-col gap-4 p-4 rounded-xl bg-white border border-gray-200 hover:shadow-lg hover:-translate-y-1 transition-all">
+            <div key={action.name} className="flex flex-col gap-4 p-6 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
               <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" style={{ backgroundImage: `url(${action.image})` }}></div>
-              <div>
-                <p className="text-gray-900 text-base font-semibold leading-normal">{action.name}</p>
+              <div className="space-y-2">
+                <p className="text-gray-900 text-lg font-semibold leading-normal">{action.name}</p>
                 <p className="text-gray-600 text-sm font-normal leading-normal">{action.description}</p>
               </div>
               <Link
                 href={action.href}
-                className={`w-full text-center text-sm font-medium py-2 px-4 rounded-lg transition-colors ${action.color}`}
+                className={`w-full text-center text-sm font-medium py-3 px-4 rounded-lg transition-colors ${action.color}`}
               >
                 Acessar
               </Link>

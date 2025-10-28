@@ -484,6 +484,67 @@ CREATE POLICY "Anyone can view product images" ON public.product_images
 CREATE POLICY "Anyone can view price ranges" ON public.price_ranges
   FOR SELECT USING (true);
 
+-- Políticas para ADMIN acessar todos os dados
+-- Admin pode ver todos os perfis
+CREATE POLICY "Admin can view all profiles" ON public.profiles
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
+-- Admin pode ver todos os pedidos
+CREATE POLICY "Admin can view all orders" ON public.orders
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
+-- Admin pode ver todos os itens de pedidos
+CREATE POLICY "Admin can view all order items" ON public.order_items
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
+-- Admin pode ver todo histórico de status
+CREATE POLICY "Admin can view all order status history" ON public.order_status_history
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
+-- Admin pode ver todos os pagamentos
+CREATE POLICY "Admin can view all payments" ON public.payments
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
+-- Admin pode ver todos os endereços
+CREATE POLICY "Admin can view all addresses" ON public.addresses
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.user_types = 'admin'
+    )
+  );
+
 -- =====================================================
 -- 6. DADOS INICIAIS
 -- =====================================================

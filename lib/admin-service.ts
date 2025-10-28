@@ -164,22 +164,124 @@ class AdminService {
    */
   async getStats(): Promise<AdminStats> {
     try {
-      // Simular dados por enquanto - em produção viria do Supabase
-      const mockStats: AdminStats = {
-        totalOrders: 1250,
-        totalRevenue: 45890,
-        activeProducts: 312,
-        newCustomers: 78,
-        ordersGrowth: 5.2,
-        revenueGrowth: 8.1,
-        productsGrowth: -1.5,
-        customersGrowth: 12.0
+      // Buscar dados reais do banco de dados
+      const now = new Date()
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      
+      // Contar pedidos totais e do mês atual
+      const { data: ordersData, error: ordersError } = await this.supabase
+        .from('orders')
+        .select('total_amount, created_at')
+        
+      if (ordersError) {
+        console.error('Erro ao buscar pedidos:', ordersError)
+        return this.getMockStats()
       }
 
-      return mockStats
+      const orders = ordersData || []
+      const thisMonthOrders = orders.filter(order => 
+        new Date(order.created_at) >= startOfThisMonth
+      )
+      const lastMonthOrders = orders.filter(order => 
+        new Date(order.created_at) >= lastMonth && 
+        new Date(order.created_at) < startOfThisMonth
+      )
+
+      const totalOrders = orders.length
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+      const thisMonthRevenue = thisMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+      
+      // Calcular crescimento de pedidos
+      const ordersGrowth = lastMonthOrders.length > 0 
+        ? ((thisMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100 
+        : (thisMonthOrders.length > 0 ? 100 : 0)
+      
+      // Calcular crescimento de receita
+      const revenueGrowth = lastMonthRevenue > 0 
+        ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : (thisMonthRevenue > 0 ? 100 : 0)
+
+      // Contar produtos ativos
+      const { data: productsData, error: productsError } = await this.supabase
+        .from('products')
+        .select('id, created_at, is_active')
+        .eq('is_active', true)
+
+      if (productsError) {
+        console.error('Erro ao buscar produtos:', productsError)
+        return this.getMockStats()
+      }
+
+      const products = productsData || []
+      const activeProducts = products.length
+      
+      const thisMonthProducts = products.filter(product => 
+        new Date(product.created_at) >= startOfThisMonth
+      )
+      const lastMonthProducts = products.filter(product => 
+        new Date(product.created_at) >= lastMonth && 
+        new Date(product.created_at) < startOfThisMonth
+      )
+
+      const productsGrowth = lastMonthProducts.length > 0 
+        ? ((thisMonthProducts.length - lastMonthProducts.length) / lastMonthProducts.length) * 100 
+        : (thisMonthProducts.length > 0 ? 100 : 0)
+
+      // Contar novos clientes (usuários criados no mês)
+      const { data: profilesData, error: profilesError } = await this.supabase
+        .from('profiles')
+        .select('id, created_at')
+        .gte('created_at', lastMonth.toISOString())
+
+      if (profilesError) {
+        console.error('Erro ao buscar perfis:', profilesError)
+      }
+
+      const profiles = profilesData || []
+      const thisMonthCustomers = profiles.filter(profile => 
+        new Date(profile.created_at) >= startOfThisMonth
+      )
+      const lastMonthCustomers = profiles.filter(profile => 
+        new Date(profile.created_at) >= lastMonth && 
+        new Date(profile.created_at) < startOfThisMonth
+      )
+
+      const newCustomers = thisMonthCustomers.length
+      const customersGrowth = lastMonthCustomers.length > 0 
+        ? ((thisMonthCustomers.length - lastMonthCustomers.length) / lastMonthCustomers.length) * 100 
+        : (thisMonthCustomers.length > 0 ? 100 : 0)
+
+      return {
+        totalOrders,
+        totalRevenue: Math.round(totalRevenue),
+        activeProducts,
+        newCustomers,
+        ordersGrowth: Math.round(ordersGrowth * 10) / 10,
+        revenueGrowth: Math.round(revenueGrowth * 10) / 10,
+        productsGrowth: Math.round(productsGrowth * 10) / 10,
+        customersGrowth: Math.round(customersGrowth * 10) / 10
+      }
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error)
-      throw new Error('Erro ao carregar estatísticas')
+      return this.getMockStats()
+    }
+  }
+
+  /**
+   * Retorna dados mock caso não consiga buscar do banco
+   */
+  private getMockStats(): AdminStats {
+    return {
+      totalOrders: 0,
+      totalRevenue: 0,
+      activeProducts: 0,
+      newCustomers: 0,
+      ordersGrowth: 0,
+      revenueGrowth: 0,
+      productsGrowth: 0,
+      customersGrowth: 0
     }
   }
 
