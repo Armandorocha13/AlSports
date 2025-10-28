@@ -109,12 +109,145 @@ class AdminService {
   }
 
   /**
-   * Busca todos os pedidos
+   * Busca todos os pedidos do banco de dados
    */
   async getOrders(): Promise<AdminOrder[]> {
     try {
-      // Simular dados por enquanto - em produção viria do Supabase
-      const mockOrders: AdminOrder[] = [
+      // Buscar pedidos da tabela orders
+      const { data: ordersData, error: ordersError } = await this.supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          total_amount,
+          status,
+          shipping_address,
+          billing_address,
+          created_at,
+          updated_at,
+          user_id
+        `)
+        .order('created_at', { ascending: false })
+
+      if (ordersError) {
+        console.error('Erro ao buscar pedidos:', ordersError)
+        return this.getMockOrders()
+      }
+
+      if (!ordersData || ordersData.length === 0) {
+        return []
+      }
+
+      // Buscar itens dos pedidos
+      const orders: AdminOrder[] = []
+      
+      for (const order of ordersData) {
+        // Buscar perfil do cliente
+        let profile: any = null
+        if (order.user_id) {
+          const { data: profileData } = await this.supabase
+            .from('profiles')
+            .select('email, full_name, phone')
+            .eq('id', order.user_id)
+            .single()
+          
+          profile = profileData
+        }
+        
+        // Buscar itens do pedido
+        const { data: itemsData } = await this.supabase
+          .from('order_items')
+          .select('*')
+          .eq('order_id', order.id)
+
+        const items = itemsData?.map(item => ({
+          name: item.product_name,
+          quantity: item.quantity,
+          price: Number(item.unit_price)
+        })) || []
+
+        // Buscar método de pagamento
+        const { data: paymentData } = await this.supabase
+          .from('payments')
+          .select('method')
+          .eq('order_id', order.id)
+          .single()
+
+        const paymentMethod = this.mapPaymentMethod(paymentData?.method)
+
+        // Mapear endereço de entrega
+        const shippingAddr = order.shipping_address as any
+        const shippingAddress = shippingAddr 
+          ? `${shippingAddr.street}, ${shippingAddr.number} - ${shippingAddr.neighborhood}, ${shippingAddr.city} - ${shippingAddr.state}`
+          : 'Endereço não informado'
+
+        // Mapear status
+        const mappedStatus = this.mapOrderStatus(order.status)
+
+        orders.push({
+          id: order.order_number || order.id,
+          customer: {
+            name: profile?.full_name || profile?.email || 'Cliente',
+            email: profile?.email || '',
+            phone: profile?.phone || ''
+          },
+          items,
+          total: Number(order.total_amount),
+          status: mappedStatus,
+          paymentMethod,
+          shippingAddress,
+          createdAt: order.created_at,
+          updatedAt: order.updated_at
+        })
+      }
+
+      return orders
+    } catch (error) {
+      console.error('Erro ao buscar pedidos:', error)
+      return this.getMockOrders()
+    }
+  }
+
+  /**
+   * Mapeia status do banco para status do sistema
+   */
+  private mapOrderStatus(status: string): 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' {
+    const statusMap: Record<string, 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'> = {
+      'aguardando_pagamento': 'pending',
+      'pagamento_confirmado': 'confirmed',
+      'preparando_pedido': 'confirmed',
+      'enviado': 'shipped',
+      'em_transito': 'shipped',
+      'entregue': 'delivered',
+      'cancelado': 'cancelled',
+      'devolvido': 'cancelled'
+    }
+    
+    return statusMap[status] || 'pending'
+  }
+
+  /**
+   * Mapeia método de pagamento do banco
+   */
+  private mapPaymentMethod(method: string | undefined): string {
+    if (!method) return 'Não informado'
+    
+    const methodMap: Record<string, string> = {
+      'pix': 'PIX',
+      'cartao_credito': 'Cartão de Crédito',
+      'cartao_debito': 'Cartão de Débito',
+      'boleto': 'Boleto',
+      'transferencia': 'Transferência'
+    }
+    
+    return methodMap[method] || method
+  }
+
+  /**
+   * Retorna dados mock em caso de erro
+   */
+  private getMockOrders(): AdminOrder[] {
+    return [
         {
           id: 'ORD-001',
           customer: {
@@ -132,31 +265,8 @@ class AdminService {
           shippingAddress: 'Rua das Flores, 123 - São Paulo, SP',
           createdAt: '2024-01-20T10:30:00Z',
           updatedAt: '2024-01-20T10:30:00Z'
-        },
-        {
-          id: 'ORD-002',
-          customer: {
-            name: 'Maria Santos',
-            email: 'maria@email.com',
-            phone: '(11) 88888-8888'
-          },
-          items: [
-            { name: 'Conjunto Infantil Real Madrid', quantity: 1, price: 65.50 }
-          ],
-          total: 65.50,
-          status: 'confirmed',
-          paymentMethod: 'Cartão de Crédito',
-          shippingAddress: 'Av. Paulista, 456 - São Paulo, SP',
-          createdAt: '2024-01-19T14:15:00Z',
-          updatedAt: '2024-01-19T16:20:00Z'
-        }
-      ]
-
-      return mockOrders
-    } catch (error) {
-      console.error('Erro ao buscar pedidos:', error)
-      throw new Error('Erro ao carregar pedidos')
-    }
+      }
+    ]
   }
 
   /**
@@ -290,12 +400,54 @@ class AdminService {
    */
   async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
     try {
-      // Simular atualização - em produção seria uma chamada real ao Supabase
-      console.log(`Atualizando pedido ${orderId} para status: ${status}`)
-      
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      // Mapear status do sistema para status do banco
+      const statusMap: Record<string, string> = {
+        'pending': 'aguardando_pagamento',
+        'confirmed': 'pagamento_confirmado',
+        'shipped': 'enviado',
+        'delivered': 'entregue',
+        'cancelled': 'cancelado'
+      }
+
+      const dbStatus = statusMap[status] || status
+
+      // Buscar pedido pelo order_number ou id
+      const { data: orderData } = await this.supabase
+        .from('orders')
+        .select('id')
+        .or(`order_number.eq.${orderId},id.eq.${orderId}`)
+        .single()
+
+      if (!orderData) {
+        console.error('Pedido não encontrado:', orderId)
+        return false
+      }
+
+      // Atualizar status do pedido
+      const { error: updateError } = await this.supabase
+        .from('orders')
+        .update({ 
+          status: dbStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderData.id)
+
+      if (updateError) {
+        console.error('Erro ao atualizar pedido:', updateError)
+        return false
+      }
+
+      // Registrar no histórico de status
+      await this.supabase
+        .from('order_status_history')
+        .insert({
+          order_id: orderData.id,
+          status: dbStatus,
+          notes: `Status alterado para ${status}`,
+          updated_by: null
+        })
+
+      console.log(`Pedido ${orderId} atualizado para status: ${dbStatus}`)
       return true
     } catch (error) {
       console.error('Erro ao atualizar status do pedido:', error)
