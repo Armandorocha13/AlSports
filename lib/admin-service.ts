@@ -411,15 +411,37 @@ class AdminService {
 
       const dbStatus = statusMap[status] || status
 
-      // Buscar pedido pelo order_number ou id
-      const { data: orderData } = await this.supabase
+      // Buscar pedido pelo order_number primeiro
+      let orderDbId: string | null = null
+      let lastError: any = null
+
+      const { data: orderByNumber, error: errorByNumber } = await this.supabase
         .from('orders')
         .select('id')
-        .or(`order_number.eq.${orderId},id.eq.${orderId}`)
+        .eq('order_number', orderId)
         .single()
 
-      if (!orderData) {
-        console.error('Pedido não encontrado:', orderId)
+      if (!errorByNumber && orderByNumber) {
+        orderDbId = orderByNumber.id
+      } else {
+        lastError = errorByNumber
+        // Tentar buscar por id se order_number não funcionou
+        const { data: orderById, error: errorById } = await this.supabase
+          .from('orders')
+          .select('id')
+          .eq('id', orderId)
+          .single()
+
+        if (!errorById && orderById) {
+          orderDbId = orderById.id
+        } else {
+          lastError = errorById || errorByNumber
+        }
+      }
+
+      if (!orderDbId) {
+        console.error('Pedido não encontrado no banco de dados:', orderId)
+        console.error('Último erro:', lastError)
         return false
       }
 
@@ -430,28 +452,377 @@ class AdminService {
           status: dbStatus,
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderData.id)
+        .eq('id', orderDbId)
 
       if (updateError) {
-        console.error('Erro ao atualizar pedido:', updateError)
+        console.error('Erro ao atualizar status do pedido:', updateError)
         return false
       }
 
       // Registrar no histórico de status
-      await this.supabase
+      const { error: historyError } = await this.supabase
         .from('order_status_history')
         .insert({
-          order_id: orderData.id,
+          order_id: orderDbId,
           status: dbStatus,
           notes: `Status alterado para ${status}`,
           updated_by: null
         })
 
-      console.log(`Pedido ${orderId} atualizado para status: ${dbStatus}`)
+      if (historyError) {
+        console.warn('Aviso ao registrar histórico de status:', historyError)
+        // Não falhar por causa do histórico, apenas avisar
+      }
+
+      console.log(`Pedido ${orderId} (ID: ${orderDbId}) atualizado para status: ${dbStatus}`)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar status do pedido:', error)
-      throw new Error('Erro ao atualizar pedido')
+      throw new Error(`Erro ao atualizar status: ${error?.message || 'Erro desconhecido'}`)
+    }
+  }
+
+  /**
+   * Atualiza informações completas de um pedido
+   */
+  async updateOrder(orderId: string, orderData: Partial<AdminOrder>): Promise<boolean> {
+    try {
+      // Buscar pedido pelo order_number ou id
+      let order: any = null
+      let orderDbId: string | null = null
+
+      // Tentar buscar por order_number primeiro
+      const { data: orderByNumber, error: errorByNumber } = await this.supabase
+        .from('orders')
+        .select('id, user_id, order_number')
+        .eq('order_number', orderId)
+        .single()
+
+      if (!errorByNumber && orderByNumber) {
+        order = orderByNumber
+        orderDbId = order.id
+      } else {
+        // Tentar buscar por id
+        const { data: orderById, error: errorById } = await this.supabase
+          .from('orders')
+          .select('id, user_id, order_number')
+          .eq('id', orderId)
+          .single()
+
+        if (!errorById && orderById) {
+          order = orderById
+          orderDbId = order.id
+        }
+      }
+
+      // Se não encontrou no banco, criar um novo pedido
+      if (!order || !orderDbId) {
+        console.log(`Pedido ${orderId} não encontrado no banco. Criando novo pedido...`)
+        
+        // Buscar ou criar perfil do cliente
+        let userId: string | null = null
+        if (orderData.customer?.email) {
+          // Verificar se o perfil já existe
+          const { data: existingProfile } = await this.supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', orderData.customer.email)
+            .single()
+
+          if (existingProfile) {
+            userId = existingProfile.id
+            // Atualizar perfil existente
+            await this.supabase
+              .from('profiles')
+              .update({
+                full_name: orderData.customer.name,
+                phone: orderData.customer.phone,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', userId)
+          } else {
+            // Criar novo perfil (será criado pela autenticação, mas podemos criar um básico)
+            // Por enquanto, deixar userId como null
+            console.warn('Cliente não encontrado. Pedido será criado sem user_id.')
+          }
+        }
+
+        // Preparar dados do endereço
+        let shippingAddress: any = {}
+        if (orderData.shippingAddress) {
+          const addressParts = orderData.shippingAddress.match(/(.+?),\s*(\d+)\s*-\s*(.+?),\s*(.+?)\s*-\s*(.+)/)
+          if (addressParts && addressParts.length >= 6) {
+            shippingAddress = {
+              street: addressParts[1]?.trim(),
+              number: addressParts[2]?.trim(),
+              neighborhood: addressParts[3]?.trim(),
+              city: addressParts[4]?.trim(),
+              state: addressParts[5]?.trim()
+            }
+          } else {
+            shippingAddress = { full: orderData.shippingAddress }
+          }
+        }
+
+        // Mapear status
+        const statusMap: Record<string, string> = {
+          'pending': 'aguardando_pagamento',
+          'confirmed': 'pagamento_confirmado',
+          'shipped': 'enviado',
+          'delivered': 'entregue',
+          'cancelled': 'cancelado'
+        }
+        const dbStatus = statusMap[orderData.status || 'pending'] || 'aguardando_pagamento'
+
+        // Calcular total
+        const total = orderData.total || (orderData.items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0)
+
+        // Criar novo pedido no banco
+        const { data: newOrder, error: createError } = await this.supabase
+          .from('orders')
+          .insert({
+            order_number: orderId,
+            user_id: userId,
+            status: dbStatus,
+            subtotal: total,
+            shipping_cost: 0,
+            discount_amount: 0,
+            total_amount: total,
+            shipping_address: shippingAddress,
+            billing_address: shippingAddress,
+            notes: 'Pedido criado via edição administrativa',
+            created_at: orderData.createdAt || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select('id')
+          .single()
+
+        if (createError) {
+          console.error('Erro ao criar pedido:', createError)
+          throw new Error(`Erro ao criar pedido: ${createError.message}`)
+        }
+
+        if (!newOrder) {
+          console.error('Falha ao criar pedido: nenhum dado retornado')
+          return false
+        }
+
+        orderDbId = newOrder.id
+        console.log(`Pedido ${orderId} criado no banco com ID: ${orderDbId}`)
+
+        // Inserir histórico de status
+        await this.supabase
+          .from('order_status_history')
+          .insert({
+            order_id: orderDbId,
+            status: dbStatus,
+            notes: 'Pedido criado via edição administrativa',
+            updated_by: null
+          })
+
+        // Inserir itens se fornecidos
+        if (orderData.items && orderData.items.length > 0) {
+          const validItems = orderData.items.filter(item => 
+            item.name && item.name.trim() && item.quantity > 0 && item.price >= 0
+          )
+
+          if (validItems.length > 0) {
+            const newItems = validItems.map(item => ({
+              order_id: orderDbId,
+              product_name: item.name.trim(),
+              quantity: item.quantity,
+              unit_price: item.price,
+              total_price: item.quantity * item.price
+            }))
+
+            const { error: itemsError } = await this.supabase
+              .from('order_items')
+              .insert(newItems)
+
+            if (itemsError) {
+              console.error('Erro ao inserir itens do pedido:', itemsError)
+              return false
+            }
+          }
+        }
+
+        // Criar pagamento se método fornecido
+        if (orderData.paymentMethod) {
+          const paymentMethodMap: Record<string, string> = {
+            'PIX': 'pix',
+            'Cartão de Crédito': 'cartao_credito',
+            'Cartão de Débito': 'cartao_debito',
+            'Boleto': 'boleto',
+            'Transferência': 'transferencia'
+          }
+          const dbPaymentMethod = paymentMethodMap[orderData.paymentMethod] || 'pix'
+
+          await this.supabase
+            .from('payments')
+            .insert({
+              order_id: orderDbId,
+              method: dbPaymentMethod as any,
+              status: dbStatus === 'pagamento_confirmado' ? 'aprovado' : 'pendente',
+              amount: total,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+        }
+
+        console.log(`Pedido ${orderId} criado e salvo com sucesso no banco de dados`)
+        return true
+      }
+
+      // Preparar atualizações acumulativas
+      const updates: any = {
+        updated_at: new Date().toISOString()
+      }
+
+      // Se status foi alterado, atualizar status também
+      if (orderData.status) {
+        const statusMap: Record<string, string> = {
+          'pending': 'aguardando_pagamento',
+          'confirmed': 'pagamento_confirmado',
+          'shipped': 'enviado',
+          'delivered': 'entregue',
+          'cancelled': 'cancelado'
+        }
+        const dbStatus = statusMap[orderData.status] || orderData.status
+        updates.status = dbStatus
+
+        // Registrar no histórico de status
+        await this.supabase
+          .from('order_status_history')
+          .insert({
+            order_id: orderDbId,
+            status: dbStatus,
+            notes: `Pedido atualizado via edição`,
+            updated_by: null
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Aviso ao registrar histórico de status:', error)
+            }
+          })
+      }
+
+      // Atualizar endereço de entrega se fornecido
+      if (orderData.shippingAddress) {
+        // Tentar parse do endereço formatado para objeto
+        const addressParts = orderData.shippingAddress.match(/(.+?),\s*(\d+)\s*-\s*(.+?),\s*(.+?)\s*-\s*(.+)/)
+        if (addressParts && addressParts.length >= 6) {
+          updates.shipping_address = {
+            street: addressParts[1]?.trim(),
+            number: addressParts[2]?.trim(),
+            neighborhood: addressParts[3]?.trim(),
+            city: addressParts[4]?.trim(),
+            state: addressParts[5]?.trim()
+          }
+        } else {
+          // Se não conseguir fazer parse, salvar como string simples
+          updates.shipping_address = orderData.shippingAddress
+        }
+      }
+
+      // Atualizar total se fornecido
+      if (orderData.total !== undefined) {
+        updates.total_amount = orderData.total
+      }
+
+      // Fazer atualização acumulada do pedido
+      if (Object.keys(updates).length > 1) { // Mais que apenas updated_at
+        const { error: updateError } = await this.supabase
+          .from('orders')
+          .update(updates)
+          .eq('id', orderDbId)
+
+        if (updateError) {
+          console.error('Erro ao atualizar pedido:', updateError)
+          return false
+        }
+      }
+
+      // Atualizar informações do cliente (perfil) se fornecido e se houver user_id
+      if (orderData.customer && order.user_id) {
+        const { error: profileError } = await this.supabase
+          .from('profiles')
+          .update({
+            full_name: orderData.customer.name,
+            email: orderData.customer.email,
+            phone: orderData.customer.phone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.user_id)
+
+        if (profileError) {
+          console.warn('Aviso ao atualizar perfil do cliente (pode não existir):', profileError)
+          // Não falhar aqui, apenas avisar
+        }
+      }
+
+      // Atualizar itens do pedido se fornecido
+      if (orderData.items && orderData.items.length > 0) {
+        // Validar itens antes de atualizar
+        const validItems = orderData.items.filter(item => 
+          item.name && item.name.trim() && item.quantity > 0 && item.price >= 0
+        )
+
+        if (validItems.length === 0) {
+          console.error('Nenhum item válido para atualizar')
+          return false
+        }
+
+        // Deletar itens antigos
+        const { error: deleteError } = await this.supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', orderDbId)
+
+        if (deleteError) {
+          console.error('Erro ao deletar itens antigos:', deleteError)
+          return false
+        }
+
+        // Inserir novos itens
+        const newItems = validItems.map(item => ({
+          order_id: orderDbId,
+          product_name: item.name.trim(),
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.quantity * item.price
+        }))
+
+        const { error: itemsError } = await this.supabase
+          .from('order_items')
+          .insert(newItems)
+
+        if (itemsError) {
+          console.error('Erro ao atualizar itens:', itemsError)
+          return false
+        }
+
+        // Recalcular total baseado nos itens
+        const newTotal = validItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+        const { error: totalUpdateError } = await this.supabase
+          .from('orders')
+          .update({
+            total_amount: newTotal,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderDbId)
+
+        if (totalUpdateError) {
+          console.error('Erro ao recalcular total:', totalUpdateError)
+          // Não falhar, apenas avisar
+        }
+      }
+
+      console.log(`Pedido ${orderId} atualizado com sucesso`)
+      return true
+    } catch (error: any) {
+      console.error('Erro ao atualizar pedido:', error)
+      // Retornar mensagem de erro mais específica
+      throw new Error(error?.message || 'Erro ao atualizar pedido')
     }
   }
 
@@ -492,56 +863,85 @@ class AdminService {
   }
 
   /**
-   * Deleta um pedido
+   * Deleta um pedido do banco de dados
    */
   async deleteOrder(orderId: string): Promise<boolean> {
     try {
-      // Buscar pedido pelo order_number ou id
-      const { data: orderData } = await this.supabase
+      // Buscar pedido pelo order_number primeiro
+      let orderDbId: string | null = null
+
+      const { data: orderByNumber, error: errorByNumber } = await this.supabase
         .from('orders')
         .select('id')
-        .or(`order_number.eq.${orderId},id.eq.${orderId}`)
+        .eq('order_number', orderId)
         .single()
 
-      if (!orderData) {
-        console.error('Pedido não encontrado:', orderId)
+      if (!errorByNumber && orderByNumber) {
+        orderDbId = orderByNumber.id
+      } else {
+        // Tentar buscar por id se order_number não funcionou
+        const { data: orderById, error: errorById } = await this.supabase
+          .from('orders')
+          .select('id')
+          .eq('id', orderId)
+          .single()
+
+        if (!errorById && orderById) {
+          orderDbId = orderById.id
+        }
+      }
+
+      if (!orderDbId) {
+        console.error('Pedido não encontrado no banco de dados:', orderId)
         return false
       }
 
-      // Deletar histórico de status primeiro
-      await this.supabase
+      // Deletar histórico de status primeiro (cascade deve cuidar disso, mas vamos ser explícitos)
+      const { error: historyError } = await this.supabase
         .from('order_status_history')
         .delete()
-        .eq('order_id', orderData.id)
+        .eq('order_id', orderDbId)
+
+      if (historyError) {
+        console.warn('Aviso ao deletar histórico de status:', historyError)
+      }
 
       // Deletar pagamentos
-      await this.supabase
+      const { error: paymentError } = await this.supabase
         .from('payments')
         .delete()
-        .eq('order_id', orderData.id)
+        .eq('order_id', orderDbId)
 
-      // Deletar itens do pedido
-      await this.supabase
+      if (paymentError) {
+        console.warn('Aviso ao deletar pagamentos:', paymentError)
+      }
+
+      // Deletar itens do pedido (cascade deve cuidar disso, mas vamos ser explícitos)
+      const { error: itemsError } = await this.supabase
         .from('order_items')
         .delete()
-        .eq('order_id', orderData.id)
+        .eq('order_id', orderDbId)
 
-      // Finalmente, deletar o pedido
+      if (itemsError) {
+        console.warn('Aviso ao deletar itens do pedido:', itemsError)
+      }
+
+      // Finalmente, deletar o pedido (isso deve disparar cascade para deletar os relacionados)
       const { error: deleteError } = await this.supabase
         .from('orders')
         .delete()
-        .eq('id', orderData.id)
+        .eq('id', orderDbId)
 
       if (deleteError) {
         console.error('Erro ao deletar pedido:', deleteError)
         return false
       }
 
-      console.log(`Pedido ${orderId} deletado com sucesso`)
+      console.log(`Pedido ${orderId} (ID: ${orderDbId}) deletado com sucesso do banco de dados`)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao deletar pedido:', error)
-      throw new Error('Erro ao deletar pedido')
+      throw new Error(`Erro ao deletar pedido: ${error?.message || 'Erro desconhecido'}`)
     }
   }
 }

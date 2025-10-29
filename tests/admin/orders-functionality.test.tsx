@@ -2,16 +2,17 @@
  * Testes de funcionalidade para a Página de Pedidos Admin
  */
 
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import PedidosPage from '@/app/admin/pedidos/page'
 import { adminService } from '@/lib/admin-service'
 import '@testing-library/jest-dom'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // Mock do admin service
 jest.mock('@/lib/admin-service', () => ({
   adminService: {
     getOrders: jest.fn(),
     updateOrderStatus: jest.fn(),
+    updateOrder: jest.fn(),
     deleteOrder: jest.fn()
   }
 }))
@@ -586,7 +587,9 @@ describe('Página de Pedidos - Funcionalidades', () => {
       fireEvent.change(statusSelect, { target: { value: 'confirmed' } })
 
       await waitFor(() => {
-        expect(global.alert).toHaveBeenCalledWith('Erro ao atualizar status do pedido')
+        expect(global.alert).toHaveBeenCalled()
+        const lastCall = (global.alert as jest.Mock).mock.calls[(global.alert as jest.Mock).mock.calls.length - 1][0]
+        expect(lastCall).toContain('Erro ao atualizar status do pedido')
       })
     })
   })

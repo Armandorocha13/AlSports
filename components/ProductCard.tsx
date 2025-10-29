@@ -1,9 +1,8 @@
 'use client'
 
-import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { Product } from '@/lib/types'
-import { Eye, Heart, ShoppingCart } from 'lucide-react'
+import { Eye, Heart } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
 import ProductViewModal from './ProductViewModal'
@@ -15,7 +14,6 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const { addItem } = useCart()
   const { isFavorite, toggleFavorite } = useFavorites()
 
   const handleViewProduct = () => {
@@ -24,18 +22,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
 
   const handleCardClick = () => {
     setIsModalOpen(true)
-  }
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.wholesalePrice,
-      image: product.image,
-      description: product.description,
-      size: product.sizes[0] // Tamanho padrão
-    })
   }
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
@@ -133,15 +119,8 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
                   </p>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Button */}
                 <div className="flex gap-2">
-                  <button 
-                    onClick={handleAddToCart}
-                    className="bg-green-600 text-white py-2 px-3 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center gap-1"
-                  >
-                    <ShoppingCart size={14} />
-                    Adicionar
-                  </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
@@ -228,15 +207,8 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
               </p>
             </div>
 
-          {/* Action Buttons */}
+          {/* Action Button */}
           <div className="flex gap-2">
-            <button 
-              onClick={handleAddToCart}
-              className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-1"
-            >
-              <ShoppingCart size={14} />
-              Adicionar
-            </button>
             <button 
               onClick={(e) => {
                 e.stopPropagation()

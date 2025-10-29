@@ -1,23 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit,
-  Trash2,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Truck,
-  Package,
-  User,
-  Calendar,
-  DollarSign,
-  X
+import { AdminOrder, adminService } from '@/lib/admin-service'
+import {
+    Calendar,
+    CheckCircle,
+    Clock,
+    DollarSign,
+    Edit,
+    Eye,
+    Package,
+    Search,
+    Trash2,
+    Truck,
+    User,
+    X,
+    XCircle
 } from 'lucide-react'
-import { adminService, AdminOrder } from '@/lib/admin-service'
+import { useEffect, useState } from 'react'
 
 // Usar o tipo AdminOrder do serviço
 type Order = AdminOrder
@@ -30,8 +29,11 @@ export default function PedidosPage() {
   const [sortBy, setSortBy] = useState('createdAt')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null)
+  const [savingOrder, setSavingOrder] = useState(false)
 
   // Carregar pedidos do serviço
   useEffect(() => {
@@ -128,11 +130,12 @@ export default function PedidosPage() {
             : order
         ))
       } else {
-        alert('Erro ao atualizar status do pedido')
+        alert('Erro ao atualizar status do pedido. Verifique se o pedido existe no banco de dados.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar status:', error)
-      alert('Erro ao atualizar status do pedido')
+      const errorMessage = error?.message || 'Erro desconhecido ao atualizar status do pedido'
+      alert(`Erro ao atualizar status do pedido: ${errorMessage}`)
     } finally {
       setUpdatingStatus(null)
     }
@@ -144,8 +147,131 @@ export default function PedidosPage() {
   }
 
   const handleEdit = (order: Order) => {
-    // TODO: Implementar edição de pedido
-    alert(`Editar pedido ${order.id}`)
+    setEditingOrder({ ...order })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return
+
+    // Validar dados antes de salvar
+    if (!editingOrder.customer.name.trim() || !editingOrder.customer.email.trim()) {
+      alert('Por favor, preencha pelo menos o nome e email do cliente')
+      return
+    }
+
+    if (!editingOrder.items || editingOrder.items.length === 0) {
+      alert('O pedido deve ter pelo menos um item')
+      return
+    }
+
+    const invalidItems = editingOrder.items.filter(
+      item => !item.name.trim() || item.quantity <= 0 || item.price < 0
+    )
+
+    if (invalidItems.length > 0) {
+      alert('Por favor, verifique se todos os itens têm nome, quantidade maior que zero e preço válido')
+      return
+    }
+
+    try {
+      setSavingOrder(true)
+      const success = await adminService.updateOrder(editingOrder.id, editingOrder)
+      
+      if (success) {
+        // Atualizar lista de pedidos
+        setOrders(prev => prev.map(order => 
+          order.id === editingOrder.id 
+            ? { ...editingOrder, updatedAt: new Date().toISOString() }
+            : order
+        ))
+        setShowEditModal(false)
+        setEditingOrder(null)
+        alert('Pedido atualizado com sucesso!')
+      } else {
+        alert('Erro ao atualizar pedido. Verifique se o pedido existe no banco de dados.')
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar pedido:', error)
+      const errorMessage = error?.message || 'Erro desconhecido ao salvar pedido'
+      alert(`Erro ao salvar pedido: ${errorMessage}`)
+    } finally {
+      setSavingOrder(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false)
+    setEditingOrder(null)
+  }
+
+  const updateEditingOrder = (field: keyof Order, value: any) => {
+    if (!editingOrder) return
+    
+    if (field === 'customer') {
+      setEditingOrder({
+        ...editingOrder,
+        customer: { ...editingOrder.customer, ...value }
+      })
+    } else if (field === 'items') {
+      setEditingOrder({
+        ...editingOrder,
+        items: value,
+        total: value.reduce((sum: number, item: any) => sum + (item.quantity * item.price), 0)
+      })
+    } else {
+      setEditingOrder({
+        ...editingOrder,
+        [field]: value
+      })
+      
+      // Recalcular total se items ou preços foram alterados
+      if (field === 'items' || (field in editingOrder && field === 'items')) {
+        const newTotal = editingOrder.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+        setEditingOrder(prev => prev ? { ...prev, total: newTotal } : null)
+      }
+    }
+  }
+
+  const updateItem = (index: number, field: 'name' | 'quantity' | 'price', value: any) => {
+    if (!editingOrder) return
+    
+    const updatedItems = [...editingOrder.items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: field === 'quantity' || field === 'price' ? Number(value) : value
+    }
+    
+    const newTotal = updatedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+    setEditingOrder({
+      ...editingOrder,
+      items: updatedItems,
+      total: newTotal
+    })
+  }
+
+  const removeItem = (index: number) => {
+    if (!editingOrder) return
+    
+    const updatedItems = editingOrder.items.filter((_, i) => i !== index)
+    const newTotal = updatedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+    setEditingOrder({
+      ...editingOrder,
+      items: updatedItems,
+      total: newTotal
+    })
+  }
+
+  const addItem = () => {
+    if (!editingOrder) return
+    
+    setEditingOrder({
+      ...editingOrder,
+      items: [
+        ...editingOrder.items,
+        { name: '', quantity: 1, price: 0 }
+      ]
+    })
   }
 
   const handleDelete = async (orderId: string) => {
@@ -582,6 +708,231 @@ export default function PedidosPage() {
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição */}
+      {showEditModal && editingOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header do Modal */}
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Editar Pedido - {editingOrder.id}
+              </h2>
+              <button
+                onClick={handleCancelEdit}
+                disabled={savingOrder}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6 space-y-6">
+              {/* Informações do Cliente */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Cliente
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Nome
+                    </label>
+                    <input
+                      type="text"
+                      value={editingOrder.customer.name}
+                      onChange={(e) => updateEditingOrder('customer', { name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={editingOrder.customer.email}
+                      onChange={(e) => updateEditingOrder('customer', { email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={editingOrder.customer.phone}
+                      onChange={(e) => updateEditingOrder('customer', { phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Status
+                </label>
+                <select
+                  value={editingOrder.status}
+                  onChange={(e) => updateEditingOrder('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                >
+                  <option value="pending">Pendente</option>
+                  <option value="confirmed">Confirmado</option>
+                  <option value="shipped">Enviado</option>
+                  <option value="delivered">Entregue</option>
+                  <option value="cancelled">Cancelado</option>
+                </select>
+              </div>
+
+              {/* Endereço de Entrega */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Endereço de Entrega
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Endereço Completo
+                  </label>
+                  <textarea
+                    value={editingOrder.shippingAddress}
+                    onChange={(e) => updateEditingOrder('shippingAddress', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                  />
+                </div>
+              </div>
+
+              {/* Itens do Pedido */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Itens do Pedido ({editingOrder.items.length})
+                  </h3>
+                  <button
+                    onClick={addItem}
+                    className="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    + Adicionar Item
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {editingOrder.items.map((item, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-12 gap-3 items-start">
+                        <div className="col-span-5">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Nome do Produto
+                          </label>
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => updateItem(index, 'name', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Quantidade
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Preço Unit.
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(e) => updateItem(index, 'price', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900"
+                          />
+                        </div>
+                        <div className="col-span-1 flex items-end">
+                          <button
+                            onClick={() => removeItem(index)}
+                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Remover item"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-right">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Subtotal: R$ {(item.quantity * item.price).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Método de Pagamento */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Método de Pagamento
+                </label>
+                <input
+                  type="text"
+                  value={editingOrder.paymentMethod}
+                  onChange={(e) => updateEditingOrder('paymentMethod', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-gray-900"
+                />
+              </div>
+
+              {/* Total */}
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-800">
+                <div className="flex justify-between items-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    Total:
+                  </p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    R$ {editingOrder.total.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={handleCancelEdit}
+                disabled={savingOrder}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={savingOrder}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {savingOrder ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
               </button>
             </div>
           </div>
