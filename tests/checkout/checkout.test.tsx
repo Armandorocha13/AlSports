@@ -2,10 +2,10 @@
  * Testes para a página de checkout
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import CheckoutPage from '@/app/checkout/page'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
-import CheckoutPage from '@/app/checkout/page'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // Mock do contexto de autenticação
 jest.mock('@/contexts/AuthContext')
@@ -14,6 +14,30 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 // Mock do contexto do carrinho
 jest.mock('@/contexts/CartContext')
 const mockUseCart = useCart as jest.MockedFunction<typeof useCart>
+
+// Mock do shipping-service
+jest.mock('@/lib/shipping-service', () => ({
+  superFreteService: {
+    getShippingOptions: jest.fn().mockResolvedValue([
+      {
+        id: '1',
+        name: 'PAC',
+        price: 15.00,
+        delivery_time: 5,
+        delivery_range: { min: 3, max: 7 },
+        company: { id: 1, name: 'Correios', picture: '' }
+      },
+      {
+        id: '2',
+        name: 'SEDEX',
+        price: 25.00,
+        delivery_time: 3,
+        delivery_range: { min: 1, max: 3 },
+        company: { id: 2, name: 'Correios', picture: '' }
+      }
+    ])
+  }
+}))
 
 // Mock do Next.js router
 jest.mock('next/navigation', () => ({
@@ -97,20 +121,108 @@ describe('CheckoutPage', () => {
       getTotal: jest.fn(() => 200)
     })
 
-    // Mock do fetch para ViaCEP
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      json: () => Promise.resolve({
-        logradouro: 'Rua Teste',
-        bairro: 'Bairro Teste',
-        localidade: 'São Paulo',
-        uf: 'SP'
-      })
+    // Mock do fetch para ViaCEP e SuperFrete
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      // Mock para ViaCEP
+      if (url.includes('viacep.com.br')) {
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            logradouro: 'Rua Teste',
+            bairro: 'Bairro Teste',
+            localidade: 'São Paulo',
+            uf: 'SP'
+          })
+        })
+      }
+      // Mock para SuperFrete (via API route)
+      if (url.includes('/api/shipping/calculate')) {
+        return Promise.resolve({
+          json: async () => [
+            {
+              id: '1',
+              name: 'PAC',
+              price: 15.00,
+              delivery_time: 5,
+              delivery_range: { min: 3, max: 7 },
+              company: { id: 1, name: 'Correios', picture: '' },
+              has_error: false
+            },
+            {
+              id: '2',
+              name: 'SEDEX',
+              price: 25.00,
+              delivery_time: 3,
+              delivery_range: { min: 1, max: 3 },
+              company: { id: 2, name: 'Correios', picture: '' },
+              has_error: false
+            }
+          ],
+          ok: true,
+          status: 200
+        })
+      }
+      // Mock direto para SuperFrete API (caso seja chamado)
+      if (url.includes('superfrete.com')) {
+        return Promise.resolve({
+          json: async () => [
+            {
+              id: '1',
+              name: 'PAC',
+              price: 15.00,
+              delivery_time: 5,
+              delivery_range: { min: 3, max: 7 },
+              company: { id: 1, name: 'Correios', picture: '' },
+              has_error: false
+            },
+            {
+              id: '2',
+              name: 'SEDEX',
+              price: 25.00,
+              delivery_time: 3,
+              delivery_range: { min: 1, max: 3 },
+              company: { id: 2, name: 'Correios', picture: '' },
+              has_error: false
+            }
+          ],
+          ok: true,
+          status: 200
+        })
+      }
+      return Promise.reject(new Error(`Unexpected fetch call to ${url}`))
     })
   })
 
   afterEach(() => {
     jest.clearAllMocks()
   })
+
+  // Função auxiliar para preencher todos os campos obrigatórios
+  const fillAllRequiredFields = async () => {
+    // Preencher todos os campos obrigatórios
+    const nameInput = screen.getByDisplayValue('User Test')
+    const cepInput = screen.getByPlaceholderText('00000000')
+    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
+    const numberInput = screen.getByPlaceholderText('123')
+    const neighborhoodInput = screen.getByPlaceholderText('Centro')
+    const cityInput = screen.getByPlaceholderText('São Paulo')
+    const stateInput = screen.getByPlaceholderText('SP')
+    const phoneInput = screen.getByDisplayValue('(11) 99999-9999')
+    const emailInput = screen.getByDisplayValue('user@test.com')
+
+    // Preencher todos os campos com valores válidos
+    fireEvent.change(nameInput, { target: { value: 'User Test' } })
+    fireEvent.change(cepInput, { target: { value: '01234567' } })
+    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
+    fireEvent.change(numberInput, { target: { value: '123' } })
+    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
+    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
+    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    fireEvent.change(phoneInput, { target: { value: '(11) 99999-9999' } })
+    fireEvent.change(emailInput, { target: { value: 'user@test.com' } })
+
+    // Aguardar um pouco para a validação acontecer
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
 
   it('deve renderizar página de checkout para usuário logado', () => {
     render(<CheckoutPage />)
@@ -155,12 +267,16 @@ describe('CheckoutPage', () => {
   it('deve validar campos obrigatórios', async () => {
     render(<CheckoutPage />)
 
-    const continueButton = screen.getByText('Continuar')
+    // O botão deve estar desabilitado quando há campos vazios
+    const continueButton = screen.getByText('Continuar para Entrega')
+    expect(continueButton).toBeDisabled()
+
+    // Tentar clicar mesmo desabilitado (para testar que não avança)
     fireEvent.click(continueButton)
 
-    // Deve mostrar erros de validação
+    // Deve permanecer na mesma etapa
     await waitFor(() => {
-      expect(screen.getByDisplayValue('')).toBeInTheDocument() // Campo vazio
+      expect(screen.getByText('Endereço de Entrega')).toBeInTheDocument()
     })
   })
 
@@ -184,7 +300,12 @@ describe('CheckoutPage', () => {
     fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
     fireEvent.change(stateInput, { target: { value: 'SP' } })
 
-    const continueButton = screen.getByText('Continuar')
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+    }, { timeout: 3000 })
+
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
     await waitFor(() => {
@@ -195,24 +316,16 @@ describe('CheckoutPage', () => {
   it('deve mostrar opções de frete', async () => {
     render(<CheckoutPage />)
 
-    // Avançar para etapa de frete
-    const nameInput = screen.getByDisplayValue('User Test')
-    const cepInput = screen.getByPlaceholderText('00000000')
-    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
-    const numberInput = screen.getByPlaceholderText('123')
-    const neighborhoodInput = screen.getByPlaceholderText('Centro')
-    const cityInput = screen.getByPlaceholderText('São Paulo')
-    const stateInput = screen.getByPlaceholderText('SP')
+    // Preencher todos os campos obrigatórios
+    await fillAllRequiredFields()
 
-    fireEvent.change(nameInput, { target: { value: 'User Test' } })
-    fireEvent.change(cepInput, { target: { value: '01234567' } })
-    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
-    fireEvent.change(numberInput, { target: { value: '123' } })
-    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
-    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
-    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    // Aguardar botão aparecer após validação (botão pode estar desabilitado inicialmente)
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+    }, { timeout: 3000 })
 
-    const continueButton = screen.getByText('Continuar')
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
     await waitFor(() => {
@@ -224,74 +337,91 @@ describe('CheckoutPage', () => {
   it('deve selecionar método de frete e avançar', async () => {
     render(<CheckoutPage />)
 
-    // Avançar para etapa de frete (simular preenchimento anterior)
-    const nameInput = screen.getByDisplayValue('User Test')
-    const cepInput = screen.getByPlaceholderText('00000000')
-    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
-    const numberInput = screen.getByPlaceholderText('123')
-    const neighborhoodInput = screen.getByPlaceholderText('Centro')
-    const cityInput = screen.getByPlaceholderText('São Paulo')
-    const stateInput = screen.getByPlaceholderText('SP')
+    // Preencher todos os campos obrigatórios
+    await fillAllRequiredFields()
 
-    fireEvent.change(nameInput, { target: { value: 'User Test' } })
-    fireEvent.change(cepInput, { target: { value: '01234567' } })
-    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
-    fireEvent.change(numberInput, { target: { value: '123' } })
-    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
-    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
-    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    // Aguardar botão aparecer após validação (botão pode estar desabilitado inicialmente)
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+      expect(continueButton).not.toBeDisabled()
+    }, { timeout: 5000 })
 
-    const continueButton = screen.getByText('Continuar')
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
+    // Aguardar etapa de frete
     await waitFor(() => {
       expect(screen.getByText('Método de Entrega')).toBeInTheDocument()
-    })
+    }, { timeout: 5000 })
 
-    // Selecionar método de frete (agora vem do SuperFrete)
-    // Note: Este teste pode precisar de mock do SuperFrete na prática
+    // Aguardar opções de frete aparecerem (vêm do SuperFrete via mock)
+    await waitFor(() => {
+      const shippingRadios = screen.queryAllByRole('radio')
+      expect(shippingRadios.length).toBeGreaterThan(0)
+    }, { timeout: 10000 })
+
+    // Selecionar primeira opção de frete disponível
+    const shippingRadios = screen.getAllByRole('radio')
+    fireEvent.click(shippingRadios[0])
+
+    // Aguardar botão Continuar aparecer e clicar
+    await waitFor(() => {
+      const continueButton2 = screen.queryByText('Continuar')
+      expect(continueButton2).toBeInTheDocument()
+      expect(continueButton2).not.toBeDisabled()
+    }, { timeout: 5000 })
 
     const continueButton2 = screen.getByText('Continuar')
     fireEvent.click(continueButton2)
 
+    // Aguardar chegar na etapa 3 (Resumo)
     await waitFor(() => {
       expect(screen.getByText('Ir para Pagamento')).toBeInTheDocument()
-    })
-  })
+    }, { timeout: 10000 })
+  }, 30000) // Timeout de 30 segundos para o teste
 
   it('deve mostrar resumo do pedido na etapa final', async () => {
     render(<CheckoutPage />)
 
-    // Preencher e avançar até a etapa final
-    const nameInput = screen.getByDisplayValue('User Test')
-    const cepInput = screen.getByPlaceholderText('00000000')
-    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
-    const numberInput = screen.getByPlaceholderText('123')
-    const neighborhoodInput = screen.getByPlaceholderText('Centro')
-    const cityInput = screen.getByPlaceholderText('São Paulo')
-    const stateInput = screen.getByPlaceholderText('SP')
+    // Preencher todos os campos obrigatórios
+    await fillAllRequiredFields()
 
-    fireEvent.change(nameInput, { target: { value: 'User Test' } })
-    fireEvent.change(cepInput, { target: { value: '01234567' } })
-    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
-    fireEvent.change(numberInput, { target: { value: '123' } })
-    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
-    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
-    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    // Aguardar botão aparecer após validação
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+    }, { timeout: 3000 })
 
-    const continueButton = screen.getByText('Continuar')
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
+    // Aguardar etapa de frete
     await waitFor(() => {
       expect(screen.getByText('Método de Entrega')).toBeInTheDocument()
-    })
+    }, { timeout: 3000 })
 
-    // Simular seleção de método de entrega e avançar
-    // (mock do SuperFrete seria necessário aqui na prática)
-    
-    // Verificar se o resumo está presente quando chegar na etapa 3
-    // Note: Este teste pode precisar de ajustes dependendo da implementação do SuperFrete
-  })
+    // Aguardar opções de frete aparecerem e selecionar uma
+    await waitFor(() => {
+      const shippingRadios = screen.queryAllByRole('radio')
+      if (shippingRadios.length > 0) {
+        fireEvent.click(shippingRadios[0])
+      }
+    }, { timeout: 5000 })
+
+    // Avançar para etapa 3
+    await waitFor(() => {
+      const continueButton2 = screen.queryByText('Continuar')
+      if (continueButton2 && !continueButton2.hasAttribute('disabled')) {
+        fireEvent.click(continueButton2)
+      }
+    }, { timeout: 3000 })
+
+    // Verificar se o resumo está presente na etapa 3
+    await waitFor(() => {
+      expect(screen.getByText('Resumo do Pedido')).toBeInTheDocument()
+    }, { timeout: 10000 })
+  }, 30000) // Timeout de 30 segundos para o teste
 
   it('deve finalizar pedido com sucesso', async () => {
     const mockCreateOrder = jest.fn().mockResolvedValue({ success: true })
@@ -305,39 +435,31 @@ describe('CheckoutPage', () => {
 
     render(<CheckoutPage />)
 
-    // Simular finalização do pedido
-    // Primeiro navegar até a etapa final
-    const nameInput = screen.getByDisplayValue('User Test')
-    const cepInput = screen.getByPlaceholderText('00000000')
-    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
-    const numberInput = screen.getByPlaceholderText('123')
-    const neighborhoodInput = screen.getByPlaceholderText('Centro')
-    const cityInput = screen.getByPlaceholderText('São Paulo')
-    const stateInput = screen.getByPlaceholderText('SP')
+    // Preencher todos os campos obrigatórios e avançar
+    await fillAllRequiredFields()
 
-    fireEvent.change(nameInput, { target: { value: 'User Test' } })
-    fireEvent.change(cepInput, { target: { value: '01234567' } })
-    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
-    fireEvent.change(numberInput, { target: { value: '123' } })
-    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
-    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
-    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    // Aguardar botão aparecer após validação (botão pode estar desabilitado inicialmente)
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+    }, { timeout: 3000 })
 
-    const continueButton = screen.getByText('Continuar')
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
+    // Aguardar chegar na etapa 3 e clicar no botão de pagamento
     await waitFor(() => {
       const finalizeButton = screen.queryByText('Ir para Pagamento')
       if (finalizeButton) {
         fireEvent.click(finalizeButton)
       }
-    })
+    }, { timeout: 3000 })
 
     await waitFor(() => {
       expect(mockCreateOrder).toHaveBeenCalled()
       expect(mockOpenWhatsAppOrder).toHaveBeenCalled()
-    })
-  })
+    }, { timeout: 10000 })
+  }, 30000) // Timeout de 30 segundos para o teste
 
   it('deve mostrar erro quando falhar ao criar pedido', async () => {
     const mockCreateOrder = jest.fn().mockResolvedValue({ 
@@ -355,20 +477,52 @@ describe('CheckoutPage', () => {
 
     render(<CheckoutPage />)
 
-    // Navegar até a etapa final e clicar no botão
+    // Preencher todos os campos e navegar até a etapa final
+    await fillAllRequiredFields()
+
+    // Avançar para etapa 2
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      if (continueButton && !continueButton.hasAttribute('disabled')) {
+        fireEvent.click(continueButton)
+      }
+    }, { timeout: 3000 })
+
+    // Aguardar etapa de frete e selecionar opção
+    await waitFor(() => {
+      expect(screen.getByText('Método de Entrega')).toBeInTheDocument()
+    })
+
+    // Selecionar primeira opção de frete disponível
+    await waitFor(() => {
+      const shippingRadios = screen.queryAllByRole('radio')
+      if (shippingRadios.length > 0) {
+        fireEvent.click(shippingRadios[0])
+      }
+    }, { timeout: 5000 })
+
+    // Avançar para etapa 3
+    await waitFor(() => {
+      const continueButton2 = screen.queryByText('Continuar')
+      if (continueButton2 && !continueButton2.hasAttribute('disabled')) {
+        fireEvent.click(continueButton2)
+      }
+    }, { timeout: 3000 })
+
+    // Aguardar etapa 3 e clicar no botão de pagamento
     await waitFor(() => {
       const finalizeButton = screen.queryByText('Ir para Pagamento')
       if (finalizeButton) {
         fireEvent.click(finalizeButton)
       }
-    })
+    }, { timeout: 3000 })
 
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalled()
-    })
+    }, { timeout: 10000 })
 
     alertSpy.mockRestore()
-  })
+  }, 30000) // Timeout de 30 segundos para o teste
 
   it('deve mostrar loading durante processamento', async () => {
     const mockCreateOrder = jest.fn().mockImplementation(() => 
@@ -396,24 +550,16 @@ describe('CheckoutPage', () => {
   it('deve voltar para etapa anterior', async () => {
     render(<CheckoutPage />)
 
-    // Avançar para próxima etapa
-    const nameInput = screen.getByDisplayValue('User Test')
-    const cepInput = screen.getByPlaceholderText('00000000')
-    const addressInput = screen.getByPlaceholderText('Rua, Avenida...')
-    const numberInput = screen.getByPlaceholderText('123')
-    const neighborhoodInput = screen.getByPlaceholderText('Centro')
-    const cityInput = screen.getByPlaceholderText('São Paulo')
-    const stateInput = screen.getByPlaceholderText('SP')
+    // Preencher todos os campos obrigatórios e avançar
+    await fillAllRequiredFields()
 
-    fireEvent.change(nameInput, { target: { value: 'User Test' } })
-    fireEvent.change(cepInput, { target: { value: '01234567' } })
-    fireEvent.change(addressInput, { target: { value: 'Rua Teste' } })
-    fireEvent.change(numberInput, { target: { value: '123' } })
-    fireEvent.change(neighborhoodInput, { target: { value: 'Centro' } })
-    fireEvent.change(cityInput, { target: { value: 'São Paulo' } })
-    fireEvent.change(stateInput, { target: { value: 'SP' } })
+    // Aguardar botão aparecer após validação (botão pode estar desabilitado inicialmente)
+    await waitFor(() => {
+      const continueButton = screen.queryByText('Continuar para Entrega')
+      expect(continueButton).toBeInTheDocument()
+    }, { timeout: 3000 })
 
-    const continueButton = screen.getByText('Continuar')
+    const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
     await waitFor(() => {

@@ -797,14 +797,131 @@ export default function CheckoutPage() {
             {step === 3 && (
               <div className="flex flex-col gap-6">
                 <div className="bg-gray-800 p-6 rounded-lg border border-yellow-400/10">
-                  <h3 className="text-lg font-semibold text-white mb-4">Resumo do Pedido</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Resumo do Pedido</h3>
+                    {orderId && (
+                      <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-4 py-2">
+                        <p className="text-xs text-gray-400 mb-1">ID do Pedido</p>
+                        <p className="text-yellow-400 font-bold text-sm">{orderId}</p>
+                      </div>
+                    )}
+                  </div>
                   
-                  <div className="flex items-center justify-center py-8">
-                    <div className="text-center">
-                      <p className="text-gray-400 text-sm mb-2">Quantidade de peças</p>
-                      <p className="text-yellow-400 text-3xl font-bold">
-                        {cartSummary.items.reduce((total, item) => total + item.quantity, 0)} peça{cartSummary.items.reduce((total, item) => total + item.quantity, 0) !== 1 ? 's' : ''}
+                  <div className="space-y-4">
+                    {/* Endereço de Entrega */}
+                    <div className="bg-gray-900 p-4 rounded-lg border border-yellow-400/10">
+                      <h4 className="font-medium mb-2 text-white flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-yellow-400" />
+                        Endereço de Entrega
+                      </h4>
+                      <p className="text-sm text-gray-300">
+                        <span className="font-medium">{addressData.fullName}</span><br />
+                        {addressData.address}, {addressData.number}
+                        {addressData.complement && ` - ${addressData.complement}`}<br />
+                        {addressData.neighborhood}, {addressData.city} - {addressData.state}<br />
+                        CEP: {addressData.cep.replace(/(\d{5})(\d{3})/, '$1-$2')}<br />
+                        {addressData.phone && `Tel: ${addressData.phone}`}
+                        {addressData.email && <><br />Email: {addressData.email}</>}
                       </p>
+                    </div>
+
+                    {/* Método de Entrega */}
+                    {shippingMethod && shippingOptions.length > 0 && (() => {
+                      const selectedOption = shippingOptions.find(opt => String(opt.id) === shippingMethod)
+                      if (selectedOption) {
+                        const deliveryRange = (selectedOption as any).delivery_range || { min: selectedOption.delivery_time, max: selectedOption.delivery_time }
+                        return (
+                          <div className="bg-gray-900 p-4 rounded-lg border border-yellow-400/10">
+                            <h4 className="font-medium mb-2 text-white flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-yellow-400" />
+                              Método de Entrega
+                            </h4>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-white">{selectedOption.name}</p>
+                                <p className="text-xs text-gray-400">{selectedOption.company?.name || 'Transportadora'}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-yellow-400">R$ {selectedOption.price.toFixed(2)}</p>
+                                {deliveryRange.min === deliveryRange.max ? (
+                                  <p className="text-xs text-gray-400">{deliveryRange.min} dia{deliveryRange.min !== 1 ? 's' : ''} útil{deliveryRange.min !== 1 ? 'eis' : ''}</p>
+                                ) : (
+                                  <p className="text-xs text-gray-400">{deliveryRange.min}-{deliveryRange.max} dias úteis</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+
+                    {/* Itens do Pedido */}
+                    <div className="bg-gray-900 p-4 rounded-lg border border-yellow-400/10">
+                      <h4 className="font-medium mb-3 text-white">Itens do Pedido</h4>
+                      <div className="space-y-3">
+                        {cartSummary.items.map((item, index) => (
+                          <div key={index} className="border-b border-yellow-400/20 pb-3 last:border-0 last:pb-0">
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-white">{item.name}</p>
+                                {item.id && (
+                                  <p className="text-xs text-gray-400 mt-1">ID: {item.id}</p>
+                                )}
+                                {item.size && (
+                                  <p className="text-xs text-gray-400">Tamanho: {item.size}</p>
+                                )}
+                                {item.color && (
+                                  <p className="text-xs text-gray-400">Cor: {item.color}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                              <p className="text-sm text-gray-400">
+                                {item.quantity}x R$ {item.price.toFixed(2)}
+                              </p>
+                              <p className="text-sm font-bold text-yellow-400">
+                                R$ {(item.quantity * item.price).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Resumo de Valores */}
+                    <div className="bg-gray-900 p-4 rounded-lg border border-yellow-400/10">
+                      <h4 className="font-medium mb-3 text-white">Resumo de Valores</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-gray-300">
+                          <span>Subtotal ({cartSummary.items.reduce((total, item) => total + item.quantity, 0)} {cartSummary.items.reduce((total, item) => total + item.quantity, 0) === 1 ? 'item' : 'itens'})</span>
+                          <span>R$ {cartSummary.subtotal.toFixed(2)}</span>
+                        </div>
+                        {shippingMethod && shippingOptions.length > 0 && (() => {
+                          const selectedOption = shippingOptions.find(opt => String(opt.id) === shippingMethod)
+                          const shippingPrice = selectedOption?.price || 0
+                          return (
+                            <>
+                              <div className="flex justify-between text-sm text-gray-300">
+                                <span>Frete</span>
+                                <span>R$ {shippingPrice.toFixed(2)}</span>
+                              </div>
+                              <div className="border-t border-yellow-400/20 pt-2 mt-2">
+                                <div className="flex justify-between font-semibold text-yellow-400">
+                                  <span>Total</span>
+                                  <span>R$ {(cartSummary.subtotal + shippingPrice).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </>
+                          )
+                        })()}
+                        {!shippingMethod && (
+                          <div className="flex justify-between text-sm text-gray-300">
+                            <span>Total</span>
+                            <span>R$ {cartSummary.subtotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

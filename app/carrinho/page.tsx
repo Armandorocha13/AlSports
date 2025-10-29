@@ -9,8 +9,7 @@ import {
     Package,
     Plus,
     ShoppingCart,
-    Trash2,
-    Truck
+    Trash2
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -270,18 +269,6 @@ export default function CarrinhoPage() {
                   </span>
                 </div>
 
-                {/* Informações de frete */}
-                {getSubtotal() < 200 && (
-                  <div className="bg-black border-2 border-yellow-400 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium">
-                      <Truck size={16} />
-                      <span>Frete grátis a partir de R$ 200,00</span>
-                    </div>
-                    <div className="text-xs text-white mt-1">
-                      Faltam R$ {(200 - getSubtotal()).toFixed(2)} para frete grátis
-                    </div>
-                  </div>
-                )}
 
                 {/* Botão de checkout */}
                 <button
