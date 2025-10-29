@@ -1,25 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SUPERFRETE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjA5ODc1MjQsInN1YiI6IjlQOW5ZUnJRRFhOUGlndHRPaFM5WGZVMVJxODMifQ.opG9fsPXCMW1cNhGQLZR9jufXRg3MMJC49Ud1BE4d1s'
-const SUPERFRETE_BASE_URL = 'https://api.superfrete.com.br'
+const SUPERFRETE_BASE_URL = 'https://api.superfrete.com'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    console.log('🚚 API Route: Calculando frete via SuperFrete...', body)
+    console.log('🚚 API Route: Calculando frete via SuperFrete...', JSON.stringify(body, null, 2))
+    
+    // Validar body conforme documentação SuperFrete
+    // from e to devem ser objetos com postal_code
+    if (!body || !body.from || !body.to || !body.services) {
+      console.error('❌ Body inválido - campos obrigatórios:', { from: !!body?.from, to: !!body?.to, services: !!body?.services })
+      return NextResponse.json(
+        { error: 'Dados de requisição inválidos. É necessário from, to e services.' },
+        { status: 400 }
+      )
+    }
+
+    // Converter from/to para formato correto (objeto com postal_code)
+    let fromCep = ''
+    let toCep = ''
+
+    if (typeof body.from === 'object' && body.from.postal_code) {
+      fromCep = body.from.postal_code.replace(/\D/g, '')
+    } else if (typeof body.from === 'string') {
+      fromCep = body.from.replace(/\D/g, '')
+    } else {
+      return NextResponse.json(
+        { error: 'Campo "from" deve ser um objeto com postal_code ou uma string com CEP.' },
+        { status: 400 }
+      )
+    }
+
+    if (typeof body.to === 'object' && body.to.postal_code) {
+      toCep = body.to.postal_code.replace(/\D/g, '')
+    } else if (typeof body.to === 'string') {
+      toCep = body.to.replace(/\D/g, '')
+    } else {
+      return NextResponse.json(
+        { error: 'Campo "to" deve ser um objeto com postal_code ou uma string com CEP.' },
+        { status: 400 }
+      )
+    }
+
+    // Garantir formato correto (objeto com postal_code)
+    body.from = { postal_code: fromCep }
+    body.to = { postal_code: toCep }
+
+    // Validar products ou package
+    if (!body.products && !body.package) {
+      console.error('❌ Body inválido - falta products ou package')
+      return NextResponse.json(
+        { error: 'É necessário fornecer products (array) ou package (objeto) com as dimensões.' },
+        { status: 400 }
+      )
+    }
+
+    // Validar products se fornecido
+    if (body.products && (!Array.isArray(body.products) || body.products.length === 0)) {
+      console.error('❌ Body inválido - products deve ser um array não vazio')
+      return NextResponse.json(
+        { error: 'Products deve ser um array não vazio com as dimensões dos produtos.' },
+        { status: 400 }
+      )
+    }
+
+    // Converter services de array para string se necessário
+    if (body.services && Array.isArray(body.services)) {
+      body.services = body.services.join(',')
+    }
     
     // Tentar chamar a API SuperFrete com timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 segundos timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos timeout
     
     try {
-      const response = await fetch(`${SUPERFRETE_BASE_URL}/api/v0/me/shipment/calculate`, {
+      const apiUrl = `${SUPERFRETE_BASE_URL}/api/v0/calculator`
+      console.log('📡 Chamando SuperFrete API:', apiUrl)
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPERFRETE_API_KEY}`,
-          'User-Agent': 'AL-Sports/1.0'
+          'User-Agent': 'AL-Sports (contato@alsports.com.br)',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(body),
         signal: controller.signal
@@ -27,31 +94,59 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId)
 
+      console.log('📥 Status da resposta SuperFrete:', response.status, response.statusText)
+
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ SuperFrete API error:', response.status, errorText)
-        throw new Error(`SuperFrete API error: ${response.status} ${response.statusText}`)
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`
+        try {
+          const errorText = await response.text()
+          console.error('❌ SuperFrete API error (texto):', errorText)
+          try {
+            const errorJson = JSON.parse(errorText)
+            errorMessage = errorJson.message || errorJson.error || errorMessage
+          } catch {
+            errorMessage = errorText || errorMessage
+          }
+        } catch (e) {
+          console.error('❌ Erro ao ler resposta de erro:', e)
+        }
+        return NextResponse.json(
+          { error: `SuperFrete API error: ${errorMessage}` },
+          { status: response.status }
+        )
       }
 
       const data = await response.json()
-      console.log('✅ Resposta da SuperFrete API:', data)
+      console.log('✅ Resposta da SuperFrete API:', JSON.stringify(data, null, 2))
       
-      return NextResponse.json(data)
+      // Garantir que retornamos um array
+      const result = Array.isArray(data) ? data : [data]
+      return NextResponse.json(result)
       
     } catch (fetchError) {
       clearTimeout(timeoutId)
-      console.warn('⚠️ SuperFrete API falhou, usando fallback:', fetchError)
+      console.error('❌ SuperFrete API error (catch):', fetchError)
       
-      // Fallback: retornar opções simuladas baseadas nos dados do pedido
-      const fallbackOptions = generateFallbackOptions(body)
-      console.log('🔄 Usando opções de fallback:', fallbackOptions)
-      console.log('🔢 Total de peças no fallback:', body.products?.[0]?.quantity || 0)
+      let errorMessage = 'Erro desconhecido ao calcular frete'
       
-      return NextResponse.json(fallbackOptions)
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          errorMessage = 'Timeout: A requisição demorou muito para responder. Tente novamente.'
+        } else if (fetchError.message.includes('fetch')) {
+          errorMessage = 'Erro de conexão: não foi possível conectar ao SuperFrete. Verifique sua conexão.'
+        } else {
+          errorMessage = fetchError.message
+        }
+      }
+      
+      return NextResponse.json(
+        { error: `Erro ao calcular frete: ${errorMessage}` },
+        { status: 500 }
+      )
     }
     
   } catch (error) {
-    console.error('❌ Erro na API route:', error)
+    console.error('❌ Erro na API route (parse):', error)
     return NextResponse.json(
       { error: `Erro interno: ${error instanceof Error ? error.message : 'Erro desconhecido'}` },
       { status: 500 }

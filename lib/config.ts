@@ -52,8 +52,8 @@ export const PAGINATION_CONFIG = {
 
 // Configurações de frete
 export const SHIPPING_CONFIG = {
-  // CEP de origem (Rio de Janeiro)
-  ORIGIN_ZIPCODE: '20000-000',
+  // CEP de origem (26015-005) - local de envio dos pacotes
+  ORIGIN_ZIPCODE: '26015005',
   
   // Configurações de frete grátis
   FREE_SHIPPING_THRESHOLD: 50, // peças

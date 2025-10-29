@@ -1,18 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
-import { 
-  ArrowLeft, 
-  Search, 
-  MapPin, 
-  Truck,
-  CreditCard,
-  CheckCircle
+import { getProductDimensions } from '@/lib/product-dimensions'
+import { ShippingOption, superFreteService } from '@/lib/shipping-service'
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  Search,
+  Truck
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -35,8 +36,24 @@ export default function CheckoutPage() {
   })
   const [shippingMethod, setShippingMethod] = useState('')
   const [orderSummary, setOrderSummary] = useState<any>(null)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  const [loadingShipping, setLoadingShipping] = useState(false)
+  const [shippingError, setShippingError] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
 
   const cartSummary = getCartSummary()
+
+  // Gerar ID único do pedido quando entrar no step 3 (resumo)
+  useEffect(() => {
+    if (step === 3 && !orderId) {
+      // Gerar ID único e curto: timestamp (últimos dígitos) + aleatório
+      const timestamp = Date.now().toString().slice(-8) // Últimos 8 dígitos do timestamp
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase() // 4 caracteres aleatórios
+      const uniqueId = `ALS-${timestamp}${random}`
+      setOrderId(uniqueId)
+    }
+  }, [step, orderId])
 
   // Redirecionar se não estiver logado
   useEffect(() => {
@@ -60,30 +77,206 @@ export default function CheckoutPage() {
   const handleCepChange = async (cep: string) => {
     setAddressData(prev => ({ ...prev, cep }))
     
+    // Validar CEP em tempo real
+    const error = validateField('cep', cep)
+    if (error) {
+      setErrors(prev => ({ ...prev, cep: error }))
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.cep
+        return newErrors
+      })
+    }
+    
     if (cep.length === 8) {
       try {
-        // Simular busca de CEP
+        // Buscar CEP via API
         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
         const data = await response.json()
         
-        if (!data.erro) {
+        if (!data.erro && data.logradouro) {
           setAddressData(prev => ({
             ...prev,
-            address: data.logradouro,
-            neighborhood: data.bairro,
-            city: data.localidade,
-            state: data.uf
+            address: data.logradouro || prev.address,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state
           }))
+          
+          // Validar campos preenchidos automaticamente
+          if (data.logradouro) handleFieldChange('address', data.logradouro)
+          if (data.bairro) handleFieldChange('neighborhood', data.bairro)
+          if (data.localidade) handleFieldChange('city', data.localidade)
+          if (data.uf) handleFieldChange('state', data.uf)
+        } else if (data.erro) {
+          setErrors(prev => ({ ...prev, cep: 'CEP não encontrado' }))
         }
       } catch (error) {
         console.error('Erro ao buscar CEP:', error)
+        setErrors(prev => ({ ...prev, cep: 'Erro ao buscar CEP. Verifique e preencha manualmente.' }))
       }
     }
   }
 
-  const handleAddressSubmit = (e: React.FormEvent) => {
+  const validateField = (field: string, value: string): string | null => {
+    switch (field) {
+      case 'fullName':
+        if (!value.trim()) return 'Nome completo é obrigatório'
+        if (value.trim().length < 3) return 'Nome deve ter pelo menos 3 caracteres'
+        return null
+      case 'cep':
+        if (!value.trim()) return 'CEP é obrigatório'
+        if (value.length !== 8) return 'CEP deve ter 8 dígitos'
+        return null
+      case 'address':
+        if (!value.trim()) return 'Endereço é obrigatório'
+        return null
+      case 'number':
+        if (!value.trim()) return 'Número é obrigatório'
+        return null
+      case 'neighborhood':
+        if (!value.trim()) return 'Bairro é obrigatório'
+        return null
+      case 'city':
+        if (!value.trim()) return 'Cidade é obrigatória'
+        return null
+      case 'state':
+        if (!value.trim()) return 'Estado é obrigatório'
+        if (value.length !== 2) return 'Estado deve ter 2 caracteres (ex: SP, RJ)'
+        return null
+      case 'phone':
+        if (!value.trim()) return 'Telefone é obrigatório'
+        const phoneNumbers = value.replace(/\D/g, '')
+        if (phoneNumbers.length < 10 || phoneNumbers.length > 11) {
+          return 'Telefone inválido (deve ter 10 ou 11 dígitos)'
+        }
+        return null
+      case 'email':
+        if (!value.trim()) return 'E-mail é obrigatório'
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) return 'E-mail inválido'
+        return null
+      default:
+        return null
+    }
+  }
+
+  const handleFieldChange = (field: string, value: string) => {
+    setAddressData(prev => ({ ...prev, [field]: value }))
+    
+    // Validar em tempo real e remover erro se válido
+    const error = validateField(field, value)
+    if (error) {
+      setErrors(prev => ({ ...prev, [field]: error }))
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const validateAllFields = (): boolean => {
+    const newErrors: Record<string, string> = {}
+    
+    Object.keys(addressData).forEach(key => {
+      if (key === 'complement') return // Complemento é opcional
+      
+      const error = validateField(key, addressData[key as keyof typeof addressData])
+      if (error) {
+        newErrors[key] = error
+      }
+    })
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateAllFields()) {
+      const firstError = Object.values(errors)[0]
+      if (firstError) {
+        alert(firstError)
+      } else {
+        alert('Por favor, preencha todos os campos obrigatórios')
+      }
+      return
+    }
+    
+    // Buscar opções de frete do SuperFrete
+    await fetchShippingOptions()
+    
     setStep(2)
+  }
+
+  const fetchShippingOptions = async () => {
+    if (!addressData.cep || addressData.cep.length !== 8) {
+      return
+    }
+
+    setLoadingShipping(true)
+    setShippingError(null)
+    setShippingOptions([])
+
+    try {
+      // CEP de origem - local de envio dos pacotes
+      const fromCep = '26015005' // CEP de origem (26015-005)
+      const toCep = addressData.cep.replace(/\D/g, '')
+
+      // Mapear produtos do carrinho para o formato do SuperFrete
+      // Usando função dedicada que já inclui as dimensões corretas
+      const products = cartSummary.items.map(item => {
+        // Tentar extrair categoria do item ou usar padrão
+        // A categoria pode vir do item ou ser inferida pelo nome
+        const category = (item as any).category || 'default'
+        const dimensions = getProductDimensions(category)
+        
+        return {
+          width: dimensions.width,
+          height: dimensions.height,
+          length: dimensions.length,
+          weight: dimensions.weight,
+          value: item.price,
+          quantity: item.quantity
+        }
+      })
+
+      console.log('🚚 Calculando frete para CEP:', toCep)
+      console.log('📦 Produtos:', products)
+
+      const options = await superFreteService.getShippingOptions(
+        fromCep,
+        toCep,
+        products,
+        cartSummary.totalItems
+      )
+
+      // Opções já filtradas no service (incluindo remoção de "elem")
+      const filteredOptions = options
+
+      if (filteredOptions.length === 0) {
+        setShippingError('Nenhuma opção de frete disponível para este CEP. Por favor, verifique o CEP ou tente novamente mais tarde.')
+      } else {
+        setShippingOptions(filteredOptions)
+        // Selecionar automaticamente a opção mais barata
+        if (filteredOptions.length > 0) {
+          const cheapest = filteredOptions.reduce((prev, current) => 
+            prev.price < current.price ? prev : current
+          )
+          setShippingMethod(String(cheapest.id))
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao calcular frete:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao calcular frete'
+      setShippingError(`Erro ao calcular frete: ${errorMessage}. Por favor, verifique o CEP e tente novamente.`)
+    } finally {
+      setLoadingShipping(false)
+    }
   }
 
   const handleShippingSubmit = (e: React.FormEvent) => {
@@ -93,15 +286,46 @@ export default function CheckoutPage() {
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validar todos os campos obrigatórios antes de finalizar
+    if (!validateAllFields()) {
+      alert('Por favor, complete todos os campos obrigatórios do endereço antes de finalizar o pedido.')
+      setStep(1) // Voltar para o passo do endereço
+      return
+    }
+    
+    // Validar método de entrega
+    if (!shippingMethod) {
+      alert('Por favor, selecione um método de entrega.')
+      return
+    }
+    
     setLoading(true)
 
     try {
+      const selectedShippingOption = shippingOptions.find(opt => String(opt.id) === shippingMethod)
+      const shippingPrice = selectedShippingOption?.price || 0
+      const totalWithShipping = cartSummary.subtotal + shippingPrice
+
+      // Usar o ID único gerado ou gerar um novo se não existir
+      const finalOrderId = orderId || (() => {
+        const timestamp = Date.now().toString().slice(-8) // Últimos 8 dígitos do timestamp
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase() // 4 caracteres aleatórios
+        return `ALS-${timestamp}${random}`
+      })()
+
       const orderData = {
         customer: addressData,
         items: cartSummary.items,
-        shipping: shippingMethod,
-        total: cartSummary.total,
-        orderId: `ORD-${Date.now()}`,
+        shipping: {
+          method: shippingMethod,
+          option: selectedShippingOption,
+          price: shippingPrice
+        },
+        subtotal: cartSummary.subtotal,
+        shippingCost: shippingPrice,
+        total: totalWithShipping,
+        orderId: finalOrderId,
         createdAt: new Date().toISOString()
       }
 
@@ -124,13 +348,13 @@ export default function CheckoutPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-text-light-primary dark:text-text-dark-primary text-xl mb-4">Acesso Negado</div>
-          <div className="text-text-light-secondary dark:text-text-dark-secondary mb-6">Você precisa estar logado para finalizar a compra.</div>
+          <div className="text-white text-xl mb-4">Acesso Negado</div>
+          <div className="text-gray-300 mb-6">Você precisa estar logado para finalizar a compra.</div>
           <Link
             href="/auth/login?redirect=/checkout"
-            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+            className="bg-yellow-400 text-black px-4 py-2 rounded-lg hover:bg-yellow-500 transition-colors font-medium"
           >
             Fazer Login
           </Link>
@@ -140,42 +364,25 @@ export default function CheckoutPage() {
   }
 
     return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 sm:px-10 py-3">
-        <div className="flex items-center gap-4 text-gray-900 dark:text-white">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="size-6 text-primary">
-              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path clipRule="evenodd" d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z" fill="currentColor" fillRule="evenodd"></path>
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">Sua Loja</h2>
-          </Link>
-        </div>
-        <Link href="/carrinho" className="flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-          </svg>
-        </Link>
-      </header>
+    <div className="min-h-screen bg-black">
 
       <main className="flex flex-1 justify-center py-8 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col w-full max-w-2xl flex-1">
           {/* Progress Steps */}
           <div className="flex flex-wrap gap-2 p-4 text-sm sm:text-base">
-            <span className={`font-bold ${step >= 1 ? 'text-primary' : 'text-gray-500'}`}>1. Endereço</span>
-            <span className="text-gray-400 dark:text-gray-500 font-medium">/</span>
-            <span className={`font-medium ${step >= 2 ? 'text-primary' : 'text-gray-500'}`}>2. Resumo</span>
-            <span className="text-gray-400 dark:text-gray-500 font-medium">/</span>
-            <span className={`font-medium ${step >= 3 ? 'text-primary' : 'text-gray-500'}`}>3. Finalizar</span>
+            <span className={`font-bold ${step >= 1 ? 'text-yellow-400' : 'text-gray-500'}`}>1. Endereço</span>
+            <span className="text-gray-500 font-medium">/</span>
+            <span className={`font-medium ${step >= 2 ? 'text-yellow-400' : 'text-gray-500'}`}>2. Método de Entrega</span>
+            <span className="text-gray-500 font-medium">/</span>
+            <span className={`font-medium ${step >= 3 ? 'text-yellow-400' : 'text-gray-500'}`}>3. Finalizar</span>
             </div>
             
           {/* Step 1: Address */}
           {step === 1 && (
             <div className="flex flex-wrap justify-between gap-3 p-4">
               <div className="flex min-w-72 flex-col gap-2">
-                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Endereço de Entrega</p>
-                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Informe onde você quer receber seu pedido.</p>
+                <p className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Endereço de Entrega</p>
+                <p className="text-gray-400 text-base font-normal leading-normal">Informe onde você quer receber seu pedido.</p>
                 </div>
                 </div>
           )}
@@ -184,8 +391,8 @@ export default function CheckoutPage() {
           {step === 2 && (
             <div className="flex flex-wrap justify-between gap-3 p-4">
               <div className="flex min-w-72 flex-col gap-2">
-                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Método de Entrega</p>
-                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Escolha como você quer receber seu pedido.</p>
+                <p className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Método de Entrega</p>
+                <p className="text-gray-400 text-base font-normal leading-normal">Escolha como você quer receber seu pedido.</p>
                 </div>
             </div>
           )}
@@ -194,8 +401,8 @@ export default function CheckoutPage() {
           {step === 3 && (
             <div className="flex flex-wrap justify-between gap-3 p-4">
               <div className="flex min-w-72 flex-col gap-2">
-                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Finalizar Pedido</p>
-                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Revise seu pedido e confirme.</p>
+                <p className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Finalizar Pedido</p>
+                <p className="text-gray-400 text-base font-normal leading-normal">Revise seu pedido e confirme.</p>
               </div>
             </div>
           )}
@@ -204,73 +411,113 @@ export default function CheckoutPage() {
           {step === 4 && (
             <div className="flex flex-wrap justify-between gap-3 p-4">
               <div className="flex min-w-72 flex-col gap-2">
-                <p className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Pedido Confirmado!</p>
-                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Seu pedido foi enviado para o WhatsApp.</p>
+                <p className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em]">Pedido Confirmado!</p>
+                <p className="text-gray-400 text-base font-normal leading-normal">Seu pedido foi enviado para o WhatsApp.</p>
             </div>
           </div>
           )}
 
           {/* Forms */}
-          <div className="mt-6 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+          <div className="mt-6 bg-gray-900 p-6 sm:p-8 rounded-xl shadow-lg border border-yellow-400/20">
             {step === 1 && (
               <form onSubmit={handleAddressSubmit} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-4">
                   <label className="flex flex-col w-full">
-                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Nome Completo</p>
+                    <p className="text-white text-base font-medium leading-normal pb-2">
+                      Nome Completo <span className="text-yellow-400">*</span>
+                    </p>
                     <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                      className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white bg-gray-800 focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                        errors.fullName 
+                          ? 'border-red-500 focus:ring-red-500/50' 
+                          : 'border-gray-700'
+                      }`}
                       placeholder="Digite seu nome completo" 
                       value={addressData.fullName}
-                      onChange={(e) => setAddressData(prev => ({ ...prev, fullName: e.target.value }))}
+                      onChange={(e) => handleFieldChange('fullName', e.target.value)}
                       required
                     />
+                    {errors.fullName && (
+                      <p className="text-red-400 text-sm mt-1">{errors.fullName}</p>
+                    )}
                   </label>
                   
                   <label className="flex flex-col w-full">
-                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">CEP</p>
+                    <p className="text-white text-base font-medium leading-normal pb-2">
+                      CEP <span className="text-yellow-400">*</span>
+                    </p>
                     <div className="flex w-full flex-1 items-stretch rounded-lg">
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-r-0 border-gray-300 dark:border-gray-700 dark:focus:border-primary bg-white dark:bg-gray-800 h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-2 text-base font-normal leading-normal" 
-                        placeholder="00000-000" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border border-r-0 focus:border-yellow-400 bg-gray-800 h-12 placeholder:text-gray-500 px-4 pr-2 text-base font-normal leading-normal ${
+                          errors.cep 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
+                        placeholder="00000000" 
                         value={addressData.cep}
-                        onChange={(e) => handleCepChange(e.target.value.replace(/\D/g, ''))}
+                        onChange={(e) => {
+                          const cepValue = e.target.value.replace(/\D/g, '')
+                          handleCepChange(cepValue)
+                          handleFieldChange('cep', cepValue)
+                        }}
                         maxLength={8}
                         required
                       />
-                      <div className="text-gray-500 dark:text-gray-400 flex border border-l-0 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 items-center justify-center px-4 rounded-r-lg">
+                      <div className="text-yellow-400 flex border border-l-0 border-gray-700 bg-gray-800 items-center justify-center px-4 rounded-r-lg">
                         <Search className="h-5 w-5" />
         </div>
       </div>
+                    {errors.cep && (
+                      <p className="text-red-400 text-sm mt-1">{errors.cep}</p>
+                    )}
                   </label>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Endereço</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Endereço <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.address 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="Rua, Avenida..." 
                         value={addressData.address}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, address: e.target.value }))}
+                        onChange={(e) => handleFieldChange('address', e.target.value)}
                         required
                       />
+                      {errors.address && (
+                        <p className="text-red-400 text-sm mt-1">{errors.address}</p>
+                      )}
                     </label>
                     
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Número</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Número <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.number 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="123" 
                         value={addressData.number}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, number: e.target.value }))}
+                        onChange={(e) => handleFieldChange('number', e.target.value)}
                         required
                       />
+                      {errors.number && (
+                        <p className="text-red-400 text-sm mt-1">{errors.number}</p>
+                      )}
                     </label>
         </div>
 
                   <label className="flex flex-col w-full">
-                    <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Complemento (Opcional)</p>
+                    <p className="text-white text-base font-medium leading-normal pb-2">Complemento (Opcional)</p>
                     <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border border-gray-700 bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
                       placeholder="Apartamento, casa..." 
                       value={addressData.complement}
                       onChange={(e) => setAddressData(prev => ({ ...prev, complement: e.target.value }))}
@@ -279,61 +526,107 @@ export default function CheckoutPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Bairro</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Bairro <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.neighborhood 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="Centro" 
                         value={addressData.neighborhood}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                        onChange={(e) => handleFieldChange('neighborhood', e.target.value)}
                         required
                       />
+                      {errors.neighborhood && (
+                        <p className="text-red-400 text-sm mt-1">{errors.neighborhood}</p>
+                      )}
                     </label>
                     
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Cidade</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Cidade <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.city 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="São Paulo" 
                         value={addressData.city}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
+                        onChange={(e) => handleFieldChange('city', e.target.value)}
                         required
                       />
+                      {errors.city && (
+                        <p className="text-red-400 text-sm mt-1">{errors.city}</p>
+                      )}
                     </label>
                     
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Estado</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Estado <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal uppercase ${
+                          errors.state 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="SP" 
-                        value={addressData.state}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value }))}
+                        value={addressData.state.toUpperCase()}
+                        onChange={(e) => handleFieldChange('state', e.target.value.toUpperCase())}
+                        maxLength={2}
                         required
                       />
+                      {errors.state && (
+                        <p className="text-red-400 text-sm mt-1">{errors.state}</p>
+                      )}
                     </label>
                           </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Telefone</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        Telefone <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.phone 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="(11) 99999-9999" 
                         value={addressData.phone}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) => handleFieldChange('phone', e.target.value)}
                         required
                       />
+                      {errors.phone && (
+                        <p className="text-red-400 text-sm mt-1">{errors.phone}</p>
+                      )}
                     </label>
                     
                     <label className="flex flex-col w-full">
-                      <p className="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">E-mail</p>
+                      <p className="text-white text-base font-medium leading-normal pb-2">
+                        E-mail <span className="text-yellow-400">*</span>
+                      </p>
                       <input 
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-800 dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" 
+                        className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-yellow-400/50 border bg-gray-800 focus:border-yellow-400 h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal ${
+                          errors.email 
+                            ? 'border-red-500 focus:ring-red-500/50' 
+                            : 'border-gray-700'
+                        }`}
                         placeholder="seu@email.com" 
                         type="email"
                         value={addressData.email}
-                        onChange={(e) => setAddressData(prev => ({ ...prev, email: e.target.value }))}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
                         required
                       />
+                      {errors.email && (
+                        <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                      )}
                     </label>
                         </div>
                       </div>
@@ -341,9 +634,10 @@ export default function CheckoutPage() {
                 <div className="flex justify-end">
                     <button
                     type="submit"
-                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                    disabled={Object.keys(errors).length > 0 || !addressData.fullName.trim() || !addressData.cep.trim() || !addressData.address.trim() || !addressData.number.trim() || !addressData.neighborhood.trim() || !addressData.city.trim() || !addressData.state.trim() || !addressData.phone.trim() || !addressData.email.trim()}
+                    className="bg-yellow-400 text-black px-6 py-3 rounded-lg hover:bg-yellow-500 transition-colors font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-400"
                     >
-                    Continuar
+                    Continuar para Entrega
                     </button>
                   </div>
               </form>
@@ -351,63 +645,148 @@ export default function CheckoutPage() {
 
             {step === 2 && (
               <form onSubmit={handleShippingSubmit} className="flex flex-col gap-6">
-                <div className="space-y-4">
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        id="transportadora" 
-                        name="shipping" 
-                        value="transportadora"
-                        checked={shippingMethod === 'transportadora'}
-                        onChange={(e) => setShippingMethod(e.target.value)}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <label htmlFor="transportadora" className="flex items-center gap-3 cursor-pointer">
-                        <Truck className="h-5 w-5 text-primary" />
-                      <div>
-                          <p className="font-medium">Transportadora</p>
-                          <p className="text-sm text-gray-500">Frete grátis - 3-5 dias úteis</p>
-                      </div>
-                      </label>
-                    </div>
+                {loadingShipping && (
+                  <div className="flex items-center justify-center gap-3 py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
+                    <p className="text-white">Calculando opções de frete...</p>
                   </div>
+                )}
 
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                {cartSummary.totalItems < 20 && (
+                  <div className="bg-red-900/20 border-2 border-red-500 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-red-400 font-bold mb-1">⚠️ Aviso Importante</p>
+                      <p className="text-red-300 text-sm">
+                        Transportadoras como JADLOG, LOGGI e outras privadas estão disponíveis apenas para pedidos com <strong className="font-bold">mais de 20 peças</strong>.
+                      </p>
+                      <p className="text-red-200 text-xs mt-2">
+                        Seu pedido atual tem {cartSummary.totalItems} peça{cartSummary.totalItems !== 1 ? 's' : ''}. Adicione mais itens para ver essas opções de frete.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {shippingError && !loadingShipping && (
+                  <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-red-400 font-medium mb-1">Erro ao calcular frete</p>
+                      <p className="text-red-300 text-sm">{shippingError}</p>
+                      <button
+                        type="button"
+                        onClick={fetchShippingOptions}
+                        className="mt-3 text-yellow-400 hover:text-yellow-300 text-sm font-medium underline"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!loadingShipping && !shippingError && shippingOptions.length === 0 && (
+                  <div className="bg-yellow-900/20 border border-yellow-400/50 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-400 font-medium mb-1">Nenhuma opção de frete disponível</p>
+                      <p className="text-yellow-300 text-sm">Não foi possível encontrar opções de frete para este CEP.</p>
+                      <button
+                        type="button"
+                        onClick={fetchShippingOptions}
+                        className="mt-3 text-yellow-400 hover:text-yellow-300 text-sm font-medium underline"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!loadingShipping && shippingOptions.length > 0 && (
+                  <div className="space-y-4">
+                    {shippingOptions.map((option, index) => {
+                      const deliveryRange = (option as any).delivery_range || { min: option.delivery_time, max: option.delivery_time }
+                      const deliveryDays = deliveryRange.min === deliveryRange.max 
+                        ? `${deliveryRange.min} dia${deliveryRange.min !== 1 ? 's' : ''} útil${deliveryRange.min !== 1 ? 'eis' : ''}`
+                        : `${deliveryRange.min}-${deliveryRange.max} dias úteis`
+                      
+                      // Verificar se é a opção mais barata (melhor preço)
+                      const isBestPrice = index === 0 // Primeira opção após ordenação por preço
+                      
+                      return (
+                        <div
+                          key={option.id}
+                          className={`border rounded-lg p-4 transition-colors relative ${
+                            shippingMethod === String(option.id)
+                              ? 'border-yellow-400 bg-yellow-400/10'
+                              : 'border-yellow-400/20 hover:border-yellow-400/40'
+                          }`}
+                        >
+                          {isBestPrice && shippingOptions.length > 1 && (
+                            <div className="absolute top-2 right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                              <span>⭐</span>
+                              <span>Melhor preço</span>
+                            </div>
+                          )}
                     <div className="flex items-center gap-3">
                       <input 
                         type="radio" 
-                        id="superfrete" 
+                              id={`shipping-${option.id}`}
                         name="shipping" 
-                        value="superfrete"
-                        checked={shippingMethod === 'superfrete'}
+                              value={String(option.id)}
+                              checked={shippingMethod === String(option.id)}
                         onChange={(e) => setShippingMethod(e.target.value)}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <label htmlFor="superfrete" className="flex items-center gap-3 cursor-pointer">
-                        <MapPin className="h-5 w-5 text-primary" />
-                      <div>
-                          <p className="font-medium">Super Frete</p>
-                          <p className="text-sm text-gray-500">R$ 15,00 - 5-7 dias úteis</p>
-                      </div>
+                              className="text-yellow-400 focus:ring-yellow-400"
+                            />
+                            <label htmlFor={`shipping-${option.id}`} className="flex items-center gap-3 cursor-pointer flex-1">
+                              {option.company?.picture ? (
+                                <img 
+                                  src={option.company.picture} 
+                                  alt={option.company.name}
+                                  className="h-8 w-8 object-contain rounded bg-white p-1"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none'
+                                  }}
+                                />
+                              ) : (
+                                <Truck className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+                              )}
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-white">{option.name}</p>
+                                  <div className="text-right">
+                                    {option.originalPrice && option.originalPrice > option.price && (
+                                      <p className="text-xs text-gray-500 line-through mb-0.5">
+                                        R$ {option.originalPrice.toFixed(2)}
+                                      </p>
+                                    )}
+                                    <p className="font-bold text-yellow-400">R$ {option.price.toFixed(2)}</p>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-400">
+                                  {option.company?.name || 'Transportadora'}
+                                </p>
+                              </div>
                       </label>
                     </div>
                   </div>
+                      )
+                    })}
                 </div>
+                )}
 
                 <div className="flex justify-between">
                     <button
                     type="button"
                       onClick={() => setStep(1)}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                     >
                     <ArrowLeft className="h-4 w-4" />
                       Voltar
                     </button>
                     <button
                     type="submit"
-                    disabled={!shippingMethod}
-                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!shippingMethod || loadingShipping || shippingOptions.length === 0}
+                    className="bg-yellow-400 text-black px-6 py-3 rounded-lg hover:bg-yellow-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continuar
                     </button>
@@ -416,101 +795,70 @@ export default function CheckoutPage() {
             )}
 
             {step === 3 && (
-              <form onSubmit={handleOrderSubmit} className="flex flex-col gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Resumo do Pedido</h3>
+              <div className="flex flex-col gap-6">
+                <div className="bg-gray-800 p-6 rounded-lg border border-yellow-400/10">
+                  <h3 className="text-lg font-semibold text-white mb-4">Resumo do Pedido</h3>
                   
-                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">Endereço de Entrega</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {addressData.fullName}<br />
-                      {addressData.address}, {addressData.number}<br />
-                      {addressData.neighborhood}, {addressData.city} - {addressData.state}<br />
-                      CEP: {addressData.cep}
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <p className="text-gray-400 text-sm mb-2">Quantidade de peças</p>
+                      <p className="text-yellow-400 text-3xl font-bold">
+                        {cartSummary.items.reduce((total, item) => total + item.quantity, 0)} peça{cartSummary.items.reduce((total, item) => total + item.quantity, 0) !== 1 ? 's' : ''}
                       </p>
                     </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">Método de Entrega</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {shippingMethod === 'transportadora' ? 'Transportadora - Frete Grátis' : 'Super Frete - R$ 15,00'}
-                    </p>
                   </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">Itens do Pedido</h4>
-                    {cartSummary.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{item.name} x{item.quantity}</span>
-                        <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-                    <div className="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2">
-                <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>R$ {cartSummary.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                        <span>Frete:</span>
-                        <span>{cartSummary.shipping === 0 ? 'Grátis' : `R$ ${cartSummary.shipping.toFixed(2)}`}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold">
-                        <span>Total:</span>
-                        <span>R$ {cartSummary.total.toFixed(2)}</span>
-                      </div>
-                </div>
-                </div>
-              </div>
 
                 <div className="flex justify-between">
                   <button 
                     type="button"
                     onClick={() => setStep(2)}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Voltar
                   </button>
                   <button 
-                    type="submit"
+                    type="button"
+                    onClick={handleOrderSubmit}
                     disabled={loading}
-                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="bg-yellow-400 text-black px-6 py-3 rounded-lg hover:bg-yellow-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {loading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
                         Processando...
                       </>
                     ) : (
                       <>
                         <CheckCircle className="h-4 w-4" />
-                        Finalizar Pedido
+                        Ir para Pagamento
                       </>
                     )}
                   </button>
                 </div>
-              </form>
+              </div>
             )}
 
             {step === 4 && (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-400/30">
+                  <CheckCircle className="h-8 w-8 text-yellow-400" />
               </div>
-                <h3 className="text-xl font-semibold mb-2">Pedido Confirmado!</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <h3 className="text-xl font-semibold mb-2 text-white">Pedido Confirmado!</h3>
+                <p className="text-gray-400 mb-6">
                   Seu pedido foi enviado para o WhatsApp. Em breve entraremos em contato para confirmar os detalhes.
                 </p>
                 <div className="flex gap-4 justify-center">
                   <Link
                     href="/"
-                    className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                    className="bg-yellow-400 text-black px-6 py-3 rounded-lg hover:bg-yellow-500 transition-colors font-medium"
                   >
                     Continuar Comprando
                   </Link>
                   <Link
                     href="/minha-conta/pedidos"
-                    className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                    className="border border-yellow-400/30 text-white px-6 py-3 rounded-lg hover:bg-yellow-400/10 transition-colors font-medium"
                   >
                     Ver Pedidos
                   </Link>

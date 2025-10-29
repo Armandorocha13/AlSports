@@ -1,28 +1,39 @@
 // Serviço de integração com SuperFrete para cálculo de frete
+// Formato conforme documentação: https://superfrete.readme.io/reference/cotacao-de-frete
 export interface ShippingRequest {
   from: {
-    postal_code: string
+    postal_code: string // CEP de origem (formato XXXXXXXX ou XXXXX-XXX)
   }
   to: {
-    postal_code: string
+    postal_code: string // CEP de destino (formato XXXXXXXX ou XXXXX-XXX)
   }
+  services: string // Códigos dos serviços separados por vírgula (ex: "1,2" para PAC e SEDEX)
   products: Array<{
-    id: string
-    width: number
-    height: number
-    length: number
-    weight: number
-    insurance_value: number
     quantity: number
+    height: number // cm
+    length: number // cm
+    width: number // cm
+    weight: number // kg
   }>
-  services?: string[]
+  options?: {
+    own_hand?: boolean
+    receipt?: boolean
+    insurance_value?: number
+    use_insurance_value?: boolean
+  }
 }
 
 export interface ShippingOption {
   id: string | number
   name: string
-  price: number
+  price: number // Preço já com desconto aplicado
+  discount?: string | number // Desconto aplicado
+  originalPrice?: number // Preço original antes do desconto (se disponível)
   delivery_time: number
+  delivery_range?: {
+    min: number
+    max: number
+  }
   company: {
     id: number
     name: string
@@ -57,9 +68,16 @@ class SuperFreteService {
 
   async calculateShipping(request: ShippingRequest): Promise<ShippingResponse[]> {
     try {
-      console.log('🚚 Calculando frete via API route local...')
+      console.log('🚚 Calculando frete via API route local...', request)
       
-      const response = await fetch('/api/shipping/calculate', {
+      // Usar URL absoluta para evitar problemas em produção
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/shipping/calculate`
+        : '/api/shipping/calculate'
+      
+      console.log('📡 Chamando API:', apiUrl)
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -67,18 +85,37 @@ class SuperFreteService {
         body: JSON.stringify(request)
       })
 
+      console.log('📥 Status da resposta:', response.status, response.statusText)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `API error: ${response.status}`)
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (e) {
+          const errorText = await response.text()
+          console.error('❌ Erro da API (texto):', errorText)
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
       console.log('✅ Resposta da API route:', data)
       
+      // Verificar se a resposta é um array
+      if (!Array.isArray(data)) {
+        console.error('❌ Resposta não é um array:', data)
+        throw new Error('Resposta inválida da API: esperado um array de opções de frete')
+      }
+      
       return data
       
     } catch (error) {
       console.error('❌ Erro na API route:', error)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Erro de conexão: não foi possível conectar ao servidor. Verifique sua conexão com a internet.')
+      }
       throw new Error(`Falha ao calcular frete: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
@@ -97,33 +134,41 @@ class SuperFreteService {
     }>,
     totalPieces?: number
   ): Promise<ShippingOption[]> {
-    // Calcular dimensões totais do pedido
-    const totalWeight = products.reduce((sum, product) => sum + (product.weight * product.quantity), 0)
+    // Limpar CEPs (remover caracteres não numéricos)
+    const fromCepClean = fromCep.replace(/\D/g, '')
+    const toCepClean = toCep.replace(/\D/g, '')
+    
+    // Calcular valor total para seguro
     const totalValue = products.reduce((sum, product) => sum + (product.value * product.quantity), 0)
     const calculatedTotalPieces = products.reduce((sum, product) => sum + product.quantity, 0)
-    
-    // Usar as maiores dimensões para o cálculo
-    const maxWidth = Math.max(...products.map(p => p.width))
-    const maxHeight = Math.max(...products.map(p => p.height))
-    const maxLength = Math.max(...products.map(p => p.length))
+
+    // Converter produtos para formato do SuperFrete (dimensões individuais)
+    // A API calculará a caixa ideal automaticamente
+    const superFreteProducts = products.map(product => ({
+      quantity: product.quantity,
+      height: product.height, // cm
+      length: product.length, // cm
+      width: product.width, // cm
+      weight: product.weight // kg
+    }))
 
     const request: ShippingRequest = {
       from: {
-        postal_code: fromCep.replace(/\D/g, '')
+        postal_code: fromCepClean // CEP como string dentro do objeto
       },
       to: {
-        postal_code: toCep.replace(/\D/g, '')
+        postal_code: toCepClean // CEP como string dentro do objeto
       },
-      products: [{
-        id: 'package',
-        width: maxWidth,
-        height: maxHeight,
-        length: maxLength,
-        weight: totalWeight,
-        insurance_value: totalValue,
-        quantity: calculatedTotalPieces // Usar total de peças real
-      }],
-      services: ['1', '2', '3', '4', '5'] // PAC, SEDEX, Jadlog, Total Express, Loggi
+      services: '1,2,17,3', // PAC (1), SEDEX (2), Mini Envios (17), Jadlog.Package (3)
+      // Loggi (31) é ativado/desativado nas configurações do token
+      products: superFreteProducts, // Array de produtos individuais
+      options: {
+        own_hand: false,
+        receipt: false,
+        // Não incluir seguro por padrão para manter preços mais baixos
+        // insurance_value: totalValue > 0 ? totalValue : undefined,
+        // use_insurance_value: false
+      }
     }
 
     try {
@@ -133,16 +178,31 @@ class SuperFreteService {
       const shippingOptions = await this.calculateShipping(request)
       
       // Filtrar e mapear apenas opções válidas
+      // Remover opções "elem" e opções com erro ou preço zero
       const validOptions = shippingOptions
-        .filter(option => option && option.price > 0 && !option.error)
-        .map(option => ({
-          id: option.id,
-          name: option.name,
-          price: option.price,
-          delivery_time: option.delivery_time,
-          company: option.company
-        }))
-        .sort((a, b) => a.price - b.price) // Ordenar por preço
+        .filter(option => {
+          if (!option || option.price <= 0 || option.error || (option as any).has_error) return false
+          const nameLower = option.name?.toLowerCase() || ''
+          const idStr = String(option.id || '').toLowerCase()
+          return !nameLower.includes('elem') && !idStr.includes('elem')
+        })
+        .map(option => {
+          // Calcular preço original se houver desconto
+          const discount = (option as any).discount ? parseFloat(String((option as any).discount)) : 0
+          const originalPrice = discount > 0 ? option.price + discount : undefined
+
+          return {
+            id: option.id,
+            name: option.name,
+            price: option.price, // Preço já com desconto (preço final)
+            discount: discount > 0 ? discount : undefined,
+            originalPrice: originalPrice, // Preço original antes do desconto
+            delivery_time: option.delivery_time,
+            delivery_range: (option as any).delivery_range,
+            company: option.company
+          }
+        })
+        .sort((a, b) => a.price - b.price) // Ordenar por preço (já com desconto)
 
       console.log('🚚 Opções válidas do SuperFrete:', validOptions)
       console.log('🔢 Total de peças nas opções:', calculatedTotalPieces)
@@ -160,17 +220,10 @@ export const superFreteService = new SuperFreteService(
   process.env.NEXT_PUBLIC_SUPERFRETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjA5ODc1MjQsInN1YiI6IjlQOW5ZUnJRRFhOUGlndHRPaFM5WGZVMVJxODMifQ.opG9fsPXCMW1cNhGQLZR9jufXRg3MMJC49Ud1BE4d1s'
 )
 
-// Função helper para calcular dimensões padrão de produtos
-export function getDefaultProductDimensions(category: string) {
-  const dimensions = {
-    'futebol': { width: 30, height: 2, length: 40, weight: 0.3 },
-    'nba': { width: 30, height: 2, length: 40, weight: 0.3 },
-    'nfl': { width: 30, height: 2, length: 40, weight: 0.3 },
-    'roupas-treino': { width: 25, height: 2, length: 35, weight: 0.2 },
-    'conjuntos-infantis': { width: 20, height: 2, length: 30, weight: 0.15 },
-    'acessorios': { width: 15, height: 2, length: 20, weight: 0.1 },
-    'bermudas-shorts': { width: 25, height: 2, length: 35, weight: 0.2 }
-  }
-  
-  return dimensions[category as keyof typeof dimensions] || dimensions['futebol']
-}
+// Re-exportar funções de dimensões do arquivo dedicado
+export {
+  getProductDimensions as getDefaultProductDimensions,
+  mapCartItemsToSuperFreteProducts,
+  type ProductDimensions
+} from './product-dimensions'
+

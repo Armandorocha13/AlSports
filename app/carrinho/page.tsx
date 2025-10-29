@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { 
-  Plus, 
-  Minus, 
-  Trash2, 
-  ShoppingCart, 
-  ArrowLeft,
-  Package,
-  Truck,
-  CreditCard
+import {
+    ArrowLeft,
+    CreditCard,
+    Minus,
+    Package,
+    Plus,
+    ShoppingCart,
+    Trash2,
+    Truck
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function CarrinhoPage() {
   const { user } = useAuth()
@@ -67,13 +67,13 @@ export default function CarrinhoPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-text-light-primary dark:text-text-dark-primary text-xl mb-4">Acesso Negado</div>
-          <div className="text-text-light-secondary dark:text-text-dark-secondary mb-6">Você precisa estar logado para acessar o carrinho.</div>
+          <div className="text-white text-xl mb-4 font-bold">Acesso Negado</div>
+          <div className="text-gray-300 mb-6">Você precisa estar logado para acessar o carrinho.</div>
           <Link
             href="/auth/login"
-            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+            className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-300 transition-colors shadow-lg"
           >
             Fazer Login
           </Link>
@@ -84,13 +84,13 @@ export default function CarrinhoPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark">
+      <div className="min-h-screen bg-black">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <Link
               href="/"
-              className="flex items-center gap-2 text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary transition-colors"
+              className="flex items-center gap-2 text-white hover:text-yellow-400 transition-colors"
             >
               <ArrowLeft size={20} />
               Continuar Comprando
@@ -99,18 +99,18 @@ export default function CarrinhoPage() {
 
           {/* Carrinho vazio */}
           <div className="text-center py-16">
-            <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-              <ShoppingCart size={32} className="text-gray-400" />
+            <div className="w-24 h-24 mx-auto mb-6 bg-gray-900 border-2 border-yellow-400 rounded-full flex items-center justify-center">
+              <ShoppingCart size={32} className="text-yellow-400" />
             </div>
-            <h1 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary mb-4">
+            <h1 className="text-2xl font-bold text-white mb-4">
               Seu carrinho está vazio
             </h1>
-            <p className="text-text-light-secondary dark:text-text-dark-secondary mb-8">
+            <p className="text-gray-300 mb-8">
               Que tal adicionar alguns produtos incríveis?
             </p>
             <Link
               href="/"
-              className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+              className="bg-yellow-400 text-black px-6 py-3 rounded-lg font-bold hover:bg-yellow-300 transition-colors inline-flex items-center gap-2 shadow-lg"
             >
               <Package size={20} />
               Explorar Produtos
@@ -122,20 +122,20 @@ export default function CarrinhoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="flex items-center gap-2 text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary transition-colors"
+              className="flex items-center gap-2 text-white hover:text-yellow-400 transition-colors"
             >
               <ArrowLeft size={20} />
               Continuar Comprando
             </Link>
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
-            <h1 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary">
+            <div className="h-6 w-px bg-yellow-400"></div>
+            <h1 className="text-2xl font-bold text-white">
               Carrinho ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'})
             </h1>
           </div>
@@ -143,7 +143,8 @@ export default function CarrinhoPage() {
           {items.length > 0 && (
             <button
               onClick={handleClearCart}
-              className="text-red-500 hover:text-red-600 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-black border-2 border-red-600 text-red-500 hover:bg-red-950 hover:border-red-500 hover:text-red-400 transition-all rounded-lg flex items-center gap-2 font-medium shadow-lg"
+              aria-label="Esvaziar carrinho"
             >
               <Trash2 size={16} />
               Esvaziar Carrinho
@@ -158,68 +159,77 @@ export default function CarrinhoPage() {
               {items.map((item) => (
                 <div
                   key={`${item.id}-${item.size}-${item.color}`}
-                  className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+                  className="bg-gray-900 rounded-lg border-2 border-yellow-400 p-6 shadow-lg hover:shadow-yellow-400/20 hover:border-yellow-300 transition-all"
                 >
                   <div className="flex gap-4">
                     {/* Imagem do produto */}
-                    <div className="relative w-20 h-20 flex-shrink-0">
+                    <div className="relative w-20 h-20 flex-shrink-0 border-2 border-yellow-400 rounded-lg overflow-hidden">
                       <Image
                         src={item.image}
                         alt={item.name}
                         fill
-                        className="object-cover rounded-lg"
+                        className="object-cover"
                         sizes="80px"
                       />
                     </div>
 
                     {/* Informações do produto */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-text-light-primary dark:text-text-dark-primary mb-1">
+                      <h3 className="font-semibold text-white mb-1 text-base">
                         {item.name}
                       </h3>
-                      <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mb-2">
+                      <p className="text-sm text-gray-300 mb-2 line-clamp-2">
                         {item.description}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-text-light-secondary dark:text-text-dark-secondary">
-                        <span>Tamanho: {item.size}</span>
-                        <span>Cor: {item.color}</span>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="bg-yellow-400 text-black px-2 py-1 rounded font-semibold">
+                          Tamanho: {item.size}
+                        </span>
+                        {item.color && (
+                          <span className="bg-yellow-400 text-black px-2 py-1 rounded font-semibold">
+                            Cor: {item.color}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Preço e controles */}
                     <div className="flex flex-col items-end gap-4">
                       <div className="text-right">
-                        <div className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">
+                        <div className="text-xl font-bold text-yellow-400 mb-1">
                           R$ {(item.price * item.quantity).toFixed(2)}
                         </div>
-                        <div className="text-sm text-text-light-secondary dark:text-text-dark-secondary">
+                        <div className="text-sm text-gray-300">
                           R$ {item.price.toFixed(2)} cada
                         </div>
                       </div>
 
                       {/* Controles de quantidade */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 bg-black rounded-lg px-2 py-1 border-2 border-yellow-400">
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          className="w-9 h-9 rounded-full border-2 border-yellow-400 bg-black flex items-center justify-center hover:bg-yellow-400 hover:border-yellow-300 transition-all shadow-lg"
+                          aria-label="Diminuir quantidade"
                         >
-                          <Minus size={16} />
+                          <Minus size={16} className="text-yellow-400 hover:text-black transition-colors" />
                         </button>
-                        <span className="w-8 text-center font-medium text-text-light-primary dark:text-text-dark-primary">
+                        <span className="w-10 text-center font-bold text-lg text-white">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          className="w-9 h-9 rounded-full border-2 border-yellow-400 bg-black flex items-center justify-center hover:bg-yellow-400 hover:border-yellow-300 transition-all shadow-lg"
+                          aria-label="Aumentar quantidade"
                         >
-                          <Plus size={16} />
+                          <Plus size={16} className="text-yellow-400 hover:text-black transition-colors" />
                         </button>
                       </div>
 
                       {/* Botão remover */}
                       <button
                         onClick={() => handleRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-600 transition-colors flex items-center gap-1"
+                        className="px-3 py-1.5 bg-black border-2 border-red-600 text-red-500 hover:bg-red-950 hover:border-red-500 hover:text-red-400 transition-all rounded-lg flex items-center gap-1.5 font-medium text-sm shadow-lg"
+                        aria-label="Remover item do carrinho"
                       >
                         <Trash2 size={14} />
                         Remover
@@ -233,51 +243,41 @@ export default function CarrinhoPage() {
 
           {/* Resumo do pedido */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sticky top-8">
-              <h2 className="text-lg font-semibold text-text-light-primary dark:text-text-dark-primary mb-6">
+            <div className="bg-gray-900 rounded-lg border-2 border-yellow-400 p-6 sticky top-8 shadow-lg">
+              <h2 className="text-lg font-semibold text-white mb-6 border-b-2 border-yellow-400 pb-3">
                 Resumo do Pedido
               </h2>
 
               <div className="space-y-4">
                 {/* Subtotal */}
                 <div className="flex justify-between">
-                  <span className="text-text-light-secondary dark:text-text-dark-secondary">
+                  <span className="text-gray-300">
                     Subtotal ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'})
                   </span>
-                  <span className="font-medium text-text-light-primary dark:text-text-dark-primary">
+                  <span className="font-medium text-white">
                     R$ {getSubtotal().toFixed(2)}
                   </span>
                 </div>
 
-                {/* Frete */}
-                <div className="flex justify-between">
-                  <span className="text-text-light-secondary dark:text-text-dark-secondary">
-                    Frete
-                  </span>
-                  <span className="font-medium text-text-light-primary dark:text-text-dark-primary">
-                    {getShippingCost() === 0 ? 'Grátis' : `R$ ${getShippingCost().toFixed(2)}`}
-                  </span>
-                </div>
-
                 {/* Linha divisória */}
-                <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                <div className="border-t-2 border-yellow-400"></div>
 
                 {/* Total */}
                 <div className="flex justify-between text-lg font-bold">
-                  <span className="text-text-light-primary dark:text-text-dark-primary">Total</span>
-                  <span className="text-text-light-primary dark:text-text-dark-primary">
+                  <span className="text-yellow-400">Total</span>
+                  <span className="text-yellow-400">
                     R$ {getTotal().toFixed(2)}
                   </span>
                 </div>
 
                 {/* Informações de frete */}
                 {getSubtotal() < 200 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+                  <div className="bg-black border-2 border-yellow-400 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium">
                       <Truck size={16} />
                       <span>Frete grátis a partir de R$ 200,00</span>
                     </div>
-                    <div className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                    <div className="text-xs text-white mt-1">
                       Faltam R$ {(200 - getSubtotal()).toFixed(2)} para frete grátis
                     </div>
                   </div>
@@ -287,16 +287,15 @@ export default function CarrinhoPage() {
                 <button
                   onClick={handleCheckout}
                   disabled={loading || items.length === 0}
-                  className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-yellow-400 text-black py-3 px-4 rounded-lg font-bold hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-400 flex items-center justify-center gap-2 shadow-lg"
                 >
                   <CreditCard size={20} />
                   {loading ? 'Processando...' : 'Finalizar Compra'}
                 </button>
 
                 {/* Informações de pagamento */}
-                <div className="text-xs text-text-light-secondary dark:text-text-dark-secondary text-center">
+                <div className="text-xs text-gray-300 text-center">
                   <p>Pagamento seguro via PIX, cartão ou boleto</p>
-                  <p>Entrega em 3-5 dias úteis</p>
                 </div>
               </div>
             </div>

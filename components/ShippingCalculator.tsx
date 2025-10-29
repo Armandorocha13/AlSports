@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Truck, Clock, Package, AlertCircle, MapPin } from 'lucide-react'
 import { useShipping } from '@/hooks/useShipping'
 import { ShippingOption } from '@/lib/shipping-service'
+import { AlertCircle, Clock, MapPin, Package, Truck } from 'lucide-react'
+import { useState } from 'react'
 
 interface ShippingCalculatorProps {
   products: Array<{
@@ -17,7 +17,7 @@ interface ShippingCalculatorProps {
 
 export default function ShippingCalculator({ products, totalPieces = 0, onShippingSelect }: ShippingCalculatorProps) {
   const [toCep, setToCep] = useState('')
-  const fromCep = '26015-005' // Nova Iguaçu - RJ (fixo)
+  const fromCep = '26015005' // CEP de origem (26015-005) - local de envio dos pacotes
   
   const { shippingOptions, loading, error, selectedOption, setSelectedOption } = useShipping({
     fromCep,

@@ -427,10 +427,10 @@ class AdminService {
         lastError = errorByNumber
         // Tentar buscar por id se order_number não funcionou
         const { data: orderById, error: errorById } = await this.supabase
-          .from('orders')
-          .select('id')
+        .from('orders')
+        .select('id')
           .eq('id', orderId)
-          .single()
+        .single()
 
         if (!errorById && orderById) {
           orderDbId = orderById.id
@@ -881,10 +881,10 @@ class AdminService {
       } else {
         // Tentar buscar por id se order_number não funcionou
         const { data: orderById, error: errorById } = await this.supabase
-          .from('orders')
-          .select('id')
+        .from('orders')
+        .select('id')
           .eq('id', orderId)
-          .single()
+        .single()
 
         if (!errorById && orderById) {
           orderDbId = orderById.id
