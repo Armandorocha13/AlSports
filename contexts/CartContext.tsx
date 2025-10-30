@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createClient } from '@/lib/supabase-client'
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react'
 
 // Tipos para o carrinho
 export interface CartItem {
@@ -197,21 +198,190 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
   /**
-   * Cria um pedido
+   * Cria um pedido no banco de dados
    */
   const createOrder = async (orderData: any): Promise<{ success: boolean; error?: string }> => {
     setLoading(true)
     try {
-      // Simular criação do pedido
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const supabase = createClient()
       
-      // Aqui você integraria com sua API de pedidos
-      console.log('Pedido criado:', orderData)
+      // Buscar usuário atual
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id || null
+
+      // Atualizar ou criar perfil do usuário se necessário
+      if (userId && orderData.customer && user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: orderData.customer.email || user.email || '',
+            full_name: orderData.customer.fullName || '',
+            phone: orderData.customer.phone || '',
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id'
+          })
+
+        if (profileError) {
+          console.warn('Aviso ao atualizar perfil do usuário:', profileError)
+          // Não falhar o pedido por causa do perfil
+        }
+      }
+
+      // Preparar endereço de entrega
+      const shippingAddress: any = {
+        street: orderData.customer.address || '',
+        number: orderData.customer.number || '',
+        complement: orderData.customer.complement || '',
+        neighborhood: orderData.customer.neighborhood || '',
+        city: orderData.customer.city || '',
+        state: orderData.customer.state || '',
+        cep: orderData.customer.cep || '',
+        fullName: orderData.customer.fullName || '',
+        phone: orderData.customer.phone || '',
+        email: orderData.customer.email || ''
+      }
+
+      // Mapear status inicial
+      const status = 'aguardando_pagamento'
+
+      // ============================================
+      // PASSO 1: REGISTRAR PEDIDO NO BANCO (PRIMEIRO)
+      // ============================================
+      console.log('📦 Registrando pedido no banco de dados...')
+      
+      // Criar pedido na tabela orders
+      // De acordo com o schema: shipping_address é NOT NULL, discount_amount tem DEFAULT 0
+      const orderInsert: any = {
+        order_number: orderData.orderId,
+        user_id: userId,
+        status: status,
+        subtotal: orderData.subtotal || 0,
+        shipping_cost: orderData.shippingCost || 0,
+        discount_amount: 0, // Conforme schema, tem DEFAULT 0 mas podemos incluir explicitamente
+        total_amount: orderData.total || 0,
+        shipping_address: shippingAddress, // NOT NULL conforme schema - obrigatório
+        notes: `Pedido criado via checkout online`
+      }
+
+      const { data: newOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderInsert)
+        .select('id, order_number')
+        .single()
+
+      if (orderError) {
+        console.error('❌ ERRO ao registrar pedido no banco:', orderError)
+        throw new Error(`Erro ao criar pedido: ${orderError.message}`)
+      }
+
+      if (!newOrder || !newOrder.id) {
+        console.error('❌ ERRO: Pedido não foi retornado do banco')
+        throw new Error('Falha ao criar pedido: nenhum dado retornado')
+      }
+
+      console.log('✅ Pedido registrado com sucesso no banco:', {
+        id: newOrder.id,
+        order_number: newOrder.order_number
+      })
+
+      // ============================================
+      // PASSO 2: Registrar histórico de status
+      // ============================================
+      try {
+        const { error: historyError } = await supabase
+          .from('order_status_history')
+          .insert({
+            order_id: newOrder.id,
+            status: status,
+            notes: 'Pedido criado via checkout',
+            updated_by: userId
+          })
+
+        if (historyError) {
+          console.warn('⚠️ Aviso ao registrar histórico de status:', historyError)
+          // Não falhar o pedido por causa do histórico
+        } else {
+          console.log('✅ Histórico de status registrado')
+        }
+      } catch (historyErr) {
+        console.warn('⚠️ Erro ao registrar histórico (não crítico):', historyErr)
+      }
+
+      // ============================================
+      // PASSO 3: Inserir itens do pedido
+      // ============================================
+      if (orderData.items && orderData.items.length > 0) {
+        try {
+          const orderItems = orderData.items.map((item: CartItem) => ({
+            order_id: newOrder.id,
+            product_id: item.id || null,
+            product_name: item.name,
+            product_sku: item.id || null,
+            product_image_url: item.image || null,
+            size: item.size || null,
+            color: item.color || null,
+            quantity: item.quantity,
+            unit_price: item.price,
+            total_price: item.quantity * item.price
+          }))
+
+          const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems)
+
+          if (itemsError) {
+            console.error('❌ Erro ao inserir itens do pedido:', itemsError)
+            // O pedido já foi criado, então apenas logamos o erro
+            // Mas não lançamos exceção para não perder o pedido principal
+            console.warn('⚠️ Pedido foi criado mas alguns itens não foram salvos')
+          } else {
+            console.log(`✅ ${orderItems.length} item(ns) do pedido registrado(s)`)
+          }
+        } catch (itemsErr) {
+          console.warn('⚠️ Erro ao inserir itens (não crítico):', itemsErr)
+        }
+      }
+
+      // ============================================
+      // PASSO 4: Criar registro de pagamento (pendente)
+      // ============================================
+      try {
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            order_id: newOrder.id,
+            method: 'pix' as any, // Método padrão, pode ser alterado depois
+            status: 'pendente' as any,
+            amount: orderData.total || 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (paymentError) {
+          console.warn('⚠️ Aviso ao criar pagamento:', paymentError)
+          // Não falhar o pedido por causa do pagamento
+        } else {
+          console.log('✅ Registro de pagamento criado')
+        }
+      } catch (paymentErr) {
+        console.warn('⚠️ Erro ao criar pagamento (não crítico):', paymentErr)
+      }
+
+      console.log('✅✅✅ Pedido COMPLETO registrado no banco de dados:', {
+        order_id: newOrder.id,
+        order_number: newOrder.order_number,
+        total: orderData.total
+      })
       
       return { success: true }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar pedido:', error)
-      return { success: false, error: 'Erro ao criar pedido' }
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao criar pedido no banco de dados' 
+      }
     } finally {
       setLoading(false)
     }

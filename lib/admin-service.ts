@@ -122,7 +122,6 @@ class AdminService {
           total_amount,
           status,
           shipping_address,
-          billing_address,
           created_at,
           updated_at,
           user_id
@@ -144,6 +143,10 @@ class AdminService {
       for (const order of ordersData) {
         // Buscar perfil do cliente
         let profile: any = null
+        let customerName = 'Cliente'
+        let customerEmail = ''
+        let customerPhone = ''
+        
         if (order.user_id) {
           const { data: profileData } = await this.supabase
             .from('profiles')
@@ -152,6 +155,23 @@ class AdminService {
             .single()
           
           profile = profileData
+          customerName = profile?.full_name || profile?.email || 'Cliente'
+          customerEmail = profile?.email || ''
+          customerPhone = profile?.phone || ''
+        }
+        
+        // Se não houver perfil, tentar extrair informações do endereço de entrega
+        if (!profile && order.shipping_address) {
+          const shippingAddr = order.shipping_address as any
+          if (shippingAddr.fullName) {
+            customerName = shippingAddr.fullName
+          }
+          if (shippingAddr.email) {
+            customerEmail = shippingAddr.email
+          }
+          if (shippingAddr.phone) {
+            customerPhone = shippingAddr.phone
+          }
         }
         
         // Buscar itens do pedido
@@ -177,9 +197,22 @@ class AdminService {
 
         // Mapear endereço de entrega
         const shippingAddr = order.shipping_address as any
-        const shippingAddress = shippingAddr 
-          ? `${shippingAddr.street}, ${shippingAddr.number} - ${shippingAddr.neighborhood}, ${shippingAddr.city} - ${shippingAddr.state}`
-          : 'Endereço não informado'
+        let shippingAddress = 'Endereço não informado'
+        
+        if (shippingAddr) {
+          // Verificar se é objeto estruturado
+          if (shippingAddr.street && shippingAddr.number) {
+            shippingAddress = `${shippingAddr.street}, ${shippingAddr.number}${shippingAddr.complement ? ' - ' + shippingAddr.complement : ''} - ${shippingAddr.neighborhood}, ${shippingAddr.city} - ${shippingAddr.state}`
+          } 
+          // Verificar se é string (formato antigo)
+          else if (typeof shippingAddr === 'string') {
+            shippingAddress = shippingAddr
+          }
+          // Tentar pegar campo 'full' se disponível
+          else if (shippingAddr.full) {
+            shippingAddress = shippingAddr.full
+          }
+        }
 
         // Mapear status
         const mappedStatus = this.mapOrderStatus(order.status)
@@ -187,9 +220,9 @@ class AdminService {
         orders.push({
           id: order.order_number || order.id,
           customer: {
-            name: profile?.full_name || profile?.email || 'Cliente',
-            email: profile?.email || '',
-            phone: profile?.phone || ''
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone
           },
           items,
           total: Number(order.total_amount),
@@ -586,10 +619,9 @@ class AdminService {
             status: dbStatus,
             subtotal: total,
             shipping_cost: 0,
-            discount_amount: 0,
+            discount_amount: 0, // Conforme schema, tem DEFAULT 0 mas incluindo explicitamente
             total_amount: total,
-            shipping_address: shippingAddress,
-            billing_address: shippingAddress,
+            shipping_address: shippingAddress, // NOT NULL conforme schema - obrigatório
             notes: 'Pedido criado via edição administrativa',
             created_at: orderData.createdAt || new Date().toISOString(),
             updated_at: new Date().toISOString()
