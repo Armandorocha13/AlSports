@@ -11,6 +11,7 @@ Este diretório contém as migrações oficiais do banco de dados. Execute-as **
 | **1** | `000_create_enums_first.sql` | Cria todos os ENUMs necessários |
 | **2** | `001_ensure_orders_structure.sql` | Cria/atualiza tabela `orders` e colunas |
 | **3** | `002_fix_related_tables.sql` | Cria tabelas relacionadas (order_items, order_status_history, payments) |
+| **4** | `003_fix_orders_view.sql` | Corrige view orders_with_customer e verifica permissões |
 
 ## 🚀 Como Executar
 
@@ -21,6 +22,7 @@ Este diretório contém as migrações oficiais do banco de dados. Execute-as **
    - Execute `000_create_enums_first.sql`
    - Execute `001_ensure_orders_structure.sql`
    - Execute `002_fix_related_tables.sql`
+   - Execute `003_fix_orders_view.sql`
 3. Verifique mensagens de sucesso nos logs
 
 ### Via CLI
@@ -29,6 +31,7 @@ Este diretório contém as migrações oficiais do banco de dados. Execute-as **
 psql -h <host> -U <user> -d <database> -f database/migrations/000_create_enums_first.sql
 psql -h <host> -U <user> -d <database> -f database/migrations/001_ensure_orders_structure.sql
 psql -h <host> -U <user> -d <database> -f database/migrations/002_fix_related_tables.sql
+psql -h <host> -U <user> -d <database> -f database/migrations/003_fix_orders_view.sql
 ```
 
 ## 📋 Detalhes das Migrações
@@ -57,6 +60,13 @@ psql -h <host> -U <user> -d <database> -f database/migrations/002_fix_related_ta
 - Cria tabela `payments`
 - Cria índices para todas as tabelas
 - **Idempotente**: Verifica antes de criar/adicionar
+
+### 003_fix_orders_view.sql
+- Recria a view `orders_with_customer` para garantir funcionamento
+- Verifica estatísticas do banco (pedidos e usuários)
+- Testa permissões RLS
+- Valida estrutura da tabela `orders`
+- **Idempotente**: Pode ser executado múltiplas vezes
 
 ## ✅ Verificação Pós-Migração
 
@@ -123,10 +133,25 @@ Você deve ver:
 - `discount_amount` com `column_default = '0'`
 - Todas as outras colunas conforme o schema
 
+## 🧪 Scripts de Teste
+
+### TESTE_SIMPLES.sql (Recomendado)
+- **Uso**: Verificação básica sem inserir dados
+- **Quando usar**: Para diagnosticar problemas de estrutura
+- **Execução**: Execute no Supabase SQL Editor
+- **Resultado**: Mostra status das tabelas, views e permissões
+
+### TESTE_PEDIDOS.sql (Avançado)
+- **Uso**: Teste completo com inserção de dados de exemplo
+- **Quando usar**: Para testar o fluxo completo de criação de pedidos
+- **Execução**: Execute no Supabase SQL Editor
+- **Resultado**: Cria um pedido de teste e verifica se aparece na view
+
 ## Resolução de Problemas
 
 Se você receber erros sobre colunas não encontradas:
 
 1. Execute a migração `001_ensure_orders_structure.sql`
 2. Verifique se a migração foi executada com sucesso (procure por mensagens `RAISE NOTICE`)
-3. Se ainda houver problemas, verifique se você tem permissões adequadas no banco de dados
+3. Se ainda houver problemas, execute `TESTE_SIMPLES.sql` para diagnosticar
+4. Se ainda houver problemas, verifique se você tem permissões adequadas no banco de dados

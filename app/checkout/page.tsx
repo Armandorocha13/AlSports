@@ -4,11 +4,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { getProductDimensions } from '@/lib/product-dimensions'
 import { ShippingOption, superFreteService } from '@/lib/shipping-service'
-import {
+import { 
   AlertCircle,
-  ArrowLeft,
+  ArrowLeft, 
   CheckCircle,
-  Search,
+  Search, 
   Truck
 } from 'lucide-react'
 import Link from 'next/link'
@@ -670,7 +670,7 @@ export default function CheckoutPage() {
                 {shippingError && !loadingShipping && (
                   <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <div>
+                      <div>
                       <p className="text-red-400 font-medium mb-1">Erro ao calcular frete</p>
                       <p className="text-red-300 text-sm">{shippingError}</p>
                       <button
@@ -681,7 +681,7 @@ export default function CheckoutPage() {
                         Tentar novamente
                       </button>
                     </div>
-                  </div>
+                      </div>
                 )}
 
                 {!loadingShipping && !shippingError && shippingOptions.length === 0 && (
@@ -765,7 +765,7 @@ export default function CheckoutPage() {
                                 <p className="text-sm text-gray-400">
                                   {option.company?.name || 'Transportadora'}
                                 </p>
-                              </div>
+                      </div>
                       </label>
                     </div>
                   </div>
@@ -818,7 +818,7 @@ export default function CheckoutPage() {
                         <span className="font-medium">{addressData.fullName}</span><br />
                         {addressData.address}, {addressData.number}
                         {addressData.complement && ` - ${addressData.complement}`}<br />
-                        {addressData.neighborhood}, {addressData.city} - {addressData.state}<br />
+                      {addressData.neighborhood}, {addressData.city} - {addressData.state}<br />
                         CEP: {addressData.cep.replace(/(\d{5})(\d{3})/, '$1-$2')}<br />
                         {addressData.phone && `Tel: ${addressData.phone}`}
                         {addressData.email && <><br />Email: {addressData.email}</>}
@@ -882,10 +882,10 @@ export default function CheckoutPage() {
                               </p>
                               <p className="text-sm font-bold text-yellow-400">
                                 R$ {(item.quantity * item.price).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                    </p>
+                  </div>
+                  </div>
+                ))}
                       </div>
                     </div>
 
@@ -922,9 +922,9 @@ export default function CheckoutPage() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
                 </div>
+                </div>
+              </div>
 
                 <div className="flex justify-between">
                   <button 

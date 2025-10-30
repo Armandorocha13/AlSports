@@ -435,26 +435,54 @@ describe('CheckoutPage', () => {
 
     render(<CheckoutPage />)
 
-    // Preencher todos os campos obrigatórios e avançar
+    // Preencher todos os campos obrigatórios
     await fillAllRequiredFields()
 
-    // Aguardar botão aparecer após validação (botão pode estar desabilitado inicialmente)
+    // Aguardar botão aparecer após validação
     await waitFor(() => {
       const continueButton = screen.queryByText('Continuar para Entrega')
       expect(continueButton).toBeInTheDocument()
-    }, { timeout: 3000 })
+      expect(continueButton).not.toBeDisabled()
+    }, { timeout: 5000 })
 
+    // Avançar para etapa 2 (frete)
     const continueButton = screen.getByText('Continuar para Entrega')
     fireEvent.click(continueButton)
 
-    // Aguardar chegar na etapa 3 e clicar no botão de pagamento
+    // Aguardar etapa de frete
     await waitFor(() => {
-      const finalizeButton = screen.queryByText('Ir para Pagamento')
-      if (finalizeButton) {
-        fireEvent.click(finalizeButton)
-      }
-    }, { timeout: 3000 })
+      expect(screen.getByText('Método de Entrega')).toBeInTheDocument()
+    }, { timeout: 5000 })
 
+    // Aguardar opções de frete aparecerem e selecionar uma
+    await waitFor(() => {
+      const shippingRadios = screen.queryAllByRole('radio')
+      expect(shippingRadios.length).toBeGreaterThan(0)
+    }, { timeout: 10000 })
+
+    const shippingRadios = screen.getAllByRole('radio')
+    fireEvent.click(shippingRadios[0])
+
+    // Avançar para etapa 3
+    await waitFor(() => {
+      const continueButton2 = screen.queryByText('Continuar')
+      expect(continueButton2).toBeInTheDocument()
+      expect(continueButton2).not.toBeDisabled()
+    }, { timeout: 5000 })
+
+    const continueButton2 = screen.getByText('Continuar')
+    fireEvent.click(continueButton2)
+
+    // Aguardar etapa 3 (resumo) e clicar no botão de pagamento
+    await waitFor(() => {
+      expect(screen.getByText('Finalizar Pedido')).toBeInTheDocument()
+      expect(screen.getByText('Ir para Pagamento')).toBeInTheDocument()
+    }, { timeout: 10000 })
+
+    const finalizeButton = screen.getByText('Ir para Pagamento')
+    fireEvent.click(finalizeButton)
+
+    // Verificar se as funções foram chamadas
     await waitFor(() => {
       expect(mockCreateOrder).toHaveBeenCalled()
       expect(mockOpenWhatsAppOrder).toHaveBeenCalled()
