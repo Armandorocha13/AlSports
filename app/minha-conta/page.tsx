@@ -1,23 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { 
-  User, 
-  Package, 
-  MapPin, 
-  Settings, 
-  LogOut,
-  ArrowRight,
-  Calendar,
-  DollarSign,
-  Truck,
-  Shield
-} from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase-client'
 import { OrderWithCustomer } from '@/lib/types/database'
+import {
+    Calendar,
+    DollarSign,
+    LogOut,
+    Package,
+    Settings,
+    Shield,
+    Truck,
+    User
+} from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function MyAccountPage() {
   const router = useRouter()
@@ -298,8 +296,8 @@ export default function MyAccountPage() {
                     <span>Configurações</span>
                   </Link>
                   
-                  {/* Admin Panel Button */}
-                  {profile?.user_types === 'admin' && (
+                  {/* Admin Panel Button - apenas para admins */}
+                  {(profile?.user_types === 'admin' || profile?.email?.toLowerCase() === 'almundodabola@gmail.com') && (
                     <Link
                       href="/admin"
                       className="flex items-center p-3 text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors duration-200 font-medium"

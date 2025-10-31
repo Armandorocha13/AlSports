@@ -1,14 +1,14 @@
 'use client'
 
 // Importações necessárias para o componente Header
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Menu, X, Search, User, LogOut, Settings, Heart, ShoppingCart, Shield } from 'lucide-react'
-import { categories } from '@/lib/data'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { categories } from '@/lib/data'
+import { Heart, LogOut, Menu, Search, Shield, ShoppingCart, User, X } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState } from 'react'
 
 // Componente do cabeçalho da aplicação
 export default function Header() {
@@ -157,17 +157,19 @@ export default function Header() {
                       Favoritos
                     </Link>
                     
-                    {/* Link para painel administrativo */}
-                    <Link
-                      href="/admin"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <div className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2" />
-                        Painel Admin
-                      </div>
-                    </Link>
+                    {/* Link para painel administrativo - apenas para admins */}
+                    {(profile?.user_types === 'admin' || profile?.email?.toLowerCase() === 'almundodabola@gmail.com') && (
+                      <Link
+                        href="/admin"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <div className="flex items-center">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Painel Admin
+                        </div>
+                      </Link>
+                    )}
                     
                     {/* Botão de logout */}
                     <hr className="my-1" />

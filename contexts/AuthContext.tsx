@@ -40,6 +40,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient() // Cliente do Supabase
 
   useEffect(() => {
+    // Função para carregar perfil completo da tabela profiles
+    const loadProfile = async (userId: string) => {
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone, cpf, user_types, updated_at')
+          .eq('id', userId)
+          .single()
+
+        if (error) {
+          console.error('Erro ao carregar perfil:', error)
+          return null
+        }
+
+        return profileData as SimpleProfile
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error)
+        return null
+      }
+    }
     // Função para obter sessão inicial do usuário
     const getInitialSession = async () => {
       try {
@@ -47,13 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
         
-        // Se há usuário logado, criar perfil básico
+        // Se há usuário logado, carregar perfil completo
         if (session?.user) {
-          setProfile({
-            full_name: session.user.user_metadata?.full_name || null,
-            email: session.user.email || '',
-            phone: session.user.user_metadata?.phone || null
-          })
+          const profileData = await loadProfile(session.user.id)
+          if (profileData) {
+            setProfile(profileData)
+          } else {
+            // Fallback para metadados se perfil não existe ainda
+            setProfile({
+              full_name: session.user.user_metadata?.full_name || null,
+              email: session.user.email || '',
+              phone: session.user.user_metadata?.phone || null,
+              user_types: 'cliente'
+            })
+          }
         }
         
         setLoading(false)
@@ -71,13 +98,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
         
-        // Se há usuário logado, criar perfil básico; senão, limpar perfil
+        // Se há usuário logado, carregar perfil completo; senão, limpar perfil
         if (session?.user) {
-          setProfile({
-            full_name: session.user.user_metadata?.full_name || null,
-            email: session.user.email || '',
-            phone: session.user.user_metadata?.phone || null
-          })
+          const profileData = await loadProfile(session.user.id)
+          if (profileData) {
+            setProfile(profileData)
+          } else {
+            // Fallback para metadados se perfil não existe ainda
+            setProfile({
+              full_name: session.user.user_metadata?.full_name || null,
+              email: session.user.email || '',
+              phone: session.user.user_metadata?.phone || null,
+              user_types: 'cliente'
+            })
+          }
         } else {
           setProfile(null)
         }
@@ -88,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Cleanup da subscription
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase])
 
   // Função de cadastro
   const signUp = async (email: string, password: string, userData: Partial<SimpleProfile>) => {
