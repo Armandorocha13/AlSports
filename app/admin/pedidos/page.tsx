@@ -4,6 +4,7 @@ import { AdminOrder, adminService } from '@/lib/admin-service'
 import {
     Calendar,
     CheckCircle,
+    ChevronDown,
     Clock,
     DollarSign,
     Edit,
@@ -34,6 +35,7 @@ export default function PedidosPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null)
   const [savingOrder, setSavingOrder] = useState(false)
+  const [loadingItems, setLoadingItems] = useState(false)
 
   // Carregar pedidos do serviço
   useEffect(() => {
@@ -141,9 +143,53 @@ export default function PedidosPage() {
     }
   }
 
-  const handleViewDetails = (order: Order) => {
+  const handleViewDetails = async (order: Order) => {
     setSelectedOrder(order)
     setShowModal(true)
+    
+    // Sempre verificar se há itens no banco quando abrir o modal
+    setLoadingItems(true)
+    try {
+      // Usar função de verificação que retorna mais informações
+      const verification = await adminService.verifyOrderItems(order.id)
+      
+      console.log(`🔍 Verificação do pedido ${order.id}:`, verification)
+      
+      if (verification.itemsCount > 0) {
+        // Encontrou itens, atualizar
+        setSelectedOrder({
+          ...order,
+          items: verification.items
+        })
+        // Atualizar também na lista de pedidos
+        setOrders(prev => prev.map(o => 
+          o.id === order.id ? { ...o, items: verification.items } : o
+        ))
+        console.log(`✅ ${verification.itemsCount} item(ns) encontrado(s) para pedido ${order.id}`)
+      } else if (verification.error) {
+        console.error(`❌ Erro na verificação: ${verification.error}`)
+        // Ainda assim atualizar para mostrar mensagem de erro
+        setSelectedOrder({
+          ...order,
+          items: []
+        })
+      } else {
+        console.warn(`⚠️ Pedido ${order.id} não possui itens no banco de dados`)
+        // Garantir que items está vazio
+        setSelectedOrder({
+          ...order,
+          items: []
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao verificar itens do pedido:', error)
+      setSelectedOrder({
+        ...order,
+        items: []
+      })
+    } finally {
+      setLoadingItems(false)
+    }
   }
 
   const handleEdit = (order: Order) => {
@@ -402,43 +448,108 @@ export default function PedidosPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Busca */}
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Buscar Pedidos
+            </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
-                placeholder="Buscar pedidos..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 placeholder:text-gray-400"
+                placeholder="Buscar por pedido, cliente ou email..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 placeholder:text-gray-400 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           
-          <select
-            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 font-medium"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="all">Todos os Status</option>
-            <option value="pending">Pendente</option>
-            <option value="confirmed">Confirmado</option>
-            <option value="shipped">Enviado</option>
-            <option value="delivered">Entregue</option>
-            <option value="cancelled">Cancelado</option>
-          </select>
+          {/* Filtro de Status */}
+          <div className="lg:w-64">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Status
+            </label>
+            <div className="relative">
+              <select
+                className="w-full px-4 py-3 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 font-medium appearance-none cursor-pointer transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 bg-white"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">Todos os Status</option>
+                <option value="pending">Pendente</option>
+                <option value="confirmed">Confirmado</option>
+                <option value="shipped">Enviado</option>
+                <option value="delivered">Entregue</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none z-10">
+                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              </div>
+            </div>
+          </div>
 
-          <select
-            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 font-medium"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="createdAt">Ordenar por Data</option>
-            <option value="total">Ordenar por Valor</option>
-            <option value="customer">Ordenar por Cliente</option>
-          </select>
+          {/* Ordenação */}
+          <div className="lg:w-64">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Ordenar por
+            </label>
+            <div className="relative">
+              <select
+                className="w-full px-4 py-3 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-gray-800 dark:text-white text-gray-900 font-medium appearance-none cursor-pointer transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 bg-white"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="createdAt">Data (Mais Recente)</option>
+                <option value="total">Valor (Maior)</option>
+                <option value="customer">Cliente (A-Z)</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none z-10">
+                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              </div>
+            </div>
+          </div>
         </div>
+        
+        {/* Indicadores de filtros ativos */}
+        {(searchTerm || filterStatus !== 'all') && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filtros ativos:</span>
+            {searchTerm && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
+                Busca: "{searchTerm}"
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {filterStatus !== 'all' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium">
+                Status: {getStatusInfo(filterStatus).label}
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className="hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full p-0.5 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setFilterStatus('all')
+                setSortBy('createdAt')
+              }}
+              className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium transition-colors"
+            >
+              Limpar todos
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Orders Table */}
@@ -500,12 +611,38 @@ export default function PedidosPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {order.items.length} item(s)
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Package className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {order.items.length > 0 ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}` : '0 item(s)'}
+                        </span>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {order.items.map(item => item.name).join(', ')}
+                      <div className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate" title={order.items.length > 0 
+                        ? order.items.map(item => `${item.name} (${item.quantity}x)`).join(', ')
+                        : 'Nenhum item cadastrado'
+                      }>
+                        {order.items.length > 0 ? (
+                          <div className="space-y-1">
+                            {order.items.slice(0, 2).map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                  {item.quantity}x
+                                </span>
+                                <span className="truncate">{item.name}</span>
+                              </div>
+                            ))}
+                            {order.items.length > 2 && (
+                              <span className="text-gray-500 dark:text-gray-400 italic">
+                                +{order.items.length - 2} mais...
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400 italic">
+                            Nenhum item cadastrado
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
@@ -642,23 +779,41 @@ export default function PedidosPage() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   Itens do Pedido ({selectedOrder.items.length})
                 </h3>
-                <div className="space-y-3">
-                  {selectedOrder.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Quantidade: {item.quantity} × R$ {item.price.toFixed(2)}
+                {loadingItems ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">
+                      Buscando itens do pedido...
+                    </span>
+                  </div>
+                ) : selectedOrder.items.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedOrder.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Quantidade: {item.quantity} × R$ {item.price.toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          R$ {(item.quantity * item.price).toFixed(2)}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        R$ {(item.quantity * item.price).toFixed(2)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Este pedido não possui itens cadastrados no banco de dados.
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                      Verifique se os itens foram salvos corretamente durante a criação do pedido.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Informações de Pagamento e Total */}

@@ -109,6 +109,173 @@ class AdminService {
   }
 
   /**
+   * Verifica se um pedido possui itens no banco de dados
+   * Função de diagnóstico para verificar problemas de salvamento
+   */
+  async verifyOrderItems(orderIdentifier: string): Promise<{
+    orderExists: boolean
+    itemsCount: number
+    items: Array<{ name: string; quantity: number; price: number }>
+    error?: string
+  }> {
+    try {
+      // Buscar pedido
+      let orderDbId: string | null = null
+
+      const { data: orderByNumber } = await this.supabase
+        .from('orders')
+        .select('id, order_number')
+        .eq('order_number', orderIdentifier)
+        .single()
+
+      if (orderByNumber) {
+        orderDbId = orderByNumber.id
+      } else {
+        const { data: orderById } = await this.supabase
+          .from('orders')
+          .select('id, order_number')
+          .eq('id', orderIdentifier)
+          .single()
+
+        if (orderById) {
+          orderDbId = orderById.id
+        }
+      }
+
+      if (!orderDbId) {
+        return {
+          orderExists: false,
+          itemsCount: 0,
+          items: [],
+          error: `Pedido ${orderIdentifier} não encontrado`
+        }
+      }
+
+      // Buscar itens
+      const { data: itemsData, error: itemsError } = await this.supabase
+        .from('order_items')
+        .select('id, product_name, quantity, unit_price')
+        .eq('order_id', orderDbId)
+
+      if (itemsError) {
+        return {
+          orderExists: true,
+          itemsCount: 0,
+          items: [],
+          error: `Erro ao buscar itens: ${itemsError.message}`
+        }
+      }
+
+      return {
+        orderExists: true,
+        itemsCount: itemsData?.length || 0,
+        items: (itemsData || []).map(item => ({
+          name: item.product_name || 'Produto sem nome',
+          quantity: Number(item.quantity) || 0,
+          price: Number(item.unit_price) || 0
+        }))
+      }
+    } catch (error: any) {
+      return {
+        orderExists: false,
+        itemsCount: 0,
+        items: [],
+        error: `Exceção: ${error.message}`
+      }
+    }
+  }
+
+  /**
+   * Busca itens de um pedido específico pelo order_number ou UUID
+   */
+  async getOrderItems(orderIdentifier: string): Promise<Array<{ name: string; quantity: number; price: number }>> {
+    try {
+      // Primeiro, buscar o pedido pelo order_number ou id
+      let orderDbId: string | null = null
+
+      // Tentar buscar por order_number primeiro
+      const { data: orderByNumber } = await this.supabase
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderIdentifier)
+        .single()
+
+      if (orderByNumber) {
+        orderDbId = orderByNumber.id
+      } else {
+        // Tentar buscar por id (UUID)
+        const { data: orderById } = await this.supabase
+          .from('orders')
+          .select('id')
+          .eq('id', orderIdentifier)
+          .single()
+
+        if (orderById) {
+          orderDbId = orderById.id
+        }
+      }
+
+      if (!orderDbId) {
+        console.error(`Pedido ${orderIdentifier} não encontrado`)
+        return []
+      }
+
+      // Buscar itens do pedido com retry logic
+      let itemsData: any[] | null = null
+      let itemsError: any = null
+
+      // Primeira tentativa: busca completa
+      const { data, error } = await this.supabase
+        .from('order_items')
+        .select('product_name, quantity, unit_price')
+        .eq('order_id', orderDbId)
+        .order('created_at', { ascending: true })
+
+      itemsData = data
+      itemsError = error
+
+      // Se falhou, tentar busca alternativa sem order by
+      if (itemsError || !itemsData || itemsData.length === 0) {
+        console.warn(`Primeira busca de itens falhou para ${orderIdentifier}, tentando alternativa...`)
+        
+        const { data: altData, error: altError } = await this.supabase
+          .from('order_items')
+          .select('product_name, quantity, unit_price')
+          .eq('order_id', orderDbId)
+
+        if (!altError && altData && altData.length > 0) {
+          itemsData = altData
+          itemsError = null
+          console.log(`Busca alternativa encontrou ${altData.length} item(ns)`)
+        } else if (altError) {
+          itemsError = altError
+        }
+      }
+
+      if (itemsError) {
+        console.error(`❌ Erro ao buscar itens do pedido ${orderIdentifier} (ID: ${orderDbId}):`, itemsError)
+        console.error('Código:', itemsError.code, 'Mensagem:', itemsError.message)
+        return []
+      }
+
+      if (!itemsData || itemsData.length === 0) {
+        console.warn(`⚠️ Pedido ${orderIdentifier} (ID: ${orderDbId}) não possui itens na tabela`)
+        return []
+      }
+
+      console.log(`✅ Encontrados ${itemsData.length} item(ns) para pedido ${orderIdentifier}`)
+      return itemsData.map(item => ({
+        name: item.product_name || 'Produto sem nome',
+        quantity: Number(item.quantity) || 0,
+        price: Number(item.unit_price) || 0
+      }))
+    } catch (error) {
+      console.error('Erro ao buscar itens do pedido:', error)
+      return []
+    }
+  }
+
+  /**
    * Busca todos os pedidos do banco de dados
    */
   async getOrders(): Promise<AdminOrder[]> {
@@ -174,17 +341,86 @@ class AdminService {
           }
         }
         
-        // Buscar itens do pedido
-        const { data: itemsData } = await this.supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id)
+        // Buscar itens do pedido usando o UUID real do pedido
+        // Tentar buscar com select completo para garantir que pegamos todos os campos
+        let items: Array<{ name: string; quantity: number; price: number }> = []
+        
+        try {
+          // Primeira tentativa: busca completa com todos os campos
+          let itemsData: any[] | null = null
+          let itemsError: any = null
 
-        const items = itemsData?.map(item => ({
-          name: item.product_name,
-          quantity: item.quantity,
-          price: Number(item.unit_price)
-        })) || []
+          const { data, error } = await this.supabase
+            .from('order_items')
+            .select(`
+              id,
+              order_id,
+              product_name,
+              quantity,
+              unit_price,
+              total_price,
+              size,
+              color
+            `)
+            .eq('order_id', order.id)
+            .order('created_at', { ascending: true })
+
+          itemsData = data
+          itemsError = error
+
+          // Se houve erro ou não encontrou nada, tentar busca alternativa
+          if (itemsError || !itemsData || itemsData.length === 0) {
+            console.warn(`⚠️ Primeira busca falhou para pedido ${order.order_number || order.id} (UUID: ${order.id})`)
+            
+            // Tentativa alternativa: buscar apenas campos essenciais
+            const { data: altData, error: altError } = await this.supabase
+              .from('order_items')
+              .select('product_name, quantity, unit_price')
+              .eq('order_id', order.id)
+            
+            if (!altError && altData && altData.length > 0) {
+              console.log(`✅ Busca alternativa encontrou ${altData.length} item(ns)`)
+              itemsData = altData
+              itemsError = null
+            } else if (altError) {
+              console.error('❌ Busca alternativa também falhou:', altError)
+            }
+          }
+
+          if (itemsError) {
+            console.error(`❌ Erro ao buscar itens do pedido ${order.order_number || order.id} (UUID: ${order.id}):`, itemsError)
+            console.error('Código do erro:', itemsError.code)
+            console.error('Mensagem:', itemsError.message)
+            console.error('Detalhes:', JSON.stringify(itemsError, null, 2))
+          } else if (!itemsData || itemsData.length === 0) {
+            console.warn(`⚠️ Pedido ${order.order_number || order.id} (UUID: ${order.id}) não possui itens na tabela order_items`)
+            console.warn('Verificando se o pedido existe...')
+            
+            // Verificar se o pedido existe mesmo
+            const { data: orderCheck } = await this.supabase
+              .from('orders')
+              .select('id, order_number')
+              .eq('id', order.id)
+              .single()
+            
+            if (orderCheck) {
+              console.warn(`Pedido existe, mas sem itens. Order Number: ${orderCheck.order_number}`)
+            } else {
+              console.error('⚠️ Pedido não encontrado no banco!')
+            }
+          } else {
+            console.log(`✅ Pedido ${order.order_number || order.id} possui ${itemsData.length} item(ns) encontrado(s)`)
+            items = itemsData.map(item => ({
+              name: item.product_name || 'Produto sem nome',
+              quantity: Number(item.quantity) || 0,
+              price: Number(item.unit_price) || 0
+            }))
+          }
+        } catch (error: any) {
+          console.error(`❌ Exceção ao buscar itens do pedido ${order.order_number || order.id}:`, error)
+          console.error('Stack trace:', error.stack)
+          items = []
+        }
 
         // Buscar método de pagamento
         const { data: paymentData } = await this.supabase

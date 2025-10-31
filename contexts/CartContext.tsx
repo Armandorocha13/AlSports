@@ -311,39 +311,82 @@ export function CartProvider({ children }: CartProviderProps) {
       }
 
       // ============================================
-      // PASSO 3: Inserir itens do pedido
+      // PASSO 3: Inserir itens do pedido (CRÍTICO)
       // ============================================
-      if (orderData.items && orderData.items.length > 0) {
-        try {
-          const orderItems = orderData.items.map((item: CartItem) => ({
-            order_id: newOrder.id,
-            product_id: item.id || null,
-            product_name: item.name,
-            product_sku: item.id || null,
-            product_image_url: item.image || null,
-            size: item.size || null,
-            color: item.color || null,
-            quantity: item.quantity,
-            unit_price: item.price,
-            total_price: item.quantity * item.price
-          }))
-
-          const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(orderItems)
-
-          if (itemsError) {
-            console.error('❌ Erro ao inserir itens do pedido:', itemsError)
-            // O pedido já foi criado, então apenas logamos o erro
-            // Mas não lançamos exceção para não perder o pedido principal
-            console.warn('⚠️ Pedido foi criado mas alguns itens não foram salvos')
-          } else {
-            console.log(`✅ ${orderItems.length} item(ns) do pedido registrado(s)`)
-          }
-        } catch (itemsErr) {
-          console.warn('⚠️ Erro ao inserir itens (não crítico):', itemsErr)
-        }
+      if (!orderData.items || orderData.items.length === 0) {
+        console.error('❌ ERRO CRÍTICO: Pedido criado sem itens!')
+        throw new Error('Pedido deve conter pelo menos um item')
       }
+
+      console.log(`📦 Inserindo ${orderData.items.length} item(ns) do pedido ${newOrder.order_number}...`)
+      
+      // Função auxiliar para validar UUID
+      const isValidUUID = (str: string | undefined | null): boolean => {
+        if (!str || typeof str !== 'string') return false
+        // Regex para validar formato UUID v4
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        return uuidRegex.test(str)
+      }
+      
+      const orderItems = orderData.items.map((item: CartItem) => {
+        // Validar dados do item antes de inserir
+        if (!item.name || !item.name.trim()) {
+          throw new Error(`Item sem nome inválido: ${JSON.stringify(item)}`)
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          throw new Error(`Item com quantidade inválida: ${item.quantity}`)
+        }
+        if (!item.price || item.price < 0) {
+          throw new Error(`Item com preço inválido: ${item.price}`)
+        }
+
+        // Validar se item.id é um UUID válido, caso contrário usar null
+        const productId = (item.id && isValidUUID(item.id)) ? item.id : null
+        
+        // Log se item.id não for UUID válido
+        if (item.id && !isValidUUID(item.id)) {
+          console.warn(`⚠️ Item "${item.name}" possui ID "${item.id}" que não é um UUID válido. Usando null para product_id.`)
+        }
+        
+        return {
+          order_id: newOrder.id,
+          product_id: productId,
+          product_name: item.name.trim(),
+          product_sku: item.id || null, // SKU pode ser qualquer string, não precisa ser UUID
+          product_image_url: item.image || null,
+          size: item.size || null,
+          color: item.color || null,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.quantity * item.price
+        }
+      })
+
+      console.log('📋 Itens preparados para inserção:', JSON.stringify(orderItems, null, 2))
+
+      const { data: insertedItems, error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems)
+        .select('id, product_name, quantity')
+
+      if (itemsError) {
+        console.error('❌ ERRO CRÍTICO ao inserir itens do pedido:', itemsError)
+        console.error('Detalhes do erro:', JSON.stringify(itemsError, null, 2))
+        console.error('ID do pedido:', newOrder.id)
+        console.error('Itens que tentaram ser inseridos:', JSON.stringify(orderItems, null, 2))
+        
+        // Tentar deletar o pedido se os itens não foram salvos
+        // ou pelo menos avisar que há um problema
+        throw new Error(`Falha ao salvar itens do pedido: ${itemsError.message}. Pedido criado mas sem itens.`)
+      }
+
+      if (!insertedItems || insertedItems.length === 0) {
+        console.error('❌ ERRO: Nenhum item foi inserido, mas não houve erro')
+        throw new Error('Falha ao salvar itens: nenhum item foi inserido')
+      }
+
+      console.log(`✅ ${insertedItems.length} item(ns) do pedido ${newOrder.order_number} registrado(s) com sucesso!`)
+      console.log('IDs dos itens inseridos:', insertedItems.map(i => i.id))
 
       // ============================================
       // PASSO 4: Criar registro de pagamento (pendente)
