@@ -1,5 +1,6 @@
 'use client'
 
+import { ENV_CONFIG } from '@/lib/config'
 import { createClient } from '@/lib/supabase-client'
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react'
 
@@ -388,18 +389,75 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
   /**
-   * Abre o WhatsApp com o pedido
+   * Abre o WhatsApp com o pedido completo
    */
   const openWhatsAppOrder = (order: any) => {
-    const message = `Olá! Gostaria de fazer um pedido:
+    // Formatar ID do Pedido
+    const orderIdText = `🛒 *ID DO PEDIDO:* ${order.orderId || 'N/A'}\n\n`
 
-${order.items.map((item: CartItem) => 
-  `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
-).join('\n')}
+    // Formatar Endereço de Entrega
+    const customer = order.customer || {}
+    const addressParts = []
+    if (customer.address) {
+      addressParts.push(customer.address)
+      if (customer.number) addressParts.push(`nº ${customer.number}`)
+      if (customer.complement) addressParts.push(`- ${customer.complement}`)
+    }
+    const fullAddress = addressParts.join(', ') || 'N/A'
+    
+    const locationParts = []
+    if (customer.neighborhood) locationParts.push(customer.neighborhood)
+    if (customer.city) locationParts.push(customer.city)
+    if (customer.state) locationParts.push(customer.state)
+    const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : 'N/A'
+    
+    const formattedCep = customer.cep 
+      ? customer.cep.replace(/(\d{5})(\d{3})/, '$1-$2') 
+      : 'N/A'
+    
+    const addressText = `📍 *ENDEREÇO DE ENTREGA:*
+• Nome: ${customer.fullName || 'N/A'}
+• Endereço: ${fullAddress}
+• Bairro/Cidade/Estado: ${fullLocation}
+• CEP: ${formattedCep}
+• Telefone: ${customer.phone || 'N/A'}
+• Email: ${customer.email || 'N/A'}\n\n`
 
-Total: R$ ${order.total.toFixed(2)}`
+    // Formatar Método de Entrega
+    const shipping = order.shipping || {}
+    const shippingOption = shipping.option || {}
+    const shippingText = `🚚 *MÉTODO DE ENTREGA:*
+• Método: ${shippingOption.name || 'N/A'}
+• Transportadora: ${shippingOption.company?.name || 'Correios'}
+• Custo: R$ ${(order.shippingCost || 0).toFixed(2)}
+• Prazo estimado: ${shippingOption.delivery_time ? `${shippingOption.delivery_time} dias úteis` : 'N/A'}\n\n`
 
-    const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`
+    // Formatar Itens do Pedido
+    const itemsText = `📦 *ITENS DO PEDIDO:*
+${order.items.map((item: CartItem, index: number) => {
+  const itemTotal = (item.price * item.quantity).toFixed(2)
+  return `${index + 1}. ${item.name || 'Produto'}
+   • ID: ${item.id || 'N/A'}
+   • Tamanho: ${item.size || 'N/A'}
+   ${item.color ? `   • Cor: ${item.color}` : ''}
+   • Quantidade: ${item.quantity}x
+   • Preço unit.: R$ ${item.price.toFixed(2)}
+   • Subtotal: R$ ${itemTotal}`
+}).join('\n\n')}\n\n`
+
+    // Formatar Resumo de Valores
+    const summaryText = `💰 *RESUMO DE VALORES:*
+• Subtotal (${order.items.reduce((acc: number, item: CartItem) => acc + item.quantity, 0)} ${order.items.reduce((acc: number, item: CartItem) => acc + item.quantity, 0) === 1 ? 'item' : 'itens'}): R$ ${(order.subtotal || 0).toFixed(2)}
+• Frete: R$ ${(order.shippingCost || 0).toFixed(2)}
+• *TOTAL: R$ ${(order.total || 0).toFixed(2)}*`
+
+    // Mensagem completa
+    const message = `${orderIdText}${addressText}${shippingText}${itemsText}${summaryText}`
+
+    // Número do WhatsApp - usar configuração do projeto
+    // Formato: 5521994595532 (código do país + DDD + número, sem espaços ou caracteres especiais)
+    const whatsappNumber = ENV_CONFIG.WHATSAPP_PHONE || '5521994595532'
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 

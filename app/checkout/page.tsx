@@ -4,12 +4,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { getProductDimensions } from '@/lib/product-dimensions'
 import { ShippingOption, superFreteService } from '@/lib/shipping-service'
-import { 
-  AlertCircle,
-  ArrowLeft, 
-  CheckCircle,
-  Search, 
-  Truck
+import {
+    AlertCircle,
+    ArrowLeft,
+    CheckCircle,
+    Search,
+    Truck
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 export default function CheckoutPage() {
   const router = useRouter()
   const { user, profile } = useAuth()
-  const { getCartSummary, createOrder, openWhatsAppOrder } = useCart()
+  const { getCartSummary, createOrder, openWhatsAppOrder, clearCart } = useCart()
   
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -333,7 +333,11 @@ export default function CheckoutPage() {
       
       if (result.success) {
         setOrderSummary(orderData)
+        // Limpar o carrinho após criar o pedido com sucesso
+        clearCart()
+        // Enviar para WhatsApp
         openWhatsAppOrder(orderData)
+        // Ir para tela de confirmação
         setStep(4)
       } else {
         alert('Erro ao criar pedido: ' + result.error)
