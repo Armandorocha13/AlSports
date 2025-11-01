@@ -179,29 +179,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Função de atualização do perfil
-  const updateProfile = async (updates: Partial<SimpleProfile>) => {
+  const updateProfile = async (updates: Partial<SimpleProfile & { email?: string }>) => {
     try {
       if (!user) {
         return { error: { message: 'Usuário não logado' } }
       }
 
-      // Atualizar metadados do usuário
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: updates.full_name,
-          phone: updates.phone
-        }
-      })
+      console.log('🔄 [AuthContext] Iniciando updateProfile:', updates)
 
-      if (error) {
-        return { error }
+      // Preparar dados para atualizar na tabela profiles
+      const profileUpdates: any = {
+        updated_at: new Date().toISOString()
       }
 
-      // Atualizar estado local
-      setProfile(prev => prev ? { ...prev, ...updates } : null)
+      if (updates.full_name !== undefined) {
+        profileUpdates.full_name = updates.full_name
+      }
+      if (updates.phone !== undefined) {
+        profileUpdates.phone = updates.phone
+      }
+      if (updates.email !== undefined) {
+        profileUpdates.email = updates.email
+      }
+      if (updates.cpf !== undefined) {
+        profileUpdates.cpf = updates.cpf
+      }
+
+      // Se não há nada para atualizar além de updated_at, verificar se realmente precisa atualizar
+      const keysToUpdate = Object.keys(profileUpdates).filter(key => key !== 'updated_at')
+      if (keysToUpdate.length === 0) {
+        console.log('⚠️ [AuthContext] Nenhum campo para atualizar')
+        return { error: null }
+      }
+
+      console.log('💾 [AuthContext] Atualizando perfil com:', profileUpdates)
+
+      // Atualizar na tabela profiles
+      const { data: updatedData, error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id)
+        .select('full_name, email, phone, cpf, user_types, updated_at')
+
+      if (profileError) {
+        console.error('❌ [AuthContext] Erro ao atualizar perfil:', profileError)
+        return { error: profileError }
+      }
+
+      console.log('✅ [AuthContext] Perfil atualizado no banco:', updatedData)
+
+      // Atualizar metadados do usuário (apenas se não for email)
+      if (updates.full_name !== undefined || updates.phone !== undefined) {
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            full_name: updates.full_name,
+            phone: updates.phone
+          }
+        })
+
+        if (authError) {
+          console.warn('⚠️ [AuthContext] Aviso ao atualizar metadados do auth:', authError)
+          // Não falhar aqui, pois o perfil já foi atualizado
+        }
+      }
+
+      // Atualizar estado local com os dados retornados do banco
+      if (updatedData && updatedData.length > 0) {
+        const updatedProfile = updatedData[0] as SimpleProfile
+        console.log('✅ [AuthContext] Atualizando estado local com:', updatedProfile)
+        setProfile(updatedProfile)
+      } else {
+        // Fallback: atualizar estado local com os dados que foram atualizados
+        console.warn('⚠️ [AuthContext] Nenhum dado retornado, usando fallback')
+        setProfile(prev => prev ? { ...prev, ...updates } : null)
+      }
 
       return { error: null }
     } catch (error) {
+      console.error('❌ [AuthContext] Exceção ao atualizar perfil:', error)
       return { error }
     }
   }

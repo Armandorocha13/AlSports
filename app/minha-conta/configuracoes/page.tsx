@@ -8,6 +8,8 @@ import {
     Eye,
     EyeOff,
     Key,
+    Mail,
+    Phone,
     Save,
     Settings,
     Shield,
@@ -19,7 +21,7 @@ import { useEffect, useState } from 'react'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, profile, loading: authLoading, signOut, updateProfile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -27,13 +29,37 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showContactForm, setShowContactForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
+  const [contactForm, setContactForm] = useState({
+    email: '',
+    phone: ''
+  })
 
   const supabase = createClient()
+
+  // Função para formatar telefone (definida antes de ser usada)
+  const formatPhone = (value: string): string => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+    }
+    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+
+  useEffect(() => {
+    if (user && profile) {
+      const phoneFormatted = profile.phone ? formatPhone(profile.phone) : ''
+      setContactForm({
+        email: user.email || profile.email || '',
+        phone: phoneFormatted
+      })
+    }
+  }, [user, profile])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -175,6 +201,170 @@ export default function SettingsPage() {
     }
   }
 
+  // Função para validar email
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Função para validar telefone
+  const validatePhone = (phone: string): boolean => {
+    const numbers = phone.replace(/\D/g, '')
+    return numbers.length >= 10 && numbers.length <= 11
+  }
+
+  const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name === 'phone') {
+      setContactForm(prev => ({
+        ...prev,
+        [name]: formatPhone(value)
+      }))
+    } else {
+      setContactForm(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
+  }
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    console.log('🔄 Iniciando atualização de informações de contato...')
+    console.log('Dados do formulário:', contactForm)
+    console.log('User ID:', user?.id)
+
+    // Validações
+    if (!contactForm.email.trim()) {
+      setError('Email é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!validateEmail(contactForm.email)) {
+      setError('Email inválido')
+      setLoading(false)
+      return
+    }
+
+    if (!contactForm.phone.trim()) {
+      setError('Telefone/WhatsApp é obrigatório')
+      setLoading(false)
+      return
+    }
+
+    if (!validatePhone(contactForm.phone)) {
+      setError('Telefone inválido. Use o formato (XX) XXXXX-XXXX')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const phoneNumbers = contactForm.phone.replace(/\D/g, '')
+      console.log('📱 Telefone formatado (apenas números):', phoneNumbers)
+      
+      // Atualizar email no auth apenas se mudou (pode requerer verificação)
+      let emailUpdated = false
+      if (contactForm.email !== user?.email) {
+        console.log('📧 Email mudou, atualizando no auth...')
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: contactForm.email
+        })
+
+        if (emailError) {
+          console.error('❌ Erro ao atualizar email no auth:', emailError)
+          // Se o erro for de email já em uso, continuar e atualizar apenas na tabela profiles
+          if (emailError.message.includes('already registered') || emailError.message.includes('already exists')) {
+            console.warn('⚠️ Email já está em uso por outra conta, continuando apenas com atualização de telefone')
+          } else {
+            setError(`Erro ao atualizar email: ${emailError.message}`)
+            setLoading(false)
+            return
+          }
+        } else {
+          emailUpdated = true
+          console.log('✅ Email atualizado no auth com sucesso')
+        }
+      } else {
+        console.log('📧 Email não mudou, pulando atualização no auth')
+      }
+
+      // Preparar dados para updateProfile (apenas os que mudaram)
+      const profileUpdates: any = {}
+      
+      // Só atualizar email se mudou (para evitar conflitos)
+      const currentEmail = profile?.email || user?.email || ''
+      if (contactForm.email.trim() !== currentEmail.trim()) {
+        profileUpdates.email = contactForm.email.trim()
+        console.log('📧 Email será atualizado:', currentEmail, '->', contactForm.email.trim())
+      }
+
+      // Sempre atualizar telefone se foi modificado (comparar apenas números)
+      const currentPhoneNumbers = profile?.phone ? profile.phone.replace(/\D/g, '') : ''
+      if (phoneNumbers !== currentPhoneNumbers) {
+        profileUpdates.phone = phoneNumbers
+        console.log('📱 Telefone será atualizado:', currentPhoneNumbers, '->', phoneNumbers)
+      } else {
+        console.log('📱 Telefone não mudou:', phoneNumbers)
+      }
+
+      console.log('💾 Dados para atualizar via updateProfile:', profileUpdates)
+
+      // Verificar se há algo para atualizar
+      if (Object.keys(profileUpdates).length === 0) {
+        console.log('ℹ️ Nenhum campo foi alterado')
+        setSuccess('Nenhuma alteração foi feita.')
+        setShowContactForm(false)
+        setLoading(false)
+        return
+      }
+
+      // Usar updateProfile do contexto que já faz tudo: atualiza banco + estado
+      console.log('🔄 Atualizando perfil via contexto...')
+      const { error: profileError } = await updateProfile(profileUpdates)
+
+      if (profileError) {
+        console.error('❌ Erro ao atualizar perfil:', profileError)
+        console.error('Código do erro:', profileError.code)
+        console.error('Mensagem:', profileError.message)
+        console.error('Detalhes:', JSON.stringify(profileError, null, 2))
+        setError(`Erro ao atualizar informações: ${profileError.message || 'Erro desconhecido'}`)
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Perfil atualizado com sucesso via contexto')
+
+      // Mensagem de sucesso
+      let successMessage = 'Informações de contato atualizadas com sucesso!'
+      if (emailUpdated) {
+        successMessage += ' Verifique sua caixa de entrada para confirmar o novo email.'
+      }
+
+      setSuccess(successMessage)
+      setShowContactForm(false)
+      
+      // Fechar o loading antes de fazer reload
+      setLoading(false)
+      
+      // Recarregar a página após 2 segundos para atualizar os dados
+      setTimeout(() => {
+        console.log('🔄 Recarregando página...')
+        window.location.reload()
+      }, 2000)
+
+    } catch (error: any) {
+      console.error('❌ Exceção ao atualizar informações de contato:', error)
+      console.error('Stack trace:', error.stack)
+      setError(error?.message || 'Erro interno do servidor. Tente novamente.')
+      setLoading(false)
+    }
+  }
+
   const handleDeleteAccount = async () => {
     if (!confirm('Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.')) {
       return
@@ -253,6 +443,156 @@ export default function SettingsPage() {
         )}
 
         <div className="space-y-6">
+          {/* Contact Information Settings */}
+          <div className="bg-white rounded-lg shadow-lg border-2 border-gray-200 p-6">
+            <div className="flex items-center mb-6 pb-4 border-b-2 border-gray-200">
+              <div className="p-3 bg-green-500 rounded-lg mr-4 shadow-md">
+                <Mail className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Informações de Contato
+                </h2>
+                <p className="text-gray-700 font-medium">
+                  Gerencie seu email e número de WhatsApp
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-5 border-2 border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center">
+                  <Mail className="h-6 w-6 text-gray-700 mr-4" />
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-base">Email e WhatsApp</h3>
+                    <p className="text-sm text-gray-700 font-medium mt-1">
+                      {user?.email ? `Email atual: ${user.email}` : 'Configure seu email'}
+                      {profile?.phone && (
+                        <span className="ml-2">
+                          • WhatsApp: {formatPhone(profile.phone)}
+                        </span>
+                      )}
+                      {!profile?.phone && (
+                        <span className="ml-2 text-gray-500 italic">
+                          • WhatsApp não configurado
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowContactForm(!showContactForm)
+                    if (showContactForm) {
+                      // Resetar formulário ao cancelar
+                      if (user && profile) {
+                        const phoneFormatted = profile.phone ? formatPhone(profile.phone) : ''
+                        setContactForm({
+                          email: user.email || profile.email || '',
+                          phone: phoneFormatted
+                        })
+                      }
+                      setError('')
+                      setSuccess('')
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  {showContactForm ? 'Cancelar' : 'Editar'}
+                </button>
+              </div>
+
+              {showContactForm && (
+                <form onSubmit={handleContactSubmit} className="p-6 border-2 border-gray-300 rounded-lg bg-white shadow-inner">
+                  <div className="space-y-5">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-bold text-gray-900 mb-2">
+                        Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={contactForm.email}
+                          onChange={handleContactChange}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-600 bg-white text-gray-900 font-medium"
+                          placeholder="seu@email.com"
+                          required
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-gray-600">
+                        Ao alterar o email, você receberá um link de confirmação no novo endereço.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-bold text-gray-900 mb-2">
+                        Telefone / WhatsApp
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={contactForm.phone}
+                          onChange={handleContactChange}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-600 bg-white text-gray-900 font-medium"
+                          placeholder="(21) 98765-4321"
+                          maxLength={15}
+                          required
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-gray-600">
+                        Este número será usado para envio de mensagens no WhatsApp sobre seus pedidos.
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end space-x-4 pt-4 border-t-2 border-gray-300">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowContactForm(false)
+                          if (user && profile) {
+                            const phoneFormatted = profile.phone ? formatPhone(profile.phone) : ''
+                            setContactForm({
+                              email: user.email || profile.email || '',
+                              phone: phoneFormatted
+                            })
+                          }
+                          setError('')
+                          setSuccess('')
+                        }}
+                        className="px-6 py-3 border-2 border-gray-400 text-gray-900 font-bold rounded-lg hover:bg-gray-200 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-5 w-5 mr-2" />
+                            Salvar
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+
           {/* Security Settings */}
           <div className="bg-white rounded-lg shadow-lg border-2 border-gray-200 p-6">
             <div className="flex items-center mb-6 pb-4 border-b-2 border-gray-200">

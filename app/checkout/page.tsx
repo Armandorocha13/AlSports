@@ -335,9 +335,18 @@ export default function CheckoutPage() {
         setOrderSummary(orderData)
         // Limpar o carrinho após criar o pedido com sucesso
         clearCart()
-        // Enviar para WhatsApp
-        openWhatsAppOrder(orderData)
-        // Ir para tela de confirmação
+        
+        // Enviar para WhatsApp (não bloquear se falhar)
+        // Usar timeout para não travar o checkout
+        Promise.race([
+          openWhatsAppOrder(orderData),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+        ]).catch(error => {
+          console.warn('⚠️ Erro ou timeout ao abrir WhatsApp, continuando checkout:', error)
+          // Não bloquear o checkout se falhar
+        })
+        
+        // Ir para tela de confirmação imediatamente (não esperar WhatsApp)
         setStep(4)
       } else {
         alert('Erro ao criar pedido: ' + result.error)

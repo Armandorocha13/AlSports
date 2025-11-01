@@ -1,22 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-client'
-import { 
-  Save, 
-  Upload,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  Truck,
-  Bell,
-  Shield,
-  Database,
-  Key,
-  AlertTriangle
+import {
+    AlertTriangle,
+    Bell,
+    CheckCircle,
+    CreditCard,
+    Database,
+    Globe,
+    Mail,
+    Save,
+    Shield,
+    Truck,
+    Upload,
+    X
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface SiteSettings {
   site_name: string
@@ -69,6 +68,8 @@ export default function AdminSettings() {
     supabase_anon_key: ''
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [activeTab, setActiveTab] = useState('general')
   const supabase = createClient()
 
@@ -78,29 +79,252 @@ export default function AdminSettings() {
 
   const fetchSettings = async () => {
     try {
-      // In a real app, you would fetch from a settings table
-      // For now, we'll use the default values
-      console.log('Loading settings...')
+      // Buscar configurações da tabela settings
+      const { data: settingsData, error } = await supabase
+        .from('settings')
+        .select('key, value')
+
+      if (error) {
+        console.error('Erro ao buscar configurações:', error)
+        return
+      }
+
+      // Mapear configurações
+      const settingsMap: Record<string, any> = {}
+      settingsData?.forEach(item => {
+        let value = item.value
+        
+        // Para JSONB, o Supabase pode retornar string JSON ou já parseado
+        if (typeof value === 'string') {
+          // Se começa e termina com aspas, é string JSON
+          const trimmed = value.trim()
+          if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+            try {
+              value = JSON.parse(trimmed)
+            } catch {
+              // Se falhar, remover aspas manualmente
+              value = trimmed.slice(1, -1)
+            }
+          } else {
+            // Tentar parse JSON
+            try {
+              value = JSON.parse(value)
+            } catch {
+              // Se não for JSON válido, usar como string direto
+              value = value
+            }
+          }
+        }
+        settingsMap[item.key] = value
+      })
+      
+      console.log('📋 Configurações mapeadas:', settingsMap)
+
+      // Atualizar estado com valores do banco ou padrões
+      setSettings(prev => ({
+        ...prev,
+        site_name: settingsMap.site_name || prev.site_name,
+        site_description: settingsMap.site_description || prev.site_description,
+        site_logo: (typeof settingsMap.site_logo === 'string' ? settingsMap.site_logo : prev.site_logo) || prev.site_logo || '',
+        contact_email: (typeof settingsMap.contact_email === 'string' ? settingsMap.contact_email : prev.contact_email) || prev.contact_email,
+        contact_phone: (typeof settingsMap.contact_phone === 'string' ? settingsMap.contact_phone : prev.contact_phone) || prev.contact_phone,
+        contact_address: (typeof settingsMap.contact_address === 'string' ? settingsMap.contact_address : prev.contact_address) || prev.contact_address,
+        // Garantir que whatsapp_number seja string antes de usar replace
+        whatsapp_number: (typeof settingsMap.whatsapp_number === 'string' 
+          ? settingsMap.whatsapp_number.replace(/\D/g, '')
+          : settingsMap.whatsapp_number 
+            ? String(settingsMap.whatsapp_number).replace(/\D/g, '')
+            : prev.whatsapp_number),
+        instagram_url: (typeof settingsMap.instagram_url === 'string' ? settingsMap.instagram_url : prev.instagram_url) || prev.instagram_url,
+        facebook_url: (typeof settingsMap.facebook_url === 'string' ? settingsMap.facebook_url : prev.facebook_url) || prev.facebook_url,
+        twitter_url: (typeof settingsMap.twitter_url === 'string' ? settingsMap.twitter_url : prev.twitter_url) || prev.twitter_url,
+        free_shipping_threshold: settingsMap.shipping_free_minimum || prev.free_shipping_threshold,
+      }))
+
+      console.log('✅ Configurações carregadas')
     } catch (error) {
-      console.error('Error fetching settings:', error)
+      console.error('Erro ao buscar configurações:', error)
     }
   }
 
   const handleSaveSettings = async () => {
     setLoading(true)
+    setError('')
+    setSuccess('')
+    
+    // Timeout de segurança (30 segundos)
+    let timeoutId: NodeJS.Timeout | null = null
+    timeoutId = setTimeout(() => {
+      setLoading(false)
+      setError('⏱️ Timeout: A operação demorou mais de 30 segundos. Verifique se a tabela settings existe no banco de dados. Veja database/migrations/README_003.md para criar a tabela.')
+      console.error('⏱️ Timeout ao salvar configurações')
+    }, 30000)
+
     try {
-      // In a real app, you would save to a settings table
-      console.log('Saving settings:', settings)
+      // Preparar configurações para salvar
+      const whatsappClean = settings.whatsapp_number.replace(/\D/g, '')
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('💾 Salvando todas as configurações...')
+      console.log('🏷️ Nome do site:', settings.site_name)
+      console.log('📄 Descrição:', settings.site_description)
+      console.log('🖼️ Logo:', settings.site_logo ? 'URL definida' : 'Não definida')
+      console.log('📧 Email:', settings.contact_email)
+      console.log('📱 Telefone:', settings.contact_phone)
+      console.log('📍 Endereço:', settings.contact_address)
+      console.log('💬 WhatsApp:', whatsappClean)
+      console.log('📷 Instagram:', settings.instagram_url)
+      console.log('👥 Facebook:', settings.facebook_url)
+      console.log('🐦 Twitter:', settings.twitter_url)
       
-      alert('Configurações salvas com sucesso!')
-    } catch (error) {
-      console.error('Error saving settings:', error)
-      alert('Erro ao salvar configurações')
+      const settingsToSave = [
+        // Informações gerais
+        { key: 'site_name', value: settings.site_name || '', description: 'Nome do site' },
+        { key: 'site_description', value: settings.site_description || '', description: 'Descrição do site' },
+        { key: 'site_logo', value: settings.site_logo || '', description: 'URL da logo do site' },
+        
+        // Informações de contato
+        { key: 'contact_email', value: settings.contact_email || '', description: 'Email de contato' },
+        { key: 'contact_phone', value: settings.contact_phone || '', description: 'Telefone de contato' },
+        { key: 'contact_address', value: settings.contact_address || '', description: 'Endereço de contato' },
+        { 
+          key: 'whatsapp_number', 
+          value: whatsappClean, // Apenas números
+          description: 'Número do WhatsApp para recebimento de pedidos' 
+        },
+        
+        // Redes sociais
+        { key: 'instagram_url', value: settings.instagram_url || '', description: 'URL do Instagram' },
+        { key: 'facebook_url', value: settings.facebook_url || '', description: 'URL do Facebook' },
+        { key: 'twitter_url', value: settings.twitter_url || '', description: 'URL do Twitter' },
+        
+        // Configurações de frete
+        { key: 'shipping_free_minimum', value: settings.free_shipping_threshold.toString(), description: 'Valor mínimo para frete grátis' },
+      ]
+
+      // Verificar se a tabela settings existe primeiro
+      console.log('🔍 Verificando se tabela settings existe...')
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('settings')
+        .select('key')
+        .limit(1)
+
+      if (tableError) {
+        console.error('❌ ERRO: Tabela settings não encontrada!', tableError)
+        clearTimeout(timeoutId)
+        
+        if (tableError.code === 'PGRST204' || tableError.code === '42P01' || tableError.message?.includes('Could not find the table') || tableError.message?.includes('relation') || tableError.message?.includes('does not exist')) {
+          const errorMsg = `❌ ERRO: A tabela 'settings' não existe no banco de dados!\n\nPor favor:\n1. Acesse o Supabase Dashboard > SQL Editor\n2. Execute o arquivo: database/migrations/003_create_settings_table.sql\n3. Depois tente salvar novamente\n\nVeja database/migrations/README_003.md para instruções detalhadas.`
+          setError(errorMsg)
+          setLoading(false)
+          return
+        } else {
+          throw tableError
+        }
+      }
+
+      console.log('✅ Tabela settings existe, continuando salvamento...')
+
+      // Salvar cada configuração
+      const errors: string[] = []
+      for (const setting of settingsToSave) {
+        // Para JSONB, o Supabase espera valores JSON válidos
+        let valueToSave: any = setting.value
+        
+        console.log(`💾 Salvando ${setting.key}:`, {
+          valor: setting.value,
+          tipo_original: typeof setting.value
+        })
+        
+        const { data, error } = await supabase
+          .from('settings')
+          .upsert({
+            key: setting.key,
+            value: valueToSave, // Supabase trata string como JSONB automaticamente
+            description: setting.description,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'key'
+          })
+          .select()
+
+        if (error) {
+          console.error(`❌ Erro ao salvar ${setting.key}:`, error)
+          console.error('Código:', error.code)
+          console.error('Mensagem:', error.message)
+          console.error('Detalhes:', JSON.stringify(error, null, 2))
+          errors.push(`${setting.key}: ${error.message}`)
+        } else {
+          const returnedValue = data?.[0]?.value
+          console.log(`✅ ${setting.key} salvo com sucesso`)
+          console.log(`   Valor retornado:`, returnedValue)
+          console.log(`   Tipo retornado:`, typeof returnedValue)
+          
+          // Verificar se foi salvo corretamente (validações específicas)
+          if (setting.key === 'whatsapp_number') {
+            // Verificar se o número está correto
+            const returnedNumber = typeof returnedValue === 'string' 
+              ? returnedValue.replace(/\D/g, '')
+              : String(returnedValue || '').replace(/\D/g, '')
+            
+            if (returnedNumber !== whatsappClean) {
+              console.error(`❌ NÚMERO SALVO INCORRETAMENTE!`)
+              console.error(`   Esperado: ${whatsappClean}`)
+              console.error(`   Salvo: ${returnedNumber}`)
+              console.error(`   Valor bruto: ${returnedValue}`)
+              errors.push(`whatsapp_number: Valor salvo não corresponde ao esperado`)
+            } else {
+              console.log(`✅ Número verificado e correto: ${returnedNumber}`)
+            }
+          } else if (setting.key === 'contact_email') {
+            // Validar formato de email se fornecido
+            if (setting.value && !setting.value.includes('@')) {
+              console.warn(`⚠️ Email pode estar em formato inválido: ${setting.value}`)
+            }
+          } else if (['instagram_url', 'facebook_url', 'twitter_url'].includes(setting.key)) {
+            // Validar URLs se fornecidas
+            if (setting.value && !setting.value.startsWith('http://') && !setting.value.startsWith('https://') && setting.value.length > 0) {
+              console.warn(`⚠️ ${setting.key} pode precisar de http:// ou https://: ${setting.value}`)
+            }
+          }
+        }
+      }
+
+      // Se houver erros, mostrar
+      if (errors.length > 0) {
+        throw new Error(`Erros ao salvar: ${errors.join('; ')}`)
+      }
+
+      // Limpar cache do settings service se existir
+      try {
+        const { settingsService } = await import('@/lib/settings-service')
+        settingsService.clearCache()
+      } catch {
+        // Ignorar se o módulo não existir
+      }
+
+      // Recarregar configurações do banco
+      console.log('🔄 Recarregando configurações do banco...')
+      await fetchSettings()
+      
+      clearTimeout(timeoutId)
+      setSuccess('✅ Configurações salvas com sucesso!')
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      console.error('❌ Erro ao salvar configurações:', error)
+      const errorMessage = error?.message || 'Erro desconhecido ao salvar configurações'
+      
+      // Mensagem mais detalhada se for erro de tabela
+      if (errorMessage.includes('Could not find the table') || errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
+        setError(`❌ ERRO: A tabela 'settings' não existe no banco de dados!\n\nPor favor, execute a migração 003_create_settings_table.sql no Supabase Dashboard > SQL Editor.\n\nVeja database/migrations/README_003.md para instruções.`)
+      } else {
+        setError(`Erro ao salvar: ${errorMessage}`)
+      }
+      
+      setTimeout(() => setError(''), 10000)
     } finally {
       setLoading(false)
+      clearTimeout(timeoutId)
     }
   }
 
@@ -134,6 +358,35 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Messages */}
+      {error && (
+        <div className="bg-red-100 border-2 border-red-500 text-red-900 px-4 py-3 rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span className="font-medium">{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-100 border-2 border-green-500 text-green-900 px-4 py-3 rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span className="font-medium">{success}</span>
+            </div>
+            <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -234,18 +487,88 @@ export default function AdminSettings() {
                         accept="image/*"
                         className="hidden"
                         id="logo-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+
+                          // Validar arquivo
+                          const maxSize = 5 * 1024 * 1024 // 5MB
+                          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+                          
+                          if (file.size > maxSize) {
+                            setError('Arquivo muito grande. Máximo 5MB.')
+                            setTimeout(() => setError(''), 5000)
+                            return
+                          }
+                          
+                          if (!allowedTypes.includes(file.type)) {
+                            setError('Tipo de arquivo não suportado. Use JPG, PNG, WEBP ou SVG.')
+                            setTimeout(() => setError(''), 5000)
+                            return
+                          }
+
+                          try {
+                            setLoading(true)
+                            setError('')
+                            
+                            // Fazer upload para Supabase Storage
+                            const { uploadImage, generateFileName, STORAGE_BUCKETS } = await import('@/lib/storage')
+                            const fileName = generateFileName(file.name)
+                            const path = `site-logo/${fileName}`
+                            
+                            console.log('📤 Fazendo upload da logo...')
+                            const result = await uploadImage(file, STORAGE_BUCKETS.LOGOS, path)
+                            
+                            console.log('✅ Logo enviada com sucesso:', result.url)
+                            
+                            // Atualizar estado imediatamente
+                            setSettings(prev => ({
+                              ...prev,
+                              site_logo: result.url
+                            }))
+                            
+                            setSuccess('Logo enviada com sucesso! Clique em "Salvar" para persistir.')
+                            setTimeout(() => setSuccess(''), 5000)
+                          } catch (error: any) {
+                            console.error('Erro ao fazer upload da logo:', error)
+                            setError(`Erro ao enviar logo: ${error?.message || 'Erro desconhecido'}`)
+                            setTimeout(() => setError(''), 5000)
+                          } finally {
+                            setLoading(false)
+                          }
+                        }}
                       />
                       <label
                         htmlFor="logo-upload"
-                        className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200 flex items-center"
+                        className={`bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200 flex items-center ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        Upload
+                        {loading ? 'Enviando...' : 'Upload'}
                       </label>
                       {settings.site_logo && (
-                        <img src={settings.site_logo} alt="Logo" className="w-16 h-16 object-cover rounded-lg" />
+                        <div className="relative">
+                          <img 
+                            src={settings.site_logo} 
+                            alt="Logo" 
+                            className="w-16 h-16 object-contain rounded-lg border border-gray-600"
+                          />
+                          <button
+                            onClick={() => {
+                              setSettings(prev => ({ ...prev, site_logo: '' }))
+                              setSuccess('Logo removida. Clique em "Salvar" para confirmar.')
+                              setTimeout(() => setSuccess(''), 5000)
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+                            title="Remover logo"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Formatos aceitos: JPG, PNG, WEBP, SVG. Máximo 5MB.
+                    </p>
                   </div>
 
                   <div>
@@ -344,14 +667,18 @@ export default function AdminSettings() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">
-                      WhatsApp
+                      WhatsApp (Número para Recebimento de Pedidos)
                     </label>
                     <input
                       type="tel"
                       value={settings.whatsapp_number}
                       onChange={(e) => handleInputChange('whatsapp_number', e.target.value)}
+                      placeholder="5521994595532"
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Digite apenas números (ex: 5521994595532). Este número receberá as mensagens dos pedidos via WhatsApp.
+                    </p>
                   </div>
 
                   <div className="md:col-span-2">

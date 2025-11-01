@@ -309,6 +309,7 @@ class AdminService {
       
       for (const order of ordersData) {
         // Buscar perfil do cliente
+        // IMPORTANTE: Sempre usar o telefone atualizado do perfil, não o salvo no pedido
         let profile: any = null
         let customerName = 'Cliente'
         let customerEmail = ''
@@ -324,10 +325,12 @@ class AdminService {
           profile = profileData
           customerName = profile?.full_name || profile?.email || 'Cliente'
           customerEmail = profile?.email || ''
+          // SEMPRE usar telefone do perfil (atualizado), não o do pedido antigo
           customerPhone = profile?.phone || ''
         }
         
         // Se não houver perfil, tentar extrair informações do endereço de entrega
+        // Mas dar prioridade ao perfil se existir
         if (!profile && order.shipping_address) {
           const shippingAddr = order.shipping_address as any
           if (shippingAddr.fullName) {
@@ -336,7 +339,8 @@ class AdminService {
           if (shippingAddr.email) {
             customerEmail = shippingAddr.email
           }
-          if (shippingAddr.phone) {
+          // Só usar telefone do endereço se não houver perfil com telefone
+          if (shippingAddr.phone && !customerPhone) {
             customerPhone = shippingAddr.phone
           }
         }
@@ -438,15 +442,19 @@ class AdminService {
         if (shippingAddr) {
           // Verificar se é objeto estruturado
           if (shippingAddr.street && shippingAddr.number) {
-            shippingAddress = `${shippingAddr.street}, ${shippingAddr.number}${shippingAddr.complement ? ' - ' + shippingAddr.complement : ''} - ${shippingAddr.neighborhood}, ${shippingAddr.city} - ${shippingAddr.state}`
+            const cep = shippingAddr.cep || shippingAddr.zip_code || ''
+            const cepFormatted = cep ? (cep.length === 8 ? `${cep.substring(0, 5)}-${cep.substring(5)}` : cep) : ''
+            shippingAddress = `${shippingAddr.street}, ${shippingAddr.number}${shippingAddr.complement ? ' - ' + shippingAddr.complement : ''} - ${shippingAddr.neighborhood}, ${shippingAddr.city} - ${shippingAddr.state}${cepFormatted ? ` - CEP: ${cepFormatted}` : ''}`
           } 
           // Verificar se é string (formato antigo)
           else if (typeof shippingAddr === 'string') {
             shippingAddress = shippingAddr
           }
-          // Tentar pegar campo 'full' se disponível
+          // Tentar pegar campo 'full' se disponível e adicionar CEP se existir
           else if (shippingAddr.full) {
-            shippingAddress = shippingAddr.full
+            const cep = shippingAddr.cep || shippingAddr.zip_code || ''
+            const cepFormatted = cep ? (cep.length === 8 ? `${cep.substring(0, 5)}-${cep.substring(5)}` : cep) : ''
+            shippingAddress = shippingAddr.full + (cepFormatted ? ` - CEP: ${cepFormatted}` : '')
           }
         }
 

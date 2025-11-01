@@ -46,6 +46,24 @@ Antes de aplicar qualquer migração, faça backup do seu banco:
 
 **Tempo estimado:** 1-2 minutos
 
+### Passo 3: Criar Tabela Settings (OBRIGATÓRIO)
+
+1. No **SQL Editor** do Supabase
+2. Abra o arquivo `database/migrations/003_create_settings_table.sql`
+3. Copie **todo o conteúdo**
+4. Cole no SQL Editor
+5. Clique em **Run**
+
+**O que este script faz:**
+- Cria a tabela `settings` se não existir
+- Cria políticas RLS (todos podem ler, apenas admins podem modificar)
+- Insere configurações padrão
+- Cria trigger para atualizar `updated_at` automaticamente
+
+**Tempo estimado:** 1 minuto
+
+**⚠️ IMPORTANTE:** Esta tabela é necessária para salvar o número do WhatsApp!
+
 ## ✅ Verificação
 
 Após aplicar os scripts, execute estas queries para verificar:

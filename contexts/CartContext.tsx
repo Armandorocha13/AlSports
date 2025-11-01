@@ -50,7 +50,7 @@ interface CartContextType {
   
   // Funções de pedido
   createOrder: (orderData: any) => Promise<{ success: boolean; error?: string }>
-  openWhatsAppOrder: (order: any) => void
+  openWhatsAppOrder: (order: any) => Promise<void>
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -211,14 +211,25 @@ export function CartProvider({ children }: CartProviderProps) {
       const userId = user?.id || null
 
       // Atualizar ou criar perfil do usuário se necessário
+      // IMPORTANTE: Sempre usar o telefone mais recente do perfil, não o do formulário de checkout
       if (userId && orderData.customer && user) {
+        // Buscar perfil atual para preservar telefone atualizado
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('phone, email, full_name')
+          .eq('id', userId)
+          .single()
+
+        // Usar telefone do perfil se existir, senão usar o do formulário
+        const phoneToUse = currentProfile?.phone || orderData.customer.phone || ''
+        
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: userId,
             email: orderData.customer.email || user.email || '',
             full_name: orderData.customer.fullName || '',
-            phone: orderData.customer.phone || '',
+            phone: phoneToUse, // Usar telefone do perfil se existir
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'id'
@@ -227,6 +238,8 @@ export function CartProvider({ children }: CartProviderProps) {
         if (profileError) {
           console.warn('Aviso ao atualizar perfil do usuário:', profileError)
           // Não falhar o pedido por causa do perfil
+        } else {
+          console.log('✅ Perfil atualizado. Telefone usado:', phoneToUse)
         }
       }
 
@@ -434,7 +447,7 @@ export function CartProvider({ children }: CartProviderProps) {
   /**
    * Abre o WhatsApp com o pedido completo
    */
-  const openWhatsAppOrder = (order: any) => {
+  const openWhatsAppOrder = async (order: any) => {
     // Formatar ID do Pedido
     const orderIdText = `🛒 *ID DO PEDIDO:* ${order.orderId || 'N/A'}\n\n`
 
@@ -497,11 +510,52 @@ ${order.items.map((item: CartItem, index: number) => {
     // Mensagem completa
     const message = `${orderIdText}${addressText}${shippingText}${itemsText}${summaryText}`
 
-    // Número do WhatsApp - usar configuração do projeto
+    // Número do WhatsApp - buscar da tabela settings ou usar fallback
     // Formato: 5521994595532 (código do país + DDD + número, sem espaços ou caracteres especiais)
-    const whatsappNumber = ENV_CONFIG.WHATSAPP_PHONE || '5521994595532'
+    let whatsappNumber: string = ENV_CONFIG.WHATSAPP_PHONE || '5521994595532'
+    
+    console.log('📱 Buscando número do WhatsApp...')
+    console.log('Número padrão (fallback):', whatsappNumber)
+    
+    // Tentar buscar do banco de dados (com timeout para não travar)
+    try {
+      const { settingsService } = await import('@/lib/settings-service')
+      
+      // Adicionar timeout de 5 segundos para não travar
+      const timeoutPromise = new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao buscar número do WhatsApp')), 5000)
+      )
+      
+      const dbNumber = await Promise.race([
+        settingsService.getWhatsAppNumber(),
+        timeoutPromise
+      ]) as string
+      
+      console.log('📱 Número encontrado no banco:', dbNumber)
+      
+      if (dbNumber && dbNumber.trim() && dbNumber !== '5521994595532') {
+        whatsappNumber = dbNumber
+        console.log('✅ Usando número do banco:', whatsappNumber)
+      } else {
+        console.warn('⚠️ Número do banco não encontrado ou é o padrão, usando:', whatsappNumber)
+      }
+    } catch (error: any) {
+      // Ignorar erros e usar número padrão - não deve bloquear o checkout
+      console.warn('⚠️ Não foi possível buscar número do WhatsApp do banco, usando padrão:', error?.message)
+      console.warn('⚠️ Usando número padrão:', whatsappNumber)
+    }
+    
+    console.log('📱 Número final que será usado:', whatsappNumber)
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+    console.log('🔗 URL do WhatsApp:', whatsappUrl.replace(/\?text=.*/, '?text=[mensagem]'))
+    
+    // Abrir WhatsApp (não bloquear se falhar)
+    try {
+      window.open(whatsappUrl, '_blank')
+    } catch (error) {
+      console.error('❌ Erro ao abrir WhatsApp:', error)
+      // Continuar mesmo se falhar - não deve bloquear o checkout
+    }
   }
 
   const value: CartContextType = {
