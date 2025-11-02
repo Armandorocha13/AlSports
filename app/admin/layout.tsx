@@ -64,10 +64,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Aguardar o carregamento da autenticação
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-gray-800 text-xl">Carregando...</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="text-white text-xl">Carregando...</div>
         </div>
       </div>
     )
@@ -76,13 +76,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Se não há usuário, mostrar mensagem
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-800 text-xl mb-4">Acesso Negado</div>
-          <div className="text-gray-600 mb-6">Você precisa estar logado para acessar esta área.</div>
+          <div className="text-white text-xl mb-4">Acesso Negado</div>
+          <div className="text-white/70 mb-6">Você precisa estar logado para acessar esta área.</div>
           <button
             onClick={() => router.push('/auth/login')}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+            className="bg-yellow-500 text-black px-4 py-2 rounded hover:bg-yellow-400 transition-colors font-semibold"
           >
             Fazer Login
           </button>
@@ -98,17 +98,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Se não é admin autorizado, bloquear acesso
   if (!isAuthorizedAdmin) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-800 text-xl mb-4">Acesso Negado</div>
-          <div className="text-gray-600 mb-6">
+          <div className="text-white text-xl mb-4">Acesso Negado</div>
+          <div className="text-white/70 mb-6">
             Você não tem permissão para acessar o painel administrativo.
             <br />
             Apenas administradores autorizados podem acessar esta área.
           </div>
           <button
             onClick={() => router.push('/')}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+            className="bg-yellow-500 text-black px-4 py-2 rounded hover:bg-yellow-400 transition-colors font-semibold"
           >
             Voltar para a Loja
           </button>
@@ -118,10 +118,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-black">
       <div className="flex h-full min-h-screen w-full">
         {/* Sidebar */}
-        <aside className="flex h-screen min-h-[700px] w-64 flex-col justify-between border-r border-gray-800 bg-black p-4">
+        <aside className="flex h-screen min-h-[700px] w-64 flex-col justify-between border-r-2 border-yellow-500/30 bg-black p-4">
           <div className="flex flex-col gap-4">
             {/* Logo e Nome da Loja */}
             <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </aside>
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-black">
           {children}
         </main>
       </div>
