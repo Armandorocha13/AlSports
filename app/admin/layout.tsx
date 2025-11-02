@@ -8,8 +8,7 @@ import {
     Paintbrush,
     Settings,
     ShoppingCart,
-    Store,
-    Tag
+    Store
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -40,14 +39,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: ShoppingCart,
     },
     {
-      name: 'Produtos',
+      name: 'Conteúdo',
       href: '/admin/produtos',
       icon: Package2,
-    },
-    {
-      name: 'Categorias',
-      href: '/admin/categorias',
-      icon: Tag,
     },
     {
       name: 'Aparência',

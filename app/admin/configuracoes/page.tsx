@@ -407,7 +407,7 @@ export default function AdminSettings() {
                       placeholder="Descrição do seu site"
                     />
                   </div>
-                </div>
+                  </div>
 
                 <div className="space-y-6 pt-6 border-t border-yellow-500/20">
                   <h3 className="text-xl font-bold text-white">Configurações do Sistema</h3>
