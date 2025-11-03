@@ -304,34 +304,77 @@ class AdminService {
         return []
       }
 
-      // Buscar itens dos pedidos
-      const orders: AdminOrder[] = []
+      // Otimização: Buscar todos os dados relacionados de uma vez em vez de um por um
+      const orderIds = ordersData.map(order => order.id)
+      const userIds = ordersData.map(order => order.user_id).filter(Boolean) as string[]
+
+      // Buscar todos os perfis de uma vez
+      const profilesMap = new Map<string, any>()
+      if (userIds.length > 0) {
+        const { data: profilesData } = await this.supabase
+          .from('profiles')
+          .select('id, email, full_name, phone')
+          .in('id', userIds)
+        
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap.set(profile.id, profile)
+          })
+        }
+      }
+
+      // Buscar todos os itens de todos os pedidos de uma vez
+      const itemsMap = new Map<string, Array<{ name: string; quantity: number; price: number }>>()
+      const { data: allItemsData } = await this.supabase
+        .from('order_items')
+        .select('order_id, product_name, quantity, unit_price')
+        .in('order_id', orderIds)
+        .order('created_at', { ascending: true })
       
-      for (const order of ordersData) {
-        // Buscar perfil do cliente
-        // IMPORTANTE: Sempre usar o telefone atualizado do perfil, não o salvo no pedido
-        let profile: any = null
+      if (allItemsData) {
+        allItemsData.forEach(item => {
+          if (!itemsMap.has(item.order_id)) {
+            itemsMap.set(item.order_id, [])
+          }
+          itemsMap.get(item.order_id)!.push({
+            name: item.product_name || 'Produto sem nome',
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.unit_price) || 0
+          })
+        })
+      }
+
+      // Buscar todos os pagamentos de uma vez
+      const paymentsMap = new Map<string, any>()
+      const { data: allPaymentsData } = await this.supabase
+        .from('payments')
+        .select('order_id, method')
+        .in('order_id', orderIds)
+      
+      if (allPaymentsData) {
+        allPaymentsData.forEach(payment => {
+          paymentsMap.set(payment.order_id, payment)
+        })
+      }
+
+      // Mapear pedidos usando os dados já carregados
+      const orders: AdminOrder[] = ordersData.map(order => {
+        // Buscar perfil do cliente (já carregado)
         let customerName = 'Cliente'
         let customerEmail = ''
         let customerPhone = ''
         
         if (order.user_id) {
-          const { data: profileData } = await this.supabase
-            .from('profiles')
-            .select('email, full_name, phone')
-            .eq('id', order.user_id)
-            .single()
-          
-          profile = profileData
-          customerName = profile?.full_name || profile?.email || 'Cliente'
-          customerEmail = profile?.email || ''
-          // SEMPRE usar telefone do perfil (atualizado), não o do pedido antigo
-          customerPhone = profile?.phone || ''
+          const profile = profilesMap.get(order.user_id)
+          if (profile) {
+            customerName = profile.full_name || profile.email || 'Cliente'
+            customerEmail = profile.email || ''
+            customerPhone = profile.phone || ''
+          }
         }
         
         // Se não houver perfil, tentar extrair informações do endereço de entrega
-        // Mas dar prioridade ao perfil se existir
-        if (!profile && order.shipping_address) {
+        if (!profilesMap.has(order.user_id || '') && order.shipping_address) {
           const shippingAddr = order.shipping_address as any
           if (shippingAddr.fullName) {
             customerName = shippingAddr.fullName
@@ -339,101 +382,17 @@ class AdminService {
           if (shippingAddr.email) {
             customerEmail = shippingAddr.email
           }
-          // Só usar telefone do endereço se não houver perfil com telefone
           if (shippingAddr.phone && !customerPhone) {
             customerPhone = shippingAddr.phone
           }
         }
         
-        // Buscar itens do pedido usando o UUID real do pedido
-        // Tentar buscar com select completo para garantir que pegamos todos os campos
-        let items: Array<{ name: string; quantity: number; price: number }> = []
-        
-        try {
-          // Primeira tentativa: busca completa com todos os campos
-          let itemsData: any[] | null = null
-          let itemsError: any = null
+        // Buscar itens do pedido (já carregados)
+        const items = itemsMap.get(order.id) || []
 
-          const { data, error } = await this.supabase
-            .from('order_items')
-            .select(`
-              id,
-              order_id,
-              product_name,
-              quantity,
-              unit_price,
-              total_price,
-              size,
-              color
-            `)
-            .eq('order_id', order.id)
-            .order('created_at', { ascending: true })
-
-          itemsData = data
-          itemsError = error
-
-          // Se houve erro ou não encontrou nada, tentar busca alternativa
-          if (itemsError || !itemsData || itemsData.length === 0) {
-            console.warn(`⚠️ Primeira busca falhou para pedido ${order.order_number || order.id} (UUID: ${order.id})`)
-            
-            // Tentativa alternativa: buscar apenas campos essenciais
-            const { data: altData, error: altError } = await this.supabase
-              .from('order_items')
-              .select('product_name, quantity, unit_price')
-              .eq('order_id', order.id)
-            
-            if (!altError && altData && altData.length > 0) {
-              console.log(`✅ Busca alternativa encontrou ${altData.length} item(ns)`)
-              itemsData = altData
-              itemsError = null
-            } else if (altError) {
-              console.error('❌ Busca alternativa também falhou:', altError)
-            }
-          }
-
-          if (itemsError) {
-            console.error(`❌ Erro ao buscar itens do pedido ${order.order_number || order.id} (UUID: ${order.id}):`, itemsError)
-            console.error('Código do erro:', itemsError.code)
-            console.error('Mensagem:', itemsError.message)
-            console.error('Detalhes:', JSON.stringify(itemsError, null, 2))
-          } else if (!itemsData || itemsData.length === 0) {
-            console.warn(`⚠️ Pedido ${order.order_number || order.id} (UUID: ${order.id}) não possui itens na tabela order_items`)
-            console.warn('Verificando se o pedido existe...')
-            
-            // Verificar se o pedido existe mesmo
-            const { data: orderCheck } = await this.supabase
-              .from('orders')
-              .select('id, order_number')
-              .eq('id', order.id)
-              .single()
-            
-            if (orderCheck) {
-              console.warn(`Pedido existe, mas sem itens. Order Number: ${orderCheck.order_number}`)
-            } else {
-              console.error('⚠️ Pedido não encontrado no banco!')
-            }
-          } else {
-            console.log(`✅ Pedido ${order.order_number || order.id} possui ${itemsData.length} item(ns) encontrado(s)`)
-            items = itemsData.map(item => ({
-              name: item.product_name || 'Produto sem nome',
-              quantity: Number(item.quantity) || 0,
-              price: Number(item.unit_price) || 0
-            }))
-          }
-        } catch (error: any) {
-          console.error(`❌ Exceção ao buscar itens do pedido ${order.order_number || order.id}:`, error)
-          console.error('Stack trace:', error.stack)
-          items = []
-        }
-
-        // Buscar método de pagamento
-        const { data: paymentData } = await this.supabase
-          .from('payments')
-          .select('method')
-          .eq('order_id', order.id)
-          .single()
-
-        const paymentMethod = this.mapPaymentMethod(paymentData?.method)
+        // Buscar método de pagamento (já carregado)
+        const payment = paymentsMap.get(order.id)
+        const paymentMethod = this.mapPaymentMethod(payment?.method)
 
         // Mapear endereço de entrega
         const shippingAddr = order.shipping_address as any
@@ -461,7 +420,7 @@ class AdminService {
         // Mapear status
         const mappedStatus = this.mapOrderStatus(order.status)
 
-        orders.push({
+        return {
           id: order.order_number || order.id,
           customer: {
             name: customerName,
@@ -475,8 +434,8 @@ class AdminService {
           shippingAddress,
           createdAt: order.created_at,
           updatedAt: order.updated_at
-        })
-      }
+        }
+      })
 
       return orders
     } catch (error) {

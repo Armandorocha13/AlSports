@@ -1,13 +1,13 @@
 'use client'
 
 import { createClient } from '@/lib/supabase-client'
-import {
-    Edit,
+import { 
+  Edit, 
     Image as ImageIcon,
     List,
     Package2,
     Plus,
-    Save,
+  Save,
     Search,
     Tag,
     Trash2,
@@ -46,16 +46,21 @@ interface Subcategory {
 interface Product {
   id: string
   name: string
+  slug: string
   description: string | null
   short_description: string | null
   category_id: string | null
   subcategory_id: string | null
-  price: number
-  wholesale_price: number
+  base_price: number  // Campo real na tabela
+  price?: number  // Mantido para compatibilidade (será base_price)
+  wholesale_price: number | null
   cost_price: number | null
   sku: string | null
   barcode: string | null
   weight: number | null
+  height: number | null
+  width: number | null
+  length: number | null
   dimensions: any
   sizes: string[]
   colors: string[]
@@ -121,7 +126,6 @@ export default function ProdutosPage() {
   const [categoryForm, setCategoryForm] = useState({
     name: '',
     slug: '',
-    description: '',
     image_url: '',
     banner_url: '',
     is_active: true
@@ -131,7 +135,6 @@ export default function ProdutosPage() {
     name: '',
     slug: '',
     category_id: '',
-    description: '',
     image_url: '',
     is_active: true,
     sort_order: 0
@@ -378,7 +381,15 @@ export default function ProdutosPage() {
         productCount: 0
       }))
 
-      setSubcategories(mappedSubcategories)
+      // Atualizar subcategorias, mantendo as existentes de outras categorias ou substituindo
+      setSubcategories(prev => {
+        // Remover subcategorias da categoria anterior e adicionar as novas
+        const otherCategories = prev.filter(sub => {
+          const subCatId = typeof sub.category_id === 'string' ? sub.category_id : String(sub.category_id)
+          return subCatId !== categoryId
+        })
+        return [...otherCategories, ...mappedSubcategories]
+      })
     } catch (error: any) {
       console.error('Erro ao carregar subcategorias:', error)
       alert(`Erro ao carregar subcategorias: ${error.message}`)
@@ -475,11 +486,7 @@ export default function ProdutosPage() {
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        category:categories(*),
-        subcategory:subcategories(*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -487,23 +494,134 @@ export default function ProdutosPage() {
       return
     }
 
-    // Load images for each product
-    const productsWithImages = await Promise.all(
-      (data || []).map(async (product) => {
-        const { data: images } = await supabase
-          .from('product_images')
-          .select('image_url')
-          .eq('product_id', product.id)
-          .order('sort_order', { ascending: true })
+    if (!data || data.length === 0) {
+      setProducts([])
+      return
+    }
 
+    // Mapear produtos e adicionar compatibilidade com price
+    // Buscar imagens e categorias para cada produto
+    const productsWithDetails = await Promise.all(
+      data.map(async (product: any) => {
+        // Buscar imagens do produto usando a nova estrutura (images + product_image_relations)
+        let images = []
+        try {
+          // Buscar relações produto-imagem
+          const { data: relationsData, error: relationsError } = await supabase
+            .from('product_image_relations')
+            .select('image_id, is_primary')
+            .eq('product_id', product.id)
+            .order('is_primary', { ascending: false })
+          
+          if (!relationsError && relationsData && relationsData.length > 0) {
+            // Buscar as URLs das imagens
+            const imageIds = relationsData.map((rel: any) => rel.image_id)
+            const { data: imagesData, error: imagesError } = await supabase
+              .from('images')
+              .select('id, image_url')
+              .in('id', imageIds)
+            
+            if (!imagesError && imagesData && imagesData.length > 0) {
+              // Ordenar: primária primeiro
+              const sortedImages = relationsData.map((rel: any) => {
+                const img = imagesData.find((i: any) => i.id === rel.image_id)
+                return img ? { image_url: img.image_url, is_primary: rel.is_primary } : null
+              }).filter(Boolean)
+              
+              images = sortedImages
+            }
+          }
+          
+          // Fallback: tentar buscar da tabela antiga product_images se a nova estrutura não funcionar
+          if (images.length === 0) {
+            const { data: oldImagesData, error: oldImagesError } = await supabase
+              .from('product_images')
+              .select('image_url')
+              .eq('product_id', product.id)
+              .order('is_primary', { ascending: false })
+            
+            if (!oldImagesError && oldImagesData) {
+              images = oldImagesData
+            }
+          }
+        } catch (error: any) {
+          // Capturar qualquer outro erro e continuar sem imagens
+          console.warn(`Erro ao buscar imagens do produto ${product.id}:`, error.message)
+          images = []
+        }
+
+        // Buscar categoria se category_id existir
+        // category_id é TEXT que armazena o ID numérico (int8) da tabela categorias
+        let category = null
+        if (product.category_id) {
+          const categoryIdNum = parseInt(product.category_id)
+          if (!isNaN(categoryIdNum)) {
+            const { data: catData } = await supabase
+              .from('categorias')
+              .select('id, nome')
+              .eq('id', categoryIdNum)
+              .maybeSingle()
+            
+            if (catData) {
+              category = {
+                id: catData.id.toString(),
+                name: catData.nome,
+                slug: '',
+                description: null,
+                image_url: null,
+                banner_url: null,
+                is_active: true,
+                sort_order: 0
+              }
+            }
+          }
+        }
+
+        // Buscar subcategoria se subcategory_id existir
+        // subcategory_id é TEXT que armazena o ID numérico (int8) da tabela subcategorias
+        let subcategory = null
+        if (product.subcategory_id) {
+          const subcategoryIdNum = parseInt(product.subcategory_id)
+          if (!isNaN(subcategoryIdNum)) {
+            const { data: subData } = await supabase
+              .from('subcategorias')
+              .select('id, nome, id_categoria')
+              .eq('id', subcategoryIdNum)
+              .maybeSingle()
+            
+            if (subData) {
+              subcategory = {
+                id: subData.id.toString(),
+                name: subData.nome,
+                slug: '',
+                category_id: subData.id_categoria.toString(),
+                description: null,
+                image_url: null,
+                is_active: true,
+                sort_order: 0
+              }
+            }
+          }
+        }
+
+        // Mapear produto com compatibilidade
         return {
           ...product,
-          images: images?.map(img => img.image_url) || []
+          price: product.base_price || product.price || 0, // Compatibilidade
+          images: images && Array.isArray(images) ? images.map((img: any) => {
+            // Se é objeto com image_url, pegar a URL
+            if (typeof img === 'object' && img.image_url) return img.image_url
+            // Se já é string, retornar direto
+            if (typeof img === 'string') return img
+            return null
+          }).filter((url: string | null) => url) : [],
+          category,
+          subcategory
         }
       })
     )
 
-    setProducts(productsWithImages as Product[])
+    setProducts(productsWithDetails as Product[])
   }
 
   // PRODUCT CRUD
@@ -513,14 +631,14 @@ export default function ProdutosPage() {
     setProductForm({
       name: product.name,
       description: product.description || '',
-      short_description: product.short_description || '',
+      short_description: '', // Campo não existe na tabela, manter para compatibilidade do formulário
       category_id: product.category_id || '',
       subcategory_id: product.subcategory_id || '',
-      price: product.price.toString(),
-      wholesale_price: product.wholesale_price.toString(),
-      cost_price: product.cost_price?.toString() || '',
+      price: (product.base_price || product.price || 0).toString(),
+      wholesale_price: product.wholesale_price?.toString() || '',
+      cost_price: '', // Campo não existe na tabela, manter para compatibilidade
       sku: product.sku || '',
-      barcode: product.barcode || '',
+      barcode: '', // Campo não existe na tabela, manter para compatibilidade
       weight: product.weight?.toString() || '',
       stock_quantity: product.stock_quantity.toString(),
       min_stock: product.min_stock.toString(),
@@ -564,83 +682,307 @@ export default function ProdutosPage() {
   }
 
   const handleSaveProduct = async () => {
+      // Validar campos obrigatórios antes de iniciar salvamento
+    if (!productForm.name || !productForm.name.trim()) {
+      alert('O nome do produto é obrigatório!')
+      return
+    }
+
+    if (!productForm.price || isNaN(parseFloat(productForm.price))) {
+      alert('O preço de venda é obrigatório e deve ser um número válido!')
+      return
+    }
+
     try {
       setSaving(true)
 
+      // Gerar slug automaticamente a partir do nome
+      const slug = generateSlug(productForm.name)
+
+      // Preparar dados do produto com campos corretos da tabela
+      // Campos obrigatórios sempre presentes
       const productData: any = {
-        name: productForm.name,
-        description: productForm.description || null,
-        short_description: productForm.short_description || null,
-        category_id: productForm.category_id || null,
-        subcategory_id: productForm.subcategory_id || null,
-        price: parseFloat(productForm.price),
-        wholesale_price: parseFloat(productForm.wholesale_price),
-        cost_price: productForm.cost_price ? parseFloat(productForm.cost_price) : null,
-        sku: productForm.sku || null,
-        barcode: productForm.barcode || null,
-        weight: productForm.weight ? parseFloat(productForm.weight) : null,
-        stock_quantity: parseInt(productForm.stock_quantity),
-        min_stock: parseInt(productForm.min_stock),
-        max_stock: productForm.max_stock ? parseInt(productForm.max_stock) : null,
-        sizes: productForm.sizes,
-        colors: productForm.colors,
-        materials: productForm.materials,
-        is_active: productForm.is_active,
-        is_featured: productForm.is_featured,
-        is_on_sale: productForm.is_on_sale,
-        updated_at: new Date().toISOString()
+        name: productForm.name.trim(),
+        slug: slug,
+        base_price: parseFloat(productForm.price), // Preço de venda (obrigatório)
+        stock_quantity: parseInt(productForm.stock_quantity) || 0,
+        min_stock: 0, // Valor padrão obrigatório
+        is_active: true,
+        is_featured: false,
+        is_on_sale: false
       }
 
+      // Campos opcionais - apenas adicionar se tiverem valor, senão NULL
+      productData.description = productForm.description?.trim() || null
+      productData.category_id = productForm.category_id || null
+      productData.subcategory_id = productForm.subcategory_id || null
+      
+      // Preço atacado - sempre NULL (campo removido do formulário)
+      productData.wholesale_price = null
+
+      // Arrays - apenas se tiverem valores, senão array vazio
+      productData.sizes = productForm.sizes && productForm.sizes.length > 0 
+        ? productForm.sizes.filter(s => s && s.trim()).map(s => s.trim())
+        : []
+      productData.colors = [] // Sempre vazio por enquanto
+      productData.materials = [] // Sempre vazio por enquanto
+
+      // Remover campos que NÃO existem na tabela products antes de enviar
+      // Esses campos não existem na estrutura atual da tabela
+      const fieldsToRemove = ['barcode', 'cost_price', 'short_description']
+      fieldsToRemove.forEach(field => {
+        delete productData[field]
+      })
+
       if (selectedProduct) {
-        // Update
-        const { error } = await supabase
+        // Update - adicionar updated_at
+        productData.updated_at = new Date().toISOString()
+        
+        const { data: updatedData, error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', selectedProduct.id)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('Erro detalhado no UPDATE:', error)
+          throw error
+        }
+        
+        if (!updatedData || updatedData.length === 0) {
+          throw new Error('Produto não foi atualizado. Verifique se o produto ainda existe.')
+        }
+        
         alert('Produto atualizado com sucesso!')
       } else {
-        // Create
-        const { data, error } = await supabase
+        // Create - slug deve ser único, verificar se já existe
+        const { data: existing } = await supabase
+          .from('products')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle()
+
+        if (existing) {
+          // Se slug já existe, adicionar sufixo numérico
+          let finalSlug = slug
+          let counter = 1
+          let slugExists = true
+
+          while (slugExists) {
+            finalSlug = `${slug}-${counter}`
+            const { data: check } = await supabase
+              .from('products')
+              .select('id')
+              .eq('slug', finalSlug)
+              .maybeSingle()
+            
+            if (!check) {
+              slugExists = false
+            } else {
+              counter++
+            }
+          }
+          productData.slug = finalSlug
+        }
+
+        const { data: newData, error } = await supabase
           .from('products')
           .insert(productData)
           .select()
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Erro detalhado no INSERT:', error)
+          console.error('Dados enviados:', productData)
+          throw error
+        }
+        
+        if (!newData) {
+          throw new Error('Produto não foi criado. Verifique os dados enviados.')
+        }
+        
         alert('Produto criado com sucesso!')
       }
 
-      await loadAllData()
+      // Recarregar dados (sem bloquear se der erro)
+      try {
+        await loadAllData()
+      } catch (loadError) {
+        console.error('Erro ao recarregar dados:', loadError)
+        // Não bloquear o processo se apenas o reload falhar
+      }
+
       setIsEditing(false)
       setSelectedProduct(null)
+      
+      // Resetar formulário após salvar
+      setProductForm({
+        name: '',
+        description: '',
+        short_description: '',
+        category_id: '',
+        subcategory_id: '',
+        price: '',
+        wholesale_price: '',
+        cost_price: '',
+        sku: '',
+        barcode: '',
+        weight: '',
+        stock_quantity: '',
+        min_stock: '',
+        max_stock: '',
+        sizes: [],
+        colors: [],
+        materials: [],
+        is_active: true,
+        is_featured: false,
+        is_on_sale: false,
+        images: []
+      })
     } catch (error: any) {
       console.error('Erro ao salvar produto:', error)
-      alert(`Erro ao salvar produto: ${error.message}`)
+      
+      // Mensagem de erro mais detalhada
+      let errorMessage = 'Erro desconhecido ao salvar produto'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.code) {
+        errorMessage = `Erro ${error.code}: ${error.message || 'Erro ao salvar produto'}`
+      }
+      
+      // Verificar se é erro de coluna não encontrada
+      if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+        errorMessage = `Coluna não encontrada na tabela. Verifique se a estrutura da tabela 'products' está correta. ${error.message}`
+      }
+      
+      // Verificar se é erro de constraint
+      if (error.message?.includes('violates') || error.message?.includes('constraint')) {
+        errorMessage = `Erro de validação: ${error.message}`
+      }
+      
+      alert(`Erro ao salvar produto: ${errorMessage}`)
     } finally {
+      // Sempre resetar o estado de salvamento
       setSaving(false)
     }
   }
 
   const handleDeleteProduct = async () => {
-    if (!selectedProduct) return
+    if (!selectedProduct) {
+      alert('Nenhum produto selecionado para excluir!')
+      return
+    }
 
-    if (confirm('Tem certeza que deseja excluir este produto?')) {
-      try {
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', selectedProduct.id)
+    // Confirmação simples (removendo confirmação dupla que pode estar causando problema)
+    const productName = selectedProduct.name || 'este produto'
+    const confirmMessage = `Tem certeza que deseja excluir "${productName}"?\n\nEsta ação não pode ser desfeita!`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
 
-        if (error) throw error
-        alert('Produto excluído com sucesso!')
-        setSelectedProduct(null)
-        await loadAllData()
-      } catch (error: any) {
-        console.error('Erro ao excluir produto:', error)
-        alert(`Erro ao excluir produto: ${error.message}`)
+    try {
+      setSaving(true)
+      console.log('Iniciando exclusão do produto:', selectedProduct.id)
+
+      // Tentar excluir o produto
+      const { error, data } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', selectedProduct.id)
+        .select()
+
+      console.log('Resultado da exclusão:', { error, data })
+
+      if (error) {
+        console.error('Erro detalhado ao excluir:', error)
+        throw error
       }
+
+      // A exclusão pode não retornar dados em algumas configurações do Supabase
+      // Vamos verificar se realmente foi excluído tentando buscar o produto
+      const { data: checkData, error: checkError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('id', selectedProduct.id)
+        .maybeSingle()
+
+      console.log('Verificação pós-exclusão:', { checkData, checkError })
+
+      // Se ainda existe, houve um problema
+      if (checkData) {
+        throw new Error('O produto não foi excluído. Verifique as permissões ou se há dependências.')
+      }
+
+      alert(`Produto "${productName}" excluído com sucesso!`)
+      
+      // Limpar seleção e formulário ANTES de recarregar
+    setSelectedProduct(null)
+      setIsEditing(false)
+      setProductForm({
+      name: '',
+      description: '',
+        short_description: '',
+        category_id: '',
+        subcategory_id: '',
+      price: '',
+        wholesale_price: '',
+        cost_price: '',
+        sku: '',
+        barcode: '',
+        weight: '',
+        stock_quantity: '',
+        min_stock: '',
+        max_stock: '',
+      sizes: [],
+        colors: [],
+        materials: [],
+        is_active: true,
+        is_featured: false,
+        is_on_sale: false,
+      images: []
+    })
+
+      // Recarregar lista de produtos (sem bloquear se der erro)
+      try {
+        await loadAllData()
+      } catch (loadError) {
+        console.error('Erro ao recarregar dados após exclusão:', loadError)
+        // Não bloquear o processo se apenas o reload falhar
+      }
+
+    } catch (error: any) {
+      console.error('Erro completo ao excluir produto:', error)
+      
+      let errorMessage = 'Erro desconhecido ao excluir produto'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.code) {
+        errorMessage = `Erro ${error.code}: ${error.message || 'Erro ao excluir produto'}`
+      }
+
+      // Verificar se é erro de constraint (produto pode estar sendo usado em pedidos)
+      if (error.message?.includes('violates') || error.message?.includes('constraint') || error.message?.includes('foreign key')) {
+        errorMessage = `Não é possível excluir este produto porque ele está sendo usado em pedidos ou outras referências. ${error.message}`
+      }
+
+      // Verificar se é erro de permissão
+      if (error.message?.includes('permission') || error.code === 'PGRST301' || error.message?.includes('RLS')) {
+        errorMessage = `Erro de permissão: Você não tem permissão para excluir produtos. Verifique as políticas RLS (Row Level Security) no Supabase. ${error.message}`
+      }
+
+      // Verificar se é erro de coluna
+      if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+        errorMessage = `Erro na estrutura da tabela: ${error.message}`
+      }
+
+      alert(`Erro ao excluir produto: ${errorMessage}`)
+    } finally {
+      // SEMPRE resetar o estado, mesmo se houver erro
+      console.log('Resetando estado de salvamento')
+      setSaving(false)
     }
   }
 
@@ -651,7 +993,6 @@ export default function ProdutosPage() {
     setCategoryForm({
       name: category.name,
       slug: category.slug || generateSlug(category.name),
-      description: category.description || '',
       image_url: category.image_url || '',
       banner_url: category.banner_url || '',
       is_active: category.is_active !== undefined ? category.is_active : true
@@ -667,7 +1008,6 @@ export default function ProdutosPage() {
     setCategoryForm({
       name: '',
       slug: '',
-      description: '',
       image_url: '',
       banner_url: '',
       is_active: true
@@ -846,7 +1186,6 @@ export default function ProdutosPage() {
       name: subcategory.name,
       slug: subcategory.slug,
       category_id: subcategory.category_id,
-      description: subcategory.description || '',
       image_url: subcategory.image_url || '',
       is_active: subcategory.is_active
     })
@@ -863,7 +1202,6 @@ export default function ProdutosPage() {
       name: '',
       slug: '',
       category_id: selectedCategory.id,
-      description: '',
       image_url: '',
       is_active: true,
       sort_order: 0
@@ -1278,7 +1616,7 @@ export default function ProdutosPage() {
                         {!searchTerm && (
                           <p className="text-xs mt-1">Clique em "Adicionar Nova Categoria" para começar</p>
                         )}
-                      </div>
+              </div>
                     ) : (
                       filteredCategories.map((category) => (
                         <div
@@ -1292,11 +1630,11 @@ export default function ProdutosPage() {
                         >
                           <div className="w-12 h-12 rounded-md bg-yellow-500/20 flex items-center justify-center">
                             <Tag className="h-6 w-6 text-yellow-500" />
-                          </div>
+            </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-white truncate">{category.name}</p>
                             <p className="text-sm text-yellow-400">{category.subcategoryCount || 0} subcategorias</p>
-                          </div>
+          </div>
                         </div>
                       ))
                     )}
@@ -1354,6 +1692,21 @@ export default function ProdutosPage() {
                       </button>
                     )}
                   </div>
+                  
+                  {/* Imagem do Produto */}
+                  {!isEditing && selectedProduct && selectedProduct.images && selectedProduct.images.length > 0 && (
+                    <div className="mt-4 flex justify-center">
+                      <div className="relative w-full max-w-md h-64 rounded-lg overflow-hidden border-2 border-yellow-500/30">
+                        <Image
+                          src={selectedProduct.images[0]}
+                          alt={selectedProduct.name || 'Produto'}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                      </div>
+                    </div>
+                  )}
         </div>
                   
         {/* Basic Info */}
@@ -1371,18 +1724,9 @@ export default function ProdutosPage() {
                         placeholder="Ex: Camiseta Básica Branca"
                       />
                     </div>
+            
                     <div>
-              <label className="block text-sm font-medium text-white mb-1">Descrição Curta</label>
-              <input
-                type="text"
-                value={productForm.short_description}
-                onChange={(e) => setProductForm(prev => ({ ...prev, short_description: e.target.value }))}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white placeholder-white/50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Descrição Completa</label>
+              <label className="block text-sm font-medium text-white mb-1">Descrição</label>
                       <textarea
                 value={productForm.description}
                 onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
@@ -1392,12 +1736,24 @@ export default function ProdutosPage() {
                         placeholder="Descreva os detalhes do produto..."
                       />
                     </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Categoria</label>
                 <select
                   value={productForm.category_id}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, category_id: e.target.value }))}
+                  onChange={(e) => {
+                    const newCategoryId = e.target.value
+                    setProductForm(prev => {
+                      // Se mudou a categoria, limpar subcategoria
+                      const clearedSubcategory = prev.category_id !== newCategoryId ? '' : prev.subcategory_id
+                      // Carregar subcategorias da nova categoria
+                      if (newCategoryId && newCategoryId !== prev.category_id) {
+                        loadSubcategoriesForCategory(newCategoryId)
+                      }
+                      return { ...prev, category_id: newCategoryId, subcategory_id: clearedSubcategory }
+                    })
+                  }}
                   disabled={!isEditing}
                   className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                 >
@@ -1406,49 +1762,41 @@ export default function ProdutosPage() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
-                  </div>
+                </div>
+
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Subcategoria</label>
                 <select
                   value={productForm.subcategory_id}
                   onChange={(e) => setProductForm(prev => ({ ...prev, subcategory_id: e.target.value }))}
-                  disabled={!isEditing}
+                  disabled={!isEditing || !productForm.category_id}
                   className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                 >
                   <option value="">Selecione...</option>
                   {subcategories
-                    .filter(sub => !productForm.category_id || sub.category_id === productForm.category_id)
+                    .filter(sub => {
+                      // Filtrar subcategorias da categoria selecionada
+                      if (!productForm.category_id) return false
+                      // category_id pode ser string ou number, normalizar
+                      const subCatId = typeof sub.category_id === 'string' ? sub.category_id : String(sub.category_id)
+                      const formCatId = typeof productForm.category_id === 'string' ? productForm.category_id : String(productForm.category_id)
+                      return subCatId === formCatId
+                    })
                     .map(sub => (
                       <option key={sub.id} value={sub.id}>{sub.name}</option>
                     ))}
                 </select>
-                </div>
                     </div>
                           </div>
                           </div>
+                </div>
 
         {/* Price & Stock */}
         <div className="rounded-xl border-2 border-yellow-500/30 bg-black p-6">
           <h3 className="text-lg font-bold text-white mb-4">Preço e Estoque</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Preço de Venda *</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-yellow-500">R$</span>
-                        </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={productForm.price}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full pl-8 pr-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
-                />
-                    </div>
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-              <label className="block text-sm font-medium text-white mb-1">Preço Atacado</label>
+              <label className="block text-sm font-medium text-white mb-1">Preço de Venda *</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-yellow-500">R$</span>
@@ -1456,13 +1804,14 @@ export default function ProdutosPage() {
                         <input
                   type="number"
                   step="0.01"
-                  value={productForm.wholesale_price}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, wholesale_price: e.target.value }))}
+                  value={productForm.price}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
                           disabled={!isEditing}
                   className="w-full pl-8 pr-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                         />
                       </div>
                     </div>
+            
                     <div>
               <label className="block text-sm font-medium text-white mb-1">Estoque *</label>
                       <input
@@ -1473,154 +1822,110 @@ export default function ProdutosPage() {
                 className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                       />
                     </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Estoque Mínimo</label>
-              <input
-                type="number"
-                value={productForm.min_stock}
-                onChange={(e) => setProductForm(prev => ({ ...prev, min_stock: e.target.value }))}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
-              />
                   </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Estoque Máximo</label>
-              <input
-                type="number"
-                value={productForm.max_stock}
-                onChange={(e) => setProductForm(prev => ({ ...prev, max_stock: e.target.value }))}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
-              />
                 </div>
-                  <div>
-              <label className="block text-sm font-medium text-white mb-1">SKU</label>
-              <input
-                type="text"
-                value={productForm.sku}
-                onChange={(e) => setProductForm(prev => ({ ...prev, sku: e.target.value }))}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Attributes */}
+        {/* Sizes */}
         <div className="rounded-xl border-2 border-yellow-500/30 bg-black p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Atributos</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Tamanhos Disponíveis</h3>
           
-          {/* Sizes */}
+          {/* Tamanhos padrão */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-white mb-2">Tamanhos</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {productForm.sizes.map((size) => (
-                        <span
+            <label className="block text-sm font-medium text-white mb-2">Selecione os tamanhos disponíveis:</label>
+            <div className="flex flex-wrap gap-2">
+              {['PP', 'P', 'M', 'G', 'GG', 'XG', '2', '4', '6', '8', '10', '12', '14', '16'].map((size) => (
+                <button
                           key={size}
-                  className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 px-3 py-1 text-sm font-medium text-yellow-400"
+                  type="button"
+                  onClick={() => {
+                    if (productForm.sizes.includes(size)) {
+                      removeSize(size)
+                    } else {
+                      addSize(size)
+                    }
+                  }}
+                  disabled={!isEditing}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors font-medium ${
+                    productForm.sizes.includes(size)
+                      ? 'bg-yellow-500 text-black border-yellow-500'
+                      : 'bg-black text-white border-yellow-500/30 hover:border-yellow-500/50'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {size}
-                          {isEditing && (
-                            <button
-                      onClick={() => removeSize(size)}
-                      className="ml-1 hover:bg-yellow-500/30 rounded-full p-0.5"
-                            >
-                              <X className="h-3 w-3" />
                             </button>
-                          )}
-                        </span>
                       ))}
                     </div>
+          </div>
+
+          {/* Tamanhos customizados */}
                     {isEditing && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Adicionar tamanho personalizado:</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
-                placeholder="Adicionar tamanho (P, M, G, etc.)"
-                className="w-full px-3 py-1 border-2 border-yellow-500/30 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-black text-white"
+                  placeholder="Ex: 38, 40, 42, Único, etc."
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
-                    addSize((e.target as HTMLInputElement).value)
-                              ;(e.target as HTMLInputElement).value = ''
-                            }
-                          }}
-                        />
-            )}
-                      </div>
-
-          {/* Colors */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-white mb-2">Cores</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {productForm.colors.map((color) => (
-                <span
-                  key={color}
-                  className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 px-3 py-1 text-sm font-medium text-yellow-400"
+                      e.preventDefault()
+                      const input = e.target as HTMLInputElement
+                      const size = input.value.trim().toUpperCase()
+                      if (size) {
+                        addSize(size)
+                        input.value = ''
+                      }
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-black text-white placeholder-white/50"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                    const size = input.value.trim().toUpperCase()
+                    if (size) {
+                      addSize(size)
+                      input.value = ''
+                    }
+                  }}
+                  className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition-colors font-semibold"
                 >
-                  {color}
-                  {isEditing && (
-                    <button
-                      onClick={() => removeColor(color)}
-                      className="ml-1 hover:bg-yellow-500/30 rounded-full p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </span>
-              ))}
+                  Adicionar
+                </button>
+              </div>
+                      </div>
+                    )}
+
+          {/* Tamanhos selecionados */}
+          {productForm.sizes.length > 0 && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-white mb-2">Tamanhos selecionados:</label>
+              <div className="flex flex-wrap gap-2">
+                {productForm.sizes.map((size) => (
+                  <span
+                    key={size}
+                    className="inline-flex items-center gap-2 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 px-3 py-1 text-sm font-medium text-yellow-400"
+                  >
+                    {size}
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => removeSize(size)}
+                        className="ml-1 hover:bg-yellow-500/30 rounded-full p-0.5 transition-colors"
+                        title="Remover tamanho"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
                   </div>
-            {isEditing && (
-              <input
-                type="text"
-                placeholder="Adicionar cor"
-                className="w-full px-3 py-1 border-2 border-yellow-500/30 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-black text-white"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addColor((e.target as HTMLInputElement).value)
-                    ;(e.target as HTMLInputElement).value = ''
-                  }
-                }}
-              />
-            )}
+            </div>
+          )}
                 </div>
 
-          {/* Materials */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Materiais</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {productForm.materials.map((material) => (
-                <span
-                  key={material}
-                  className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 px-3 py-1 text-sm font-medium text-yellow-400"
-                >
-                  {material}
-                {isEditing && (
-                    <button
-                      onClick={() => removeMaterial(material)}
-                      className="ml-1 hover:bg-yellow-500/30 rounded-full p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-            {isEditing && (
-              <input
-                type="text"
-                placeholder="Adicionar material"
-                className="w-full px-3 py-1 border-2 border-yellow-500/30 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-black text-white"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addMaterial((e.target as HTMLInputElement).value)
-                    ;(e.target as HTMLInputElement).value = ''
-                  }
-                }}
-              />
-            )}
-          </div>
-        </div>
-
         {/* Actions */}
-        {isEditing && (
+                {isEditing && (
           <div className="sticky bottom-0 bg-black/80 backdrop-blur-sm border-t-2 border-yellow-500/30 py-4">
                     <div className="flex items-center justify-end gap-3">
                       <button
@@ -1638,20 +1943,21 @@ export default function ProdutosPage() {
                 className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold flex items-center gap-2"
               >
                             <Save className="h-4 w-4" />
-                {saving ? 'Salvando...' : 'Salvar'}
-                      </button>
+                {saving ? 'Salvando...' : 'Salvar Produto'}
+              </button>
               {selectedProduct && (
-                      <button
+                <button
                   onClick={handleDeleteProduct}
-                  className="px-4 py-2 bg-red-500/20 text-red-400 border-2 border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
-                      >
-                          <Trash2 className="h-4 w-4" />
-                          Excluir
+                  disabled={saving}
+                  className="px-4 py-2 bg-red-500/20 text-red-400 border-2 border-red-500/30 rounded-lg hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {saving ? 'Excluindo...' : 'Excluir'}
                 </button>
               )}
-                        </div>
-          </div>
-        )}
+            </div>
+                          </div>
+                        )}
       </div>
     )
   }
@@ -1682,7 +1988,7 @@ export default function ProdutosPage() {
               {isEditing ? (selectedCategory ? 'Editar Categoria' : 'Nova Categoria') : `Categoria: ${selectedCategory?.name}`}
             </h2>
             {!isEditing && selectedCategory && (
-              <button
+                      <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center gap-2 px-3 py-1 text-sm text-yellow-400 hover:text-yellow-300"
               >
@@ -1712,16 +2018,6 @@ export default function ProdutosPage() {
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                 placeholder="Gerado automaticamente"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Descrição</label>
-              <textarea
-                value={categoryForm.description}
-                onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
-                disabled={!isEditing}
-                rows={3}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
               />
             </div>
             <div className="flex items-center gap-4">
@@ -1762,13 +2058,13 @@ export default function ProdutosPage() {
                   onClick={handleDeleteCategory}
                   className="px-4 py-2 bg-red-500/20 text-red-400 border-2 border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir
-                </button>
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
+                      </button>
                 )}
-              </div>
+                    </div>
           )}
-        </div>
+                  </div>
 
         {/* Seção de Subcategorias */}
         {selectedCategory && (
@@ -1817,7 +2113,7 @@ export default function ProdutosPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                <button
                         onClick={() => handleSelectSubcategory(subcategory)}
                         className="px-3 py-1 text-sm text-yellow-400 hover:text-yellow-300 border border-yellow-500/30 rounded hover:border-yellow-500/50 transition-colors"
                       >
@@ -1867,7 +2163,6 @@ export default function ProdutosPage() {
                           name: '',
                           slug: '',
                           category_id: selectedCategory?.id || '',
-                          description: '',
                           image_url: '',
                           is_active: true,
                           sort_order: 0
@@ -1889,7 +2184,6 @@ export default function ProdutosPage() {
                           name: '',
                           slug: '',
                           category_id: selectedCategory?.id || '',
-                          description: '',
                           image_url: '',
                           is_active: true,
                           sort_order: 0
@@ -1981,16 +2275,6 @@ export default function ProdutosPage() {
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
                 placeholder="Gerado automaticamente"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">Descrição</label>
-              <textarea
-                value={subcategoryForm.description}
-                onChange={(e) => setSubcategoryForm(prev => ({ ...prev, description: e.target.value }))}
-                disabled={!isEditing}
-                rows={3}
-                className="w-full px-3 py-2 border-2 border-yellow-500/30 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 disabled:bg-black/50 disabled:cursor-not-allowed bg-black text-white"
               />
             </div>
             <div className="flex items-center gap-4">
