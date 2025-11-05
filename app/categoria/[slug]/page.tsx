@@ -1,10 +1,10 @@
 'use client'
 
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
+import { useCategoryBySlug } from '@/hooks/useCategories'
 import { ArrowLeft, Grid3X3 } from 'lucide-react'
-import { categories } from '@/lib/data'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
 interface CategoryPageProps {
   params: {
@@ -13,11 +13,24 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
-  const category = categories.find(cat => cat.slug === params.slug)
+  const { category, loading, error } = useCategoryBySlug(params.slug, true)
 
-  if (!category) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="text-white text-xl">Carregando categoria...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !category) {
     notFound()
   }
+
+  const subcategories = category.subcategories || []
 
   return (
     <div className="min-h-screen bg-black">
@@ -49,7 +62,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                 {category.name}
               </h1>
               <p className="text-lg text-gray-400 mt-2">
-                {category.subcategories.length} subcategorias disponíveis
+                {subcategories.length} subcategorias disponíveis
               </p>
             </div>
           </div>
@@ -70,50 +83,56 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {category.subcategories.map((subcategory) => (
-            <Link
-              key={subcategory.id}
-              href={`/categoria/${category.slug}/${subcategory.slug}`}
-              className="group"
-            >
-              <div className="card h-full hover:shadow-xl transition-all duration-300 group-hover:scale-105 border border-gray-700">
-                <div className="relative overflow-hidden">
-                  <div className="h-80 relative">
-                    <Image
-                      src={subcategory.image}
-                      alt={subcategory.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors duration-200 drop-shadow-lg">
-                          {subcategory.name}
-                        </h3>
+        {subcategories.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {subcategories.map((subcategory) => (
+              <Link
+                key={subcategory.id}
+                href={`/categoria/${category.slug}/${subcategory.slug}`}
+                className="group"
+              >
+                <div className="card h-full hover:shadow-xl transition-all duration-300 group-hover:scale-105 border border-gray-700">
+                  <div className="relative overflow-hidden">
+                    <div className="h-80 relative">
+                      <Image
+                        src={subcategory.image_url || '/placeholder-subcategory.jpg'}
+                        alt={subcategory.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors duration-200 drop-shadow-lg">
+                            {subcategory.name}
+                          </h3>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="p-8 text-center">
-                  <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-primary-400 transition-colors duration-200">
-                    {subcategory.name}
-                  </h3>
-                  <p className="text-sm text-gray-400 mb-4">
-                    Clique para ver os produtos desta subcategoria
-                  </p>
-                  
-                  <div className="flex items-center justify-center text-primary-400 font-medium group-hover:text-primary-300 transition-colors duration-200">
-                    <span>Ver Produtos</span>
-                    <ArrowLeft className="ml-1 rotate-180" size={16} />
+                  <div className="p-8 text-center">
+                    <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-primary-400 transition-colors duration-200">
+                      {subcategory.name}
+                    </h3>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Clique para ver os produtos desta subcategoria
+                    </p>
+                    
+                    <div className="flex items-center justify-center text-primary-400 font-medium group-hover:text-primary-300 transition-colors duration-200">
+                      <span>Ver Produtos</span>
+                      <ArrowLeft className="ml-1 rotate-180" size={16} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-400">Nenhuma subcategoria disponível para esta categoria</p>
+          </div>
+        )}
       </div>
 
       {/* Category Info */}
@@ -124,24 +143,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
               Sobre {category.name}
             </h3>
             <p className="text-lg text-gray-400 leading-relaxed">
-              {category.name === 'FUTEBOL' && 
-                'Explore nossa ampla seleção de produtos de futebol, incluindo camisas oficiais, lançamentos e versões especiais dos principais times brasileiros e internacionais.'
-              }
-              {category.name === 'ROUPAS DE TREINO' && 
-                'Encontre roupas de treino de alta qualidade para atletas e praticantes de esportes. Conjuntos completos, agasalhos e acessórios para todas as modalidades.'
-              }
-              {category.name === 'NBA' && 
-                'Produtos oficiais da NBA com as melhores tecnologias e designs. Camisas dos principais times e jogadores da liga americana.'
-              }
-              {category.name === 'CONJUNTOS INFANTIS' && 
-                'Roupas esportivas especiais para crianças, com tamanhos adequados e designs atrativos para os pequenos torcedores.'
-              }
-              {category.name === 'ACESSÓRIOS' && 
-                'Complete seu visual esportivo com nossos acessórios: bonés, meias, camisas da NFL e muito mais.'
-              }
-              {category.name === 'BERMUDAS & SHORTS' && 
-                'Shorts e bermudas para todas as atividades esportivas, com modelos masculinos e femininos.'
-              }
+              {category.description || `Explore nossa ampla seleção de produtos de ${category.name.toLowerCase()}.`}
             </p>
           </div>
         </div>

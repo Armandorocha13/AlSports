@@ -1,13 +1,21 @@
 'use client'
 
-import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
-import { categories } from '@/lib/data'
-import { Category } from '@/lib/types'
+import Image from 'next/image'
+import Link from 'next/link'
 
 interface CategoryCardProps {
-  category: Category
+  category: {
+    id: string
+    name: string
+    slug: string
+    image: string
+    subcategories?: Array<{
+      id: string
+      name: string
+      slug: string
+    }>
+  }
 }
 
 export default function CategoryCard({ category }: CategoryCardProps) {
@@ -43,28 +51,30 @@ export default function CategoryCard({ category }: CategoryCardProps) {
             {category.name}
           </h3>
           <p className="text-sm text-gray-400">
-            {category.subcategories.length} subcategorias disponíveis
+            {category.subcategories?.length || 0} subcategorias disponíveis
           </p>
         </div>
 
         {/* Subcategories Preview */}
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-1 justify-center">
-            {category.subcategories.slice(0, 3).map((subcategory) => (
-              <span 
-                key={subcategory.id}
-                className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded"
-              >
-                {subcategory.name}
-              </span>
-            ))}
-            {category.subcategories.length > 3 && (
-              <span className="text-xs text-gray-500">
-                +{category.subcategories.length - 3} mais
-              </span>
-            )}
+        {category.subcategories && category.subcategories.length > 0 && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1 justify-center">
+              {category.subcategories.slice(0, 3).map((subcategory) => (
+                <span 
+                  key={subcategory.id}
+                  className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded"
+                >
+                  {subcategory.name}
+                </span>
+              ))}
+              {category.subcategories.length > 3 && (
+                <span className="text-xs text-gray-500">
+                  +{category.subcategories.length - 3} mais
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <Link 
           href={`/categoria/${category.slug}`}

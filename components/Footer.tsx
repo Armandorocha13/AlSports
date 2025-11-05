@@ -1,6 +1,17 @@
+'use client'
+
+import { useCategories } from '@/hooks/useCategories'
 import Link from 'next/link'
 
 export default function Footer() {
+  // Buscar categorias do banco de dados
+  const { categories, loading: categoriesLoading } = useCategories({
+    is_active: true
+  })
+  
+  // Filtrar categorias (excluir tabela-medidas)
+  const displayCategories = categories.filter(cat => cat.slug !== 'tabela-medidas')
+  
   return (
     <footer className="bg-black text-white border-t border-gray-800">
       <div className="container mx-auto px-4 py-12">
@@ -17,39 +28,28 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <h4 className="text-lg font-semibold mb-4">Categorias</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/categoria/futebol" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  Futebol
-                </Link>
-              </li>
-              <li>
-                <Link href="/categoria/roupas-treino" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  Roupas de Treino
-                </Link>
-              </li>
-              <li>
-                <Link href="/categoria/nba" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  NBA
-                </Link>
-              </li>
-              <li>
-                <Link href="/categoria/conjuntos-infantis" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  Conjuntos Infantis
-                </Link>
-              </li>
-              <li>
-                <Link href="/categoria/nfl" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  NFL
-                </Link>
-              </li>
-              <li>
-                <Link href="/categoria/acessorios" className="text-gray-400 hover:text-white transition-colors duration-200">
-                  Acessórios
-                </Link>
-              </li>
-             
-            </ul>
+            {categoriesLoading ? (
+              <ul className="space-y-2">
+                <li className="text-gray-400">Carregando...</li>
+              </ul>
+            ) : displayCategories.length > 0 ? (
+              <ul className="space-y-2">
+                {displayCategories.map((category) => (
+                  <li key={category.id}>
+                    <Link 
+                      href={`/categoria/${category.slug}`} 
+                      className="text-gray-400 hover:text-white transition-colors duration-200"
+                    >
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="space-y-2">
+                <li className="text-gray-400">Nenhuma categoria disponível</li>
+              </ul>
+            )}
           </div>
 
           {/* Additional Info */}

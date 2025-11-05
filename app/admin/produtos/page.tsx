@@ -1,13 +1,16 @@
 'use client'
 
-import { createClient } from '@/lib/supabase-client'
-import { 
-  Edit, 
+import { categoriesService, type Category } from '@/lib/services/categoriesService'
+import { imagesService } from '@/lib/services/imagesService'
+import { productsService, type Product } from '@/lib/services/productsService'
+import { subcategoriesService, type Subcategory } from '@/lib/services/subcategoriesService'
+import {
+    Edit,
     Image as ImageIcon,
     List,
     Package2,
     Plus,
-  Save,
+    Save,
     Search,
     Tag,
     Trash2,
@@ -16,70 +19,9 @@ import {
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
-// Types
-interface Category {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  image_url: string | null
-  banner_url: string | null
-  is_active: boolean
-  sort_order: number
-  productCount?: number
-  subcategoryCount?: number
-}
-
-interface Subcategory {
-  id: string
-  category_id: string
-  name: string
-  slug: string
-  description: string | null
-  image_url: string | null
-  is_active: boolean
-  sort_order: number
-  category?: Category
-  productCount?: number
-}
-
-interface Product {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  short_description: string | null
-  category_id: string | null
-  subcategory_id: string | null
-  base_price: number  // Campo real na tabela
-  price?: number  // Mantido para compatibilidade (será base_price)
-  wholesale_price: number | null
-  cost_price: number | null
-  sku: string | null
-  barcode: string | null
-  weight: number | null
-  height: number | null
-  width: number | null
-  length: number | null
-  dimensions: any
-  sizes: string[]
-  colors: string[]
-  materials: string[]
-  is_active: boolean
-  is_featured: boolean
-  is_on_sale: boolean
-  stock_quantity: number
-  min_stock: number
-  max_stock: number | null
-  category?: Category
-  subcategory?: Subcategory
-  images?: string[]
-}
-
 type ViewMode = 'products' | 'categories'
 
 export default function ProdutosPage() {
-  const supabase = createClient()
   
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('products')
@@ -97,6 +39,7 @@ export default function ProdutosPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Form states
   const [productForm, setProductForm] = useState({
@@ -139,16 +82,6 @@ export default function ProdutosPage() {
     is_active: true,
     sort_order: 0
   })
-
-  // Generate slug from name
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-  }
 
   // Load data
   useEffect(() => {
@@ -198,131 +131,8 @@ export default function ProdutosPage() {
 
   const loadCategories = async () => {
     try {
-      let { data, error } = await supabase
-        .from('categorias')
-        .select('id, nome, data_criacao')
-        .order('id', { ascending: true })
-
-      if (error && (error.code === 'PGRST301' || error.message?.includes('permission'))) {
-        const retry = await supabase
-          .from('categorias')
-          .select('id, nome, data_criacao')
-        
-        if (!retry.error) {
-          data = retry.data
-          error = null
-        }
-      }
-
-      if (error) {
-        if (error.code === 'PGRST301' || error.message?.includes('permission denied')) {
-          alert(`Erro de permissão: A tabela 'categorias' pode ter RLS habilitado sem políticas adequadas. Erro: ${error.message}`)
-        } else if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          alert(`Tabela 'categorias' não encontrada. Verifique o nome da tabela. Erro: ${error.message}`)
-        } else {
-          alert(`Erro ao carregar categorias: ${error.message} (Código: ${error.code})`)
-        }
-        
-        setCategories([])
-        return
-      }
-
-      if (!data || data.length === 0) {
-        setCategories([])
-        return
-      }
-
-      // Mapear categorias da estrutura real: {id, nome, data_criacao}
-      const categoriesWithCount = await Promise.all(data.map(async (cat: any) => {
-        const categoryName = cat.nome || ''
-        const categoryId = typeof cat.id === 'number' ? cat.id.toString() : String(cat.id)
-        const categoryIdNum = typeof cat.id === 'number' ? cat.id : parseInt(cat.id)
-        
-        // Contar subcategorias desta categoria
-        const { count: subcategoryCount } = await supabase
-          .from('subcategorias')
-          .select('*', { count: 'exact', head: true })
-          .eq('id_categoria', categoryIdNum)
-        
-        // Contar produtos desta categoria
-        // Tentar com category_id como string (UUID) e como número
-        let productCountByCategory = 0
-        
-        // Primeiro tentar como string
-        const { count: countByCategoryStr } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('category_id', categoryId)
-        
-        // Se não encontrou, tentar como número (caso category_id seja int8)
-        if (!countByCategoryStr || countByCategoryStr === 0) {
-          const { count: countByCategoryNum } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('category_id', categoryIdNum)
-          
-          productCountByCategory = countByCategoryNum || 0
-        } else {
-          productCountByCategory = countByCategoryStr
-        }
-        
-        // Contar produtos das subcategorias desta categoria
-        let productCountBySubcategory = 0
-        if (subcategoryCount && subcategoryCount > 0) {
-          const { data: subcategories } = await supabase
-            .from('subcategorias')
-            .select('id')
-            .eq('id_categoria', categoryIdNum)
-          
-          if (subcategories && subcategories.length > 0) {
-            // Tentar com IDs como string e como número
-            const subcategoryIdsStr = subcategories.map((sub: any) => sub.id.toString())
-            const subcategoryIdsNum = subcategories.map((sub: any) => 
-              typeof sub.id === 'number' ? sub.id : parseInt(sub.id)
-            ).filter(id => !isNaN(id))
-            
-            // Tentar com strings primeiro
-            const { count: countBySubStr } = await supabase
-              .from('products')
-              .select('*', { count: 'exact', head: true })
-              .in('subcategory_id', subcategoryIdsStr)
-            
-            if (countBySubStr && countBySubStr > 0) {
-              productCountBySubcategory = countBySubStr
-            } else if (subcategoryIdsNum.length > 0) {
-              // Tentar com números
-              const { count: countBySubNum } = await supabase
-                .from('products')
-                .select('*', { count: 'exact', head: true })
-                .in('subcategory_id', subcategoryIdsNum)
-              
-              productCountBySubcategory = countBySubNum || 0
-            }
-          }
-        }
-        
-        const totalProductCount = (productCountByCategory || 0) + productCountBySubcategory
-        
-        const mapped: Category = {
-          id: categoryId,
-          name: categoryName,
-          slug: categoryName.toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, ''),
-          description: null,
-          image_url: null,
-          banner_url: null,
-          is_active: true,
-          sort_order: 0,
-          productCount: totalProductCount,
-          subcategoryCount: subcategoryCount || 0
-        }
-        return mapped
-      }))
-
-      setCategories(categoriesWithCount)
+      const data = await categoriesService.getCategories()
+      setCategories(data)
     } catch (error: any) {
       console.error('Erro ao carregar categorias:', error)
       alert(`Erro ao carregar categorias: ${error.message}`)
@@ -333,62 +143,11 @@ export default function ProdutosPage() {
   // Carregar subcategorias de uma categoria específica
   const loadSubcategoriesForCategory = async (categoryId: string) => {
     try {
-      const categoryIdNum = parseInt(categoryId)
-      
-      if (isNaN(categoryIdNum)) {
-        setSubcategories([])
-        return
-      }
-      
-      const { data, error } = await supabase
-        .from('subcategorias')
-        .select('id, nome, id_categoria, data_criacao')
-        .eq('id_categoria', categoryIdNum)
-        .order('id', { ascending: true })
-
-      if (error) {
-        console.error('Erro ao buscar subcategorias:', error)
-        alert(`Erro ao buscar subcategorias: ${error.message}`)
-        setSubcategories([])
-        return
-      }
-
-      if (!data || data.length === 0) {
-        setSubcategories([])
-        return
-      }
-
-      // Mapear subcategorias para o formato esperado
-      const mappedSubcategories = data.map((sub: any) => ({
-        id: sub.id.toString(),
-        category_id: categoryId,
-        name: sub.nome,
-        slug: generateSlug(sub.nome),
-        description: null,
-        image_url: null,
-        is_active: true,
-        sort_order: 0,
-        category: selectedCategory ? {
-          id: selectedCategory.id,
-          name: selectedCategory.name,
-          slug: selectedCategory.slug,
-          description: selectedCategory.description,
-          image_url: selectedCategory.image_url,
-          banner_url: selectedCategory.banner_url,
-          is_active: selectedCategory.is_active,
-          sort_order: selectedCategory.sort_order
-        } : undefined,
-        productCount: 0
-      }))
-
-      // Atualizar subcategorias, mantendo as existentes de outras categorias ou substituindo
+      const data = await subcategoriesService.getSubcategories(categoryId)
+      // Manter subcategorias de outras categorias
       setSubcategories(prev => {
-        // Remover subcategorias da categoria anterior e adicionar as novas
-        const otherCategories = prev.filter(sub => {
-          const subCatId = typeof sub.category_id === 'string' ? sub.category_id : String(sub.category_id)
-          return subCatId !== categoryId
-        })
-        return [...otherCategories, ...mappedSubcategories]
+        const otherCategories = prev.filter(sub => sub.category_id !== categoryId)
+        return [...otherCategories, ...data]
       })
     } catch (error: any) {
       console.error('Erro ao carregar subcategorias:', error)
@@ -399,83 +158,8 @@ export default function ProdutosPage() {
 
   const loadSubcategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subcategorias')
-        .select('id, nome, id_categoria, data_criacao')
-        .order('id', { ascending: true })
-
-      if (error) {
-        if (error.code === 'PGRST301' || error.message?.includes('permission')) {
-          alert(`Erro de permissão ao carregar subcategorias. Verifique as políticas RLS.\n\nErro: ${error.message}\nCódigo: ${error.code}`)
-        } else {
-          alert(`Erro ao carregar subcategorias:\n\n${error.message}\nCódigo: ${error.code}`)
-        }
-        setSubcategories([])
-        return
-      }
-
-      if (!data || data.length === 0) {
-        setSubcategories([])
-        return
-      }
-
-      const categoryIds = [...new Set(data.map((sub: any) => {
-        const catId = sub.id_categoria
-        return typeof catId === 'number' ? catId.toString() : String(catId)
-      }).filter(Boolean))]
-      
-      let categoriesMap = new Map()
-      
-      if (categoryIds.length > 0) {
-        const categoryIdsNumeric = categoryIds.map(id => parseInt(id)).filter(id => !isNaN(id))
-        
-        const { data: categoriesData } = await supabase
-          .from('categorias')
-          .select('id, nome')
-          .in('id', categoryIdsNumeric)
-        
-        if (categoriesData) {
-          categoriesData.forEach((cat: any) => {
-            const catId = typeof cat.id === 'number' ? cat.id.toString() : String(cat.id)
-            categoriesMap.set(catId, { 
-              id: catId, 
-              name: cat.nome 
-            })
-          })
-        }
-      }
-
-      const subcategoriesWithCount = data.map((sub: any) => {
-        const subName = sub.nome || sub.name || ''
-        const subId = typeof sub.id === 'number' ? sub.id.toString() : String(sub.id)
-        const catId = sub.id_categoria
-        const catIdStr = typeof catId === 'number' ? catId.toString() : String(catId)
-        const category = categoriesMap.get(catIdStr) || null
-
-        return {
-          id: subId,
-          category_id: catIdStr,
-          name: subName,
-          slug: generateSlug(subName),
-          description: null,
-          image_url: null,
-          is_active: true,
-          sort_order: 0,
-          category: category ? {
-            id: category.id,
-            name: category.name,
-            slug: generateSlug(category.name),
-            description: null,
-            image_url: null,
-            banner_url: null,
-            is_active: true,
-            sort_order: 0
-          } : undefined,
-          productCount: 0
-        } as Subcategory
-      })
-
-      setSubcategories(subcategoriesWithCount)
+      const data = await subcategoriesService.getSubcategories()
+      setSubcategories(data)
     } catch (error: any) {
       console.error('Erro ao carregar subcategorias:', error)
       alert(`Erro ao carregar subcategorias: ${error.message}`)
@@ -484,144 +168,14 @@ export default function ProdutosPage() {
   }
 
   const loadProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
+    try {
+      const data = await productsService.getProducts()
+      setProducts(data)
+    } catch (error: any) {
       console.error('Erro ao carregar produtos:', error)
-      return
-    }
-
-    if (!data || data.length === 0) {
+      alert(`Erro ao carregar produtos: ${error.message}`)
       setProducts([])
-      return
     }
-
-    // Mapear produtos e adicionar compatibilidade com price
-    // Buscar imagens e categorias para cada produto
-    const productsWithDetails = await Promise.all(
-      data.map(async (product: any) => {
-        // Buscar imagens do produto usando a nova estrutura (images + product_image_relations)
-        let images = []
-        try {
-          // Buscar relações produto-imagem
-          const { data: relationsData, error: relationsError } = await supabase
-            .from('product_image_relations')
-            .select('image_id, is_primary')
-            .eq('product_id', product.id)
-            .order('is_primary', { ascending: false })
-          
-          if (!relationsError && relationsData && relationsData.length > 0) {
-            // Buscar as URLs das imagens
-            const imageIds = relationsData.map((rel: any) => rel.image_id)
-            const { data: imagesData, error: imagesError } = await supabase
-              .from('images')
-              .select('id, image_url')
-              .in('id', imageIds)
-            
-            if (!imagesError && imagesData && imagesData.length > 0) {
-              // Ordenar: primária primeiro
-              const sortedImages = relationsData.map((rel: any) => {
-                const img = imagesData.find((i: any) => i.id === rel.image_id)
-                return img ? { image_url: img.image_url, is_primary: rel.is_primary } : null
-              }).filter(Boolean)
-              
-              images = sortedImages
-            }
-          }
-          
-          // Fallback: tentar buscar da tabela antiga product_images se a nova estrutura não funcionar
-          if (images.length === 0) {
-            const { data: oldImagesData, error: oldImagesError } = await supabase
-              .from('product_images')
-              .select('image_url')
-              .eq('product_id', product.id)
-              .order('is_primary', { ascending: false })
-            
-            if (!oldImagesError && oldImagesData) {
-              images = oldImagesData
-            }
-          }
-        } catch (error: any) {
-          // Capturar qualquer outro erro e continuar sem imagens
-          console.warn(`Erro ao buscar imagens do produto ${product.id}:`, error.message)
-          images = []
-        }
-
-        // Buscar categoria se category_id existir
-        // category_id é TEXT que armazena o ID numérico (int8) da tabela categorias
-        let category = null
-        if (product.category_id) {
-          const categoryIdNum = parseInt(product.category_id)
-          if (!isNaN(categoryIdNum)) {
-            const { data: catData } = await supabase
-              .from('categorias')
-              .select('id, nome')
-              .eq('id', categoryIdNum)
-              .maybeSingle()
-            
-            if (catData) {
-              category = {
-                id: catData.id.toString(),
-                name: catData.nome,
-                slug: '',
-                description: null,
-                image_url: null,
-                banner_url: null,
-                is_active: true,
-                sort_order: 0
-              }
-            }
-          }
-        }
-
-        // Buscar subcategoria se subcategory_id existir
-        // subcategory_id é TEXT que armazena o ID numérico (int8) da tabela subcategorias
-        let subcategory = null
-        if (product.subcategory_id) {
-          const subcategoryIdNum = parseInt(product.subcategory_id)
-          if (!isNaN(subcategoryIdNum)) {
-            const { data: subData } = await supabase
-              .from('subcategorias')
-              .select('id, nome, id_categoria')
-              .eq('id', subcategoryIdNum)
-              .maybeSingle()
-            
-            if (subData) {
-              subcategory = {
-                id: subData.id.toString(),
-                name: subData.nome,
-                slug: '',
-                category_id: subData.id_categoria.toString(),
-                description: null,
-                image_url: null,
-                is_active: true,
-                sort_order: 0
-              }
-            }
-          }
-        }
-
-        // Mapear produto com compatibilidade
-        return {
-          ...product,
-          price: product.base_price || product.price || 0, // Compatibilidade
-          images: images && Array.isArray(images) ? images.map((img: any) => {
-            // Se é objeto com image_url, pegar a URL
-            if (typeof img === 'object' && img.image_url) return img.image_url
-            // Se já é string, retornar direto
-            if (typeof img === 'string') return img
-            return null
-          }).filter((url: string | null) => url) : [],
-          category,
-          subcategory
-        }
-      })
-    )
-
-    setProducts(productsWithDetails as Product[])
   }
 
   // PRODUCT CRUD
@@ -682,7 +236,7 @@ export default function ProdutosPage() {
   }
 
   const handleSaveProduct = async () => {
-      // Validar campos obrigatórios antes de iniciar salvamento
+    // Validar campos obrigatórios
     if (!productForm.name || !productForm.name.trim()) {
       alert('O nome do produto é obrigatório!')
       return
@@ -696,126 +250,40 @@ export default function ProdutosPage() {
     try {
       setSaving(true)
 
-      // Gerar slug automaticamente a partir do nome
-      const slug = generateSlug(productForm.name)
-
-      // Preparar dados do produto com campos corretos da tabela
-      // Campos obrigatórios sempre presentes
-      const productData: any = {
+      const productData = {
         name: productForm.name.trim(),
-        slug: slug,
-        base_price: parseFloat(productForm.price), // Preço de venda (obrigatório)
+        description: productForm.description?.trim() || undefined,
+        category_id: productForm.category_id || undefined,
+        subcategory_id: productForm.subcategory_id || undefined,
+        price: parseFloat(productForm.price),
         stock_quantity: parseInt(productForm.stock_quantity) || 0,
-        min_stock: 0, // Valor padrão obrigatório
-        is_active: true,
-        is_featured: false,
-        is_on_sale: false
+        min_stock: parseInt(productForm.min_stock) || 0,
+        max_stock: productForm.max_stock ? parseInt(productForm.max_stock) : undefined,
+        sizes: productForm.sizes && productForm.sizes.length > 0 ? productForm.sizes : undefined,
+        colors: productForm.colors && productForm.colors.length > 0 ? productForm.colors : undefined,
+        materials: productForm.materials && productForm.materials.length > 0 ? productForm.materials : undefined,
+        is_active: productForm.is_active,
+        is_featured: productForm.is_featured,
+        is_on_sale: productForm.is_on_sale,
+        weight: productForm.weight ? parseFloat(productForm.weight) : undefined,
+        sku: productForm.sku || undefined
       }
 
-      // Campos opcionais - apenas adicionar se tiverem valor, senão NULL
-      productData.description = productForm.description?.trim() || null
-      productData.category_id = productForm.category_id || null
-      productData.subcategory_id = productForm.subcategory_id || null
-      
-      // Preço atacado - sempre NULL (campo removido do formulário)
-      productData.wholesale_price = null
-
-      // Arrays - apenas se tiverem valores, senão array vazio
-      productData.sizes = productForm.sizes && productForm.sizes.length > 0 
-        ? productForm.sizes.filter(s => s && s.trim()).map(s => s.trim())
-        : []
-      productData.colors = [] // Sempre vazio por enquanto
-      productData.materials = [] // Sempre vazio por enquanto
-
-      // Remover campos que NÃO existem na tabela products antes de enviar
-      // Esses campos não existem na estrutura atual da tabela
-      const fieldsToRemove = ['barcode', 'cost_price', 'short_description']
-      fieldsToRemove.forEach(field => {
-        delete productData[field]
-      })
-
       if (selectedProduct) {
-        // Update - adicionar updated_at
-        productData.updated_at = new Date().toISOString()
-        
-        const { data: updatedData, error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', selectedProduct.id)
-          .select()
-
-        if (error) {
-          console.error('Erro detalhado no UPDATE:', error)
-          throw error
-        }
-        
-        if (!updatedData || updatedData.length === 0) {
-          throw new Error('Produto não foi atualizado. Verifique se o produto ainda existe.')
-        }
-        
+        await productsService.updateProduct(selectedProduct.id, productData)
         alert('Produto atualizado com sucesso!')
       } else {
-        // Create - slug deve ser único, verificar se já existe
-        const { data: existing } = await supabase
-          .from('products')
-          .select('id')
-          .eq('slug', slug)
-          .maybeSingle()
-
-        if (existing) {
-          // Se slug já existe, adicionar sufixo numérico
-          let finalSlug = slug
-          let counter = 1
-          let slugExists = true
-
-          while (slugExists) {
-            finalSlug = `${slug}-${counter}`
-            const { data: check } = await supabase
-              .from('products')
-              .select('id')
-              .eq('slug', finalSlug)
-              .maybeSingle()
-            
-            if (!check) {
-              slugExists = false
-            } else {
-              counter++
-            }
-          }
-          productData.slug = finalSlug
-        }
-
-        const { data: newData, error } = await supabase
-          .from('products')
-          .insert(productData)
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Erro detalhado no INSERT:', error)
-          console.error('Dados enviados:', productData)
-          throw error
-        }
-        
-        if (!newData) {
-          throw new Error('Produto não foi criado. Verifique os dados enviados.')
-        }
-        
+        await productsService.createProduct(productData)
         alert('Produto criado com sucesso!')
       }
 
-      // Recarregar dados (sem bloquear se der erro)
-      try {
-        await loadAllData()
-      } catch (loadError) {
-        console.error('Erro ao recarregar dados:', loadError)
-        // Não bloquear o processo se apenas o reload falhar
-      }
+      // Recarregar dados
+      await loadAllData()
 
       setIsEditing(false)
       setSelectedProduct(null)
       
-      // Resetar formulário após salvar
+      // Resetar formulário
       setProductForm({
         name: '',
         description: '',
@@ -841,29 +309,8 @@ export default function ProdutosPage() {
       })
     } catch (error: any) {
       console.error('Erro ao salvar produto:', error)
-      
-      // Mensagem de erro mais detalhada
-      let errorMessage = 'Erro desconhecido ao salvar produto'
-      
-      if (error.message) {
-        errorMessage = error.message
-      } else if (error.code) {
-        errorMessage = `Erro ${error.code}: ${error.message || 'Erro ao salvar produto'}`
-      }
-      
-      // Verificar se é erro de coluna não encontrada
-      if (error.message?.includes('column') && error.message?.includes('does not exist')) {
-        errorMessage = `Coluna não encontrada na tabela. Verifique se a estrutura da tabela 'products' está correta. ${error.message}`
-      }
-      
-      // Verificar se é erro de constraint
-      if (error.message?.includes('violates') || error.message?.includes('constraint')) {
-        errorMessage = `Erro de validação: ${error.message}`
-      }
-      
-      alert(`Erro ao salvar produto: ${errorMessage}`)
+      alert(`Erro ao salvar produto: ${error.message || 'Erro desconhecido'}`)
     } finally {
-      // Sempre resetar o estado de salvamento
       setSaving(false)
     }
   }
@@ -874,59 +321,25 @@ export default function ProdutosPage() {
       return
     }
 
-    // Confirmação simples (removendo confirmação dupla que pode estar causando problema)
     const productName = selectedProduct.name || 'este produto'
-    const confirmMessage = `Tem certeza que deseja excluir "${productName}"?\n\nEsta ação não pode ser desfeita!`
-    
-    if (!confirm(confirmMessage)) {
+    if (!confirm(`Tem certeza que deseja excluir "${productName}"?\n\nEsta ação não pode ser desfeita!`)) {
       return
     }
 
     try {
       setSaving(true)
-      console.log('Iniciando exclusão do produto:', selectedProduct.id)
-
-      // Tentar excluir o produto
-      const { error, data } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', selectedProduct.id)
-        .select()
-
-      console.log('Resultado da exclusão:', { error, data })
-
-      if (error) {
-        console.error('Erro detalhado ao excluir:', error)
-        throw error
-      }
-
-      // A exclusão pode não retornar dados em algumas configurações do Supabase
-      // Vamos verificar se realmente foi excluído tentando buscar o produto
-      const { data: checkData, error: checkError } = await supabase
-        .from('products')
-        .select('id')
-        .eq('id', selectedProduct.id)
-        .maybeSingle()
-
-      console.log('Verificação pós-exclusão:', { checkData, checkError })
-
-      // Se ainda existe, houve um problema
-      if (checkData) {
-        throw new Error('O produto não foi excluído. Verifique as permissões ou se há dependências.')
-      }
-
+      await productsService.deleteProduct(selectedProduct.id)
       alert(`Produto "${productName}" excluído com sucesso!`)
       
-      // Limpar seleção e formulário ANTES de recarregar
-    setSelectedProduct(null)
+      setSelectedProduct(null)
       setIsEditing(false)
       setProductForm({
-      name: '',
-      description: '',
+        name: '',
+        description: '',
         short_description: '',
         category_id: '',
         subcategory_id: '',
-      price: '',
+        price: '',
         wholesale_price: '',
         cost_price: '',
         sku: '',
@@ -935,53 +348,20 @@ export default function ProdutosPage() {
         stock_quantity: '',
         min_stock: '',
         max_stock: '',
-      sizes: [],
+        sizes: [],
         colors: [],
         materials: [],
         is_active: true,
         is_featured: false,
         is_on_sale: false,
-      images: []
-    })
+        images: []
+      })
 
-      // Recarregar lista de produtos (sem bloquear se der erro)
-      try {
-        await loadAllData()
-      } catch (loadError) {
-        console.error('Erro ao recarregar dados após exclusão:', loadError)
-        // Não bloquear o processo se apenas o reload falhar
-      }
-
+      await loadAllData()
     } catch (error: any) {
-      console.error('Erro completo ao excluir produto:', error)
-      
-      let errorMessage = 'Erro desconhecido ao excluir produto'
-      
-      if (error.message) {
-        errorMessage = error.message
-      } else if (error.code) {
-        errorMessage = `Erro ${error.code}: ${error.message || 'Erro ao excluir produto'}`
-      }
-
-      // Verificar se é erro de constraint (produto pode estar sendo usado em pedidos)
-      if (error.message?.includes('violates') || error.message?.includes('constraint') || error.message?.includes('foreign key')) {
-        errorMessage = `Não é possível excluir este produto porque ele está sendo usado em pedidos ou outras referências. ${error.message}`
-      }
-
-      // Verificar se é erro de permissão
-      if (error.message?.includes('permission') || error.code === 'PGRST301' || error.message?.includes('RLS')) {
-        errorMessage = `Erro de permissão: Você não tem permissão para excluir produtos. Verifique as políticas RLS (Row Level Security) no Supabase. ${error.message}`
-      }
-
-      // Verificar se é erro de coluna
-      if (error.message?.includes('column') && error.message?.includes('does not exist')) {
-        errorMessage = `Erro na estrutura da tabela: ${error.message}`
-      }
-
-      alert(`Erro ao excluir produto: ${errorMessage}`)
+      console.error('Erro ao excluir produto:', error)
+      alert(`Erro ao excluir produto: ${error.message || 'Erro desconhecido'}`)
     } finally {
-      // SEMPRE resetar o estado, mesmo se houver erro
-      console.log('Resetando estado de salvamento')
       setSaving(false)
     }
   }
@@ -992,7 +372,7 @@ export default function ProdutosPage() {
     setIsEditing(false)
     setCategoryForm({
       name: category.name,
-      slug: category.slug || generateSlug(category.name),
+      slug: category.slug || '',
       image_url: category.image_url || '',
       banner_url: category.banner_url || '',
       is_active: category.is_active !== undefined ? category.is_active : true
@@ -1016,7 +396,6 @@ export default function ProdutosPage() {
 
   const handleSaveCategory = async () => {
     try {
-      // Validação
       if (!categoryForm.name || categoryForm.name.trim() === '') {
         alert('Por favor, preencha o nome da categoria!')
         return
@@ -1025,110 +404,29 @@ export default function ProdutosPage() {
       setSaving(true)
 
       if (selectedCategory) {
-        // Atualizar categoria existente
-        
-        const categoryData: any = {
-          nome: categoryForm.name.trim()
-        }
-
-        const { data: updatedData, error } = await supabase
-          .from('categorias')
-          .update(categoryData)
-          .eq('id', parseInt(selectedCategory.id))
-          .select()
-          .single()
-
-        if (error) {
-          throw error
-        }
-
+        const updated = await categoriesService.updateCategory(selectedCategory.id, {
+          name: categoryForm.name.trim()
+        })
         alert('Categoria atualizada com sucesso!')
-        
-        // Recarregar categorias
         await loadCategories()
-        
-        // Atualizar categoria selecionada com dados atualizados
-        if (updatedData) {
-          const mapped: Category = {
-            id: updatedData.id.toString(),
-            name: updatedData.nome,
-            slug: generateSlug(updatedData.nome),
-            description: null,
-            image_url: null,
-            banner_url: null,
-            is_active: true,
-            sort_order: 0,
-            productCount: 0
-          }
-          setSelectedCategory(mapped)
-        }
+        setSelectedCategory(updated)
       } else {
-        // Criar nova categoria
-        const categoryData: any = {
-          nome: categoryForm.name.trim()
-        }
-
-        const { data: newCategory, error } = await supabase
-          .from('categorias')
-          .insert(categoryData)
-          .select('id, nome, data_criacao')
-          .single()
-
-        if (error) {
-          throw error
-        }
-
+        const newCategory = await categoriesService.createCategory({
+          name: categoryForm.name.trim()
+        })
         alert('Categoria criada com sucesso!')
-        
-        // Recarregar categorias para atualizar a lista
         await loadCategories()
-        
-        // Selecionar a categoria recém-criada
-        if (newCategory) {
-          const mappedCategory: Category = {
-            id: newCategory.id.toString(),
-            name: newCategory.nome,
-            slug: generateSlug(newCategory.nome),
-            description: null,
-            image_url: null,
-            banner_url: null,
-            is_active: true,
-            sort_order: 0,
-            productCount: 0
-          }
-          
-          // Aguardar um pouco para garantir que a lista foi atualizada
-          setTimeout(() => {
-            handleSelectCategory(mappedCategory)
-            setIsEditing(false) // Sair do modo de edição após selecionar
-          }, 500)
-          return // Retornar antes de setIsEditing(false) abaixo
-        }
+        setTimeout(() => {
+          handleSelectCategory(newCategory)
+          setIsEditing(false)
+        }, 500)
+        return
       }
 
       setIsEditing(false)
-      if (!selectedCategory) {
-        setSelectedCategory(null)
-      }
     } catch (error: any) {
-      console.error('❌ Erro ao salvar categoria:', error)
-      console.error('Detalhes do erro:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      })
-      
-      let errorMessage = 'Erro ao salvar categoria'
-      if (error.code === '23505') {
-        errorMessage = 'Já existe uma categoria com este nome!'
-      } else if (error.code === 'PGRST301') {
-        errorMessage = 'Erro de permissão. Verifique se você tem permissão para criar/editar categorias.'
-      } else {
-        errorMessage = `Erro ao salvar categoria: ${error.message}`
-      }
-      
-      alert(errorMessage)
+      console.error('Erro ao salvar categoria:', error)
+      alert(`Erro ao salvar categoria: ${error.message || 'Erro desconhecido'}`)
     } finally {
       setSaving(false)
     }
@@ -1143,38 +441,14 @@ export default function ProdutosPage() {
     }
 
     try {
-      const categoryId = parseInt(selectedCategory.id)
-
-      const { error } = await supabase
-        .from('categorias')
-        .delete()
-        .eq('id', categoryId)
-
-      if (error) {
-        throw error
-      }
-
+      await categoriesService.deleteCategory(selectedCategory.id)
       alert(`Categoria "${categoryName}" excluída com sucesso!`)
-      
-      // Limpar seleção e recarregar lista
       setSelectedCategory(null)
       setIsEditing(false)
       await loadCategories()
     } catch (error: any) {
-      console.error('❌ Erro completo ao excluir categoria:', error)
-      
-      let errorMessage = 'Erro ao excluir categoria'
-      if (error.code === '23503') {
-        errorMessage = 'Não é possível excluir esta categoria porque ela possui produtos ou subcategorias associados. Remova-os primeiro.'
-      } else if (error.code === 'PGRST301') {
-        errorMessage = 'Erro de permissão. Verifique se você tem permissão para excluir categorias.'
-      } else if (error.code === '42P01') {
-        errorMessage = 'Tabela não encontrada. Verifique se a tabela "categorias" existe.'
-      } else {
-        errorMessage = `Erro ao excluir categoria: ${error.message || 'Erro desconhecido'}`
-      }
-      
-      alert(errorMessage)
+      console.error('Erro ao excluir categoria:', error)
+      alert(`Erro ao excluir categoria: ${error.message || 'Erro desconhecido'}`)
     }
   }
 
@@ -1187,7 +461,8 @@ export default function ProdutosPage() {
       slug: subcategory.slug,
       category_id: subcategory.category_id,
       image_url: subcategory.image_url || '',
-      is_active: subcategory.is_active
+      is_active: subcategory.is_active,
+      sort_order: subcategory.sort_order || 0
     })
   }
 
@@ -1210,7 +485,6 @@ export default function ProdutosPage() {
 
   const handleSaveSubcategory = async () => {
     try {
-      // Validação
       if (!subcategoryForm.name || subcategoryForm.name.trim() === '') {
         alert('Por favor, preencha o nome da subcategoria!')
         return
@@ -1223,153 +497,40 @@ export default function ProdutosPage() {
 
       setSaving(true)
 
-      const categoryIdNum = parseInt(subcategoryForm.category_id)
-
       if (selectedSubcategory) {
-        // Atualizar subcategoria existente
-        const subcategoryData: any = {
-          nome: subcategoryForm.name.trim(),
-          id_categoria: categoryIdNum
-        }
-
-        const { data: updatedData, error } = await supabase
-          .from('subcategorias')
-          .update(subcategoryData)
-          .eq('id', parseInt(selectedSubcategory.id))
-          .select()
-          .single()
-
-        if (error) {
-          throw error
-        }
-
+        const updated = await subcategoriesService.updateSubcategory(selectedSubcategory.id, {
+          name: subcategoryForm.name.trim(),
+          category_id: subcategoryForm.category_id
+        })
         alert('Subcategoria atualizada com sucesso!')
-        
-        // Recarregar subcategorias
         if (selectedCategory) {
           await loadSubcategoriesForCategory(selectedCategory.id)
         } else {
           await loadSubcategories()
         }
-        
-        // Atualizar subcategoria selecionada
-        if (updatedData) {
-          // Estrutura real: id, id_categoria, nome, data_criacao
-          const catIdStr = (updatedData.id_categoria || updatedData.categoria_id)?.toString() || ''
-          const subName = updatedData.nome || updatedData.name || ''
-          const categoryInfo = categories.find(c => c.id === catIdStr)
-          
-          const mapped: Subcategory = {
-            id: updatedData.id.toString(),
-            category_id: catIdStr,
-            name: subName,
-            slug: generateSlug(subName),
-            description: null,
-            image_url: null,
-            is_active: true,
-            sort_order: 0,
-            category: categoryInfo ? {
-              id: categoryInfo.id,
-              name: categoryInfo.name,
-              slug: categoryInfo.slug,
-              description: categoryInfo.description,
-              image_url: categoryInfo.image_url,
-              banner_url: categoryInfo.banner_url,
-              is_active: categoryInfo.is_active,
-              sort_order: categoryInfo.sort_order
-            } : undefined,
-            productCount: 0
-          }
-          setSelectedSubcategory(mapped)
-        }
+        setSelectedSubcategory(updated)
       } else {
-        // Criar nova subcategoria
-        const subcategoryData: any = {
-          nome: subcategoryForm.name.trim(),
-          id_categoria: categoryIdNum,
-          data_criacao: new Date().toISOString()
-        }
-
-        // Buscar todas as colunas disponíveis para o select
-        const { data: newSubcategory, error } = await supabase
-          .from('subcategorias')
-          .insert(subcategoryData)
-          .select('*')
-          .single()
-
-        if (error) {
-          throw error
-        }
-
+        const newSubcategory = await subcategoriesService.createSubcategory({
+          name: subcategoryForm.name.trim(),
+          category_id: subcategoryForm.category_id
+        })
         alert('Subcategoria criada com sucesso!')
-        
-        // Recarregar subcategorias para atualizar a lista
         if (selectedCategory) {
           await loadSubcategoriesForCategory(selectedCategory.id)
         } else {
           await loadSubcategories()
         }
-        
-        // Selecionar a subcategoria recém-criada
-        if (newSubcategory) {
-          // Estrutura real: id, id_categoria, nome, data_criacao
-          const catIdStr = (newSubcategory.id_categoria || newSubcategory.categoria_id)?.toString() || ''
-          const subName = newSubcategory.nome || newSubcategory.name || ''
-          const categoryInfo = categories.find(c => c.id === catIdStr)
-          
-          const mappedSubcategory: Subcategory = {
-            id: newSubcategory.id.toString(),
-            category_id: catIdStr,
-            name: subName,
-            slug: generateSlug(subName),
-            description: null,
-            image_url: null,
-            is_active: true,
-            sort_order: 0,
-            category: categoryInfo ? {
-              id: categoryInfo.id,
-              name: categoryInfo.name,
-              slug: categoryInfo.slug,
-              description: categoryInfo.description,
-              image_url: categoryInfo.image_url,
-              banner_url: categoryInfo.banner_url,
-              is_active: categoryInfo.is_active,
-              sort_order: categoryInfo.sort_order
-            } : undefined,
-            productCount: 0
-          }
-          
-          // Aguardar um pouco para garantir que a lista foi atualizada
-          setTimeout(() => {
-            handleSelectSubcategory(mappedSubcategory)
-            setIsEditing(false) // Sair do modo de edição após selecionar
-          }, 500)
-          return // Retornar antes de setIsEditing(false) abaixo
-        }
+        setTimeout(() => {
+          handleSelectSubcategory(newSubcategory)
+          setIsEditing(false)
+        }, 500)
+        return
       }
 
       setIsEditing(false)
     } catch (error: any) {
-      console.error('❌ Erro ao salvar subcategoria:', error)
-      console.error('Detalhes do erro:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      })
-      
-      let errorMessage = 'Erro ao salvar subcategoria'
-      if (error.code === '23505') {
-        errorMessage = 'Já existe uma subcategoria com este nome nesta categoria!'
-      } else if (error.code === '23503') {
-        errorMessage = 'A categoria selecionada não existe ou foi removida!'
-      } else if (error.code === 'PGRST301') {
-        errorMessage = 'Erro de permissão. Verifique se você tem permissão para criar/editar subcategorias.'
-      } else {
-        errorMessage = `Erro ao salvar subcategoria: ${error.message}`
-      }
-      
-      alert(errorMessage)
+      console.error('Erro ao salvar subcategoria:', error)
+      alert(`Erro ao salvar subcategoria: ${error.message || 'Erro desconhecido'}`)
     } finally {
       setSaving(false)
     }
@@ -1384,20 +545,8 @@ export default function ProdutosPage() {
     }
 
     try {
-      const subcategoryId = parseInt(selectedSubcategory.id)
-
-      const { error } = await supabase
-        .from('subcategorias')
-        .delete()
-        .eq('id', subcategoryId)
-
-      if (error) {
-        throw error
-      }
-
+      await subcategoriesService.deleteSubcategory(selectedSubcategory.id)
       alert(`Subcategoria "${subcategoryName}" excluída com sucesso!`)
-      
-      // Limpar seleção e recarregar lista
       setSelectedSubcategory(null)
       setIsEditing(false)
       if (selectedCategory) {
@@ -1406,20 +555,38 @@ export default function ProdutosPage() {
         await loadSubcategories()
       }
     } catch (error: any) {
-      console.error('❌ Erro completo ao excluir subcategoria:', error)
+      console.error('Erro ao excluir subcategoria:', error)
+      alert(`Erro ao excluir subcategoria: ${error.message || 'Erro desconhecido'}`)
+    }
+  }
+
+  // IMAGE HANDLERS
+  const handleImageUpload = async (file: File) => {
+    if (!selectedProduct) {
+      alert('Selecione um produto primeiro para fazer upload de imagem')
+      return
+    }
+
+    try {
+      setUploadingImage(true)
+      const isPrimary = !selectedProduct.images || selectedProduct.images.length === 0
+      await imagesService.uploadProductImage(file, selectedProduct.id, isPrimary)
       
-      let errorMessage = 'Erro ao excluir subcategoria'
-      if (error.code === '23503') {
-        errorMessage = 'Não é possível excluir esta subcategoria porque ela possui produtos associados. Remova-os primeiro.'
-      } else if (error.code === 'PGRST301') {
-        errorMessage = 'Erro de permissão. Verifique se você tem permissão para excluir subcategorias.'
-      } else if (error.code === '42P01') {
-        errorMessage = 'Tabela não encontrada. Verifique se a tabela "subcategorias" existe.'
-      } else {
-        errorMessage = `Erro ao excluir subcategoria: ${error.message || 'Erro desconhecido'}`
+      // Recarregar produto com imagens atualizadas
+      const updatedProduct = await productsService.getProductById(selectedProduct.id)
+      if (updatedProduct) {
+        setSelectedProduct(updatedProduct)
+        setProductForm(prev => ({
+          ...prev,
+          images: updatedProduct.images || []
+        }))
       }
-      
-      alert(errorMessage)
+      alert('Imagem enviada com sucesso!')
+    } catch (error: any) {
+      console.error('Erro ao fazer upload de imagem:', error)
+      alert(`Erro ao fazer upload de imagem: ${error.message || 'Erro desconhecido'}`)
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -1694,6 +861,43 @@ export default function ProdutosPage() {
                   </div>
                   
                   {/* Imagem do Produto */}
+                  {isEditing && selectedProduct && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-white mb-2">Imagem Principal</label>
+                      <div className="mb-4">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              handleImageUpload(file)
+                            }
+                          }}
+                          disabled={uploadingImage}
+                          className="block w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-2 file:border-yellow-500/30 file:bg-yellow-500/10 file:text-yellow-400 hover:file:bg-yellow-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                      {uploadingImage && (
+                        <p className="mt-2 text-sm text-yellow-400">Fazendo upload da imagem...</p>
+                      )}
+                      {selectedProduct.images && selectedProduct.images.length > 0 && (
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          {selectedProduct.images.map((imgUrl, index) => (
+                            <div key={index} className="relative">
+                              <Image
+                                src={imgUrl}
+                                alt={`Imagem ${index + 1}`}
+                                width={200}
+                                height={200}
+                                className="rounded-lg object-cover border-2 border-yellow-500/30"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {!isEditing && selectedProduct && selectedProduct.images && selectedProduct.images.length > 0 && (
                     <div className="mt-4 flex justify-center">
                       <div className="relative w-full max-w-md h-64 rounded-lg overflow-hidden border-2 border-yellow-500/30">

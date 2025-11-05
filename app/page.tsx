@@ -5,7 +5,8 @@ import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
 import CategoryCard from '@/components/CategoryCard'
 import ProductCard from '@/components/ProductCard'
-import { categories, getFeaturedProductsLimited } from '@/lib/data'
+import { useCategories } from '@/hooks/useCategories'
+import { useProducts } from '@/hooks/useProducts'
 import { RotateCcw, Shield, Truck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -13,8 +14,22 @@ import { useEffect, useRef, useState } from 'react'
 export default function HomePage() {
   const carouselRef = useRef<HTMLDivElement>(null)
   const [isAutoScroll, setIsAutoScroll] = useState(true)
-  // Filtra produtos em destaque limitados a 2 por subcategoria
-  const featuredProducts = getFeaturedProductsLimited()
+  
+  // Buscar produtos em destaque da API
+  const { products: featuredProducts, loading: productsLoading } = useProducts({
+    is_featured: true,
+    is_active: true,
+    limit: 8
+  })
+
+  // Buscar categorias do banco de dados
+  const { categories, loading: categoriesLoading } = useCategories({
+    is_active: true,
+    include_subcategories: true
+  })
+  
+  // Filtrar categorias (excluir tabela-medidas)
+  const displayCategories = categories.filter(cat => cat.slug !== 'tabela-medidas')
 
   // Função para rolar para a esquerda
   const scrollLeft = () => {
@@ -126,11 +141,31 @@ export default function HomePage() {
           </div>
           
           {/* Grid de cards das categorias */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.filter(category => category.slug !== 'tabela-medidas').map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
+          {categoriesLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+            </div>
+          ) : displayCategories.length > 0 ? (
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayCategories.map((category) => {
+                // Converter categoria do banco para formato do CategoryCard
+                const categoryCardData = {
+                  id: category.id,
+                  name: category.name,
+                  slug: category.slug,
+                  image: category.image_url || '/placeholder-category.jpg',
+                  subcategories: category.subcategories || []
+                }
+                return (
+                  <CategoryCard key={category.id} category={categoryCardData} />
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-400">Nenhuma categoria disponível</p>
+            </div>
+          )}
           
           {/* Carrossel horizontal para mobile */}
           <div className="md:hidden">
@@ -162,13 +197,33 @@ export default function HomePage() {
               </button>
               
               {/* Container do carrossel */}
-              <div ref={carouselRef} className="flex overflow-x-auto gap-0 pb-4 scrollbar-hide snap-x snap-mandatory">
-                {categories.filter(category => category.slug !== 'tabela-medidas').map((category, index) => (
-                  <div key={category.id} className="flex-shrink-0 w-full snap-center px-4">
-                    <CategoryCard category={category} />
-                  </div>
-                ))}
-              </div>
+              {categoriesLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+                </div>
+              ) : displayCategories.length > 0 ? (
+                <div ref={carouselRef} className="flex overflow-x-auto gap-0 pb-4 scrollbar-hide snap-x snap-mandatory">
+                  {displayCategories.map((category, index) => {
+                    // Converter categoria do banco para formato do CategoryCard
+                    const categoryCardData = {
+                      id: category.id,
+                      name: category.name,
+                      slug: category.slug,
+                      image: category.image_url || '/placeholder-category.jpg',
+                      subcategories: category.subcategories || []
+                    }
+                    return (
+                      <div key={category.id} className="flex-shrink-0 w-full snap-center px-4">
+                        <CategoryCard category={categoryCardData} />
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-400">Nenhuma categoria disponível</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,11 +244,39 @@ export default function HomePage() {
           </div>
           
           {/* Grid de cards dos produtos em destaque */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {productsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => {
+                // Converter para formato compatível com ProductCard
+                const productCardData = {
+                  ...product,
+                  id: product.id,
+                  name: product.name,
+                  description: product.description || '',
+                  image: product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg',
+                  price: product.base_price || product.price || 0,
+                  wholesalePrice: product.wholesale_price || product.base_price || 0,
+                  sizes: product.sizes || [],
+                  featured: product.is_featured || false,
+                  onSale: product.is_on_sale || false,
+                  category: product.category?.slug || '',
+                  subcategory: product.subcategory?.slug || '',
+                  priceRanges: [] // Adicionar priceRanges vazio para compatibilidade
+                }
+                return (
+                  <ProductCard key={product.id} product={productCardData} />
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-400">Nenhum produto em destaque encontrado</p>
+            </div>
+          )}
         </div>
       </section>
 

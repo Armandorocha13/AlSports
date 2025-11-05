@@ -1,12 +1,12 @@
 'use client'
 
 import ProductCard from '@/components/ProductCard'
-import { getProductByIdOrSlug, getProducts } from '@/lib/product-service'
+import { useProduct, useProducts } from '@/hooks/useProducts'
 import { ArrowLeft, Heart, RotateCcw, Share2, Shield, Truck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 interface ProductPageProps {
   params: {
@@ -15,89 +15,67 @@ interface ProductPageProps {
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const [product, setProduct] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { product: productData, loading, error } = useProduct(params.id)
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([])
+  
+  // Buscar produtos relacionados
+  const { products: relatedProductsData } = useProducts({
+    category_id: productData?.category_id || undefined,
+    is_active: true,
+    limit: 4
+  })
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      try {
-        setLoading(true)
-        const productData = await getProductByIdOrSlug(params.id)
-        
-        if (!productData) {
-          notFound()
-          return
-        }
+  // Converter produto para formato compatível
+  const product = productData ? {
+    ...productData,
+    id: productData.id,
+    name: productData.name,
+    description: productData.description || '',
+    image: productData.images && productData.images.length > 0 
+      ? productData.images[0] : '/placeholder-product.jpg',
+    images: productData.images || [],
+    price: productData.base_price || productData.price || 0,
+    wholesalePrice: productData.base_price || productData.price || 0,
+    sizes: productData.sizes || [],
+    featured: productData.is_featured || false,
+    onSale: productData.is_on_sale || false,
+    category: productData.category?.slug || '',
+    subcategory: productData.subcategory?.slug || '',
+    stock_quantity: productData.stock_quantity || 0
+  } : null
 
-        // Adicionar compatibilidade com interface antiga
-        const productWithCompatibility = {
-          ...productData,
-          id: productData.id,
-          name: productData.name,
-          description: productData.description || '',
-          image: productData.images && productData.images.length > 0 
-            ? productData.images.find((img: any) => img.is_primary)?.image_url || productData.images[0]?.image_url || '/placeholder-product.jpg'
-            : '/placeholder-product.jpg',
-          images: productData.images?.map((img: any) => img.image_url) || [],
-          price: productData.base_price,
-          wholesalePrice: productData.base_price,
-          sizes: productData.sizes || [],
-          featured: productData.is_featured || false,
-          onSale: productData.is_on_sale || false,
-          category: productData.category?.slug || '',
-          subcategory: productData.subcategory?.slug || '',
-          stock_quantity: productData.stock_quantity || 0
-        }
-
-        setProduct(productWithCompatibility)
-
-        // Buscar produtos relacionados
-        if (productData.category_id) {
-          const related = await getProducts({
-            category: productData.category_id,
-            limit: 4
-          })
-          
-          const relatedWithCompatibility = related
-            .filter(p => p.id !== productData.id)
-            .slice(0, 4)
-            .map(p => ({
-              ...p,
-              id: p.id,
-              image: p.images && p.images.length > 0 
-                ? p.images.find((img: any) => img.is_primary)?.image_url || p.images[0]?.image_url || '/placeholder-product.jpg'
-                : '/placeholder-product.jpg',
-              price: p.base_price,
-              wholesalePrice: p.base_price,
-              sizes: p.sizes || [],
-              featured: p.is_featured || false
-            }))
-          
-          setRelatedProducts(relatedWithCompatibility)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar produto:', error)
-        notFound()
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProduct()
-  }, [params.id])
+  // Converter produtos relacionados
+  const relatedProducts = relatedProductsData
+    .filter(p => p.id !== productData?.id)
+    .slice(0, 4)
+    .map(p => ({
+      ...p,
+      id: p.id,
+      name: p.name,
+      description: p.description || '',
+      category: p.category?.slug || '',
+      subcategory: p.subcategory?.slug || '',
+      image: p.images && p.images.length > 0 ? p.images[0] : '/placeholder-product.jpg',
+      price: p.base_price || p.price || 0,
+      wholesalePrice: p.base_price || p.price || 0,
+      sizes: p.sizes || [],
+      featured: p.is_featured || false,
+      priceRanges: [] // Adicionar priceRanges vazio para compatibilidade
+    }))
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Carregando produto...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="text-white text-xl">Carregando produto...</div>
+        </div>
       </div>
     )
   }
 
-  if (!product) {
+  if (error || !product) {
     notFound()
   }
 

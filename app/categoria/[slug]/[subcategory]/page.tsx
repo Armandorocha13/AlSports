@@ -1,11 +1,12 @@
 'use client'
 
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Filter, X } from 'lucide-react'
-import { categories, sampleProducts } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
-import { useState, useMemo, useEffect } from 'react'
+import { useCategoryBySlug } from '@/hooks/useCategories'
+import { useProducts } from '@/hooks/useProducts'
+import { ArrowLeft, Filter, X } from 'lucide-react'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 interface SubcategoryPageProps {
   params: {
@@ -15,15 +16,29 @@ interface SubcategoryPageProps {
 }
 
 export default function SubcategoryPage({ params }: SubcategoryPageProps) {
-  const category = categories.find(cat => cat.slug === params.slug)
+  const { category, loading: categoryLoading, error: categoryError } = useCategoryBySlug(params.slug, true)
   
-  if (!category) {
-    notFound()
+  // Buscar subcategoria
+  const subcategory = category?.subcategories?.find(sub => sub.slug === params.subcategory)
+  
+  // Buscar produtos da subcategoria
+  const { products: allProducts, loading: productsLoading } = useProducts({
+    subcategory_id: subcategory?.id,
+    is_active: true
+  })
+
+  if (categoryLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <div className="text-white text-xl">Carregando...</div>
+        </div>
+      </div>
+    )
   }
 
-  const subcategory = category.subcategories.find(sub => sub.slug === params.subcategory)
-  
-  if (!subcategory) {
+  if (categoryError || !category || !subcategory) {
     notFound()
   }
 
@@ -35,19 +50,26 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
   const [showFeatured, setShowFeatured] = useState(false)
   const [visibleProducts, setVisibleProducts] = useState(8) // Quantidade inicial de produtos visíveis
 
-  // Filtrar produtos da subcategoria (simulação)
-  const products = sampleProducts.filter(product => 
-    product.category === category.id && product.subcategory === subcategory.id
-  )
-
-  // Se não houver produtos específicos, mostrar alguns produtos da categoria
-  const baseProducts = products.length > 0 ? products : sampleProducts.filter(product => 
-    product.category === category.id
-  ).slice(0, 8)
+  // Converter produtos para formato do ProductCard
+  const convertedProducts = allProducts.map(product => ({
+    ...product,
+    id: product.id,
+    name: product.name,
+    image: product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg',
+    price: product.base_price || product.price || 0,
+    wholesalePrice: product.wholesale_price || product.base_price || 0,
+    sizes: product.sizes || [],
+    featured: product.is_featured || false,
+    onSale: product.is_on_sale || false,
+    category: product.category?.slug || '',
+    subcategory: product.subcategory?.slug || '',
+    description: product.description || '',
+    priceRanges: []
+  }))
 
   // Aplicar filtros e ordenação
   const filteredProducts = useMemo(() => {
-    let filtered = [...baseProducts]
+    let filtered = [...convertedProducts]
 
     // Filtro por preço
     filtered = filtered.filter(product => 
@@ -86,7 +108,7 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
     }
 
     return filtered
-  }, [baseProducts, priceRange, selectedSizes, showFeatured, sortBy])
+  }, [convertedProducts, priceRange, selectedSizes, showFeatured, sortBy])
 
   // Produtos visíveis (paginados)
   const displayProducts = useMemo(() => {
@@ -109,11 +131,11 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
   // Obter tamanhos únicos dos produtos
   const availableSizes = useMemo(() => {
     const sizes = new Set<string>()
-    baseProducts.forEach(product => {
+    convertedProducts.forEach(product => {
       product.sizes.forEach(size => sizes.add(size))
     })
     return Array.from(sizes).sort()
-  }, [baseProducts])
+  }, [convertedProducts])
 
   return (
     <div className="min-h-screen bg-black">
@@ -284,7 +306,11 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
 
       {/* Products Display */}
       <div className="container mx-auto px-4 py-12">
-        {displayProducts.length > 0 ? (
+        {productsLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+          </div>
+        ) : displayProducts.length > 0 ? (
           <>
             {/* Contador de resultados */}
             <div className="mb-6">

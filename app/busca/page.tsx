@@ -1,14 +1,19 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Search, Filter, X } from 'lucide-react'
-import { sampleProducts } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
+import { useProducts } from '@/hooks/useProducts'
+import { Filter, Search, X } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
+  
+  // Buscar todos os produtos ativos da API
+  const { products: allProducts, loading: productsLoading } = useProducts({
+    is_active: true
+  })
   
   const [searchTerm, setSearchTerm] = useState(query)
   const [showFilters, setShowFilters] = useState(false)
@@ -17,12 +22,29 @@ function SearchContent() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [showFeatured, setShowFeatured] = useState(false)
 
+  // Converter produtos da API para formato compatível
+  const convertedProducts = allProducts.map(product => ({
+    ...product,
+    id: product.id,
+    name: product.name,
+    image: product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg',
+    price: product.base_price || product.price || 0,
+    wholesalePrice: product.base_price || product.price || 0,
+    sizes: product.sizes || [],
+    featured: product.is_featured || false,
+    onSale: product.is_on_sale || false,
+    category: product.category?.slug || '',
+    subcategory: product.subcategory?.slug || '',
+    description: product.description || '',
+    priceRanges: [] // Adicionar priceRanges vazio para compatibilidade
+  }))
+
   // Filtrar produtos baseado na busca
-  const filteredProducts = sampleProducts.filter(product => {
+  const filteredProducts = convertedProducts.filter(product => {
     // Busca por texto
     const matchesSearch = searchTerm === '' || 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
     
     // Filtro de preço

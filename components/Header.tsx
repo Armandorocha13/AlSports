@@ -4,7 +4,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
-import { categories } from '@/lib/data'
+import { useCategories } from '@/hooks/useCategories'
 import { Heart, LogOut, Menu, Search, Shield, ShoppingCart, User, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -28,6 +28,14 @@ export default function Header() {
   const { user, profile, signOut } = useAuth()
   const { getTotalItems, getTotal } = useCart()
   const { getFavoritesCount } = useFavorites()
+  
+  // Buscar categorias do banco de dados
+  const { categories, loading: categoriesLoading } = useCategories({
+    is_active: true
+  })
+  
+  // Filtrar categorias (excluir tabela-medidas se necessário)
+  const displayCategories = categories.filter(cat => cat.slug !== 'tabela-medidas')
 
   return (
     <header className="bg-black shadow-lg sticky top-0 z-50 border-b border-gray-800">
@@ -52,16 +60,19 @@ export default function Header() {
 
           {/* Navegação desktop - Links para categorias */}
           <nav className="hidden lg:flex items-center space-x-8">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                href={`/categoria/${category.slug}`}
-                className="text-gray-300 hover:text-primary-400 font-medium text-sm transition-colors duration-200"
-              >
-                {category.name}
-              </Link>
-            ))}
-            
+            {categoriesLoading ? (
+              <div className="text-gray-400 text-sm">Carregando...</div>
+            ) : (
+              displayCategories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/categoria/${category.slug}`}
+                  className="text-gray-300 hover:text-primary-400 font-medium text-sm transition-colors duration-200"
+                >
+                  {category.name}
+                </Link>
+              ))
+            )}
           </nav>
 
           {/* Área de ações: pesquisa, carrinho e menu do usuário */}
@@ -260,7 +271,7 @@ export default function Header() {
         <div className="lg:hidden bg-gray-800 border-t border-gray-700">
           <nav className="container mx-auto px-4 py-4">
             <div className="space-y-2">
-              {categories.map((category) => (
+              {displayCategories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/categoria/${category.slug}`}
