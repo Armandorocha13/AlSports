@@ -1,10 +1,9 @@
 'use client'
 
-import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight } from 'lucide-react'
-import { categories } from '@/lib/data'
 import { Category } from '@/lib/types'
+import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 
 interface CategoryCardProps {
   category: Category

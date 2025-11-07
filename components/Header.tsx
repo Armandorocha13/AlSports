@@ -4,11 +4,12 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
-import { categories } from '@/lib/data'
-import { Heart, LogOut, Menu, Search, Shield, ShoppingCart, User, X } from 'lucide-react'
+import { categoriesService } from '@/lib/services/categories-service'
+import { Category } from '@/lib/types'
+import { Heart, LogOut, Menu, Search, ShoppingCart, User, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Componente do cabeçalho da aplicação
 export default function Header() {
@@ -17,6 +18,7 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false) // Barra de pesquisa
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false) // Menu do usuário
   const [searchTerm, setSearchTerm] = useState('') // Termo de busca
+  const [categories, setCategories] = useState<Category[]>([])
 
   // Função para fechar a barra de busca
   const closeSearch = () => {
@@ -28,6 +30,19 @@ export default function Header() {
   const { user, profile, signOut } = useAuth()
   const { getTotalItems, getTotal } = useCart()
   const { getFavoritesCount } = useFavorites()
+
+  // Carregar categorias do Strapi
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await categoriesService.getAllCategories()
+        setCategories(categoriesData)
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error)
+      }
+    }
+    loadCategories()
+  }, [])
 
   return (
     <header className="bg-black shadow-lg sticky top-0 z-50 border-b border-gray-800">
@@ -156,20 +171,6 @@ export default function Header() {
                     >
                       Favoritos
                     </Link>
-                    
-                    {/* Link para painel administrativo - apenas para admins */}
-                    {(profile?.user_types === 'admin' || profile?.email?.toLowerCase() === 'almundodabola@gmail.com') && (
-                      <Link
-                        href="/admin"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <Shield className="h-4 w-4 mr-2" />
-                          Painel Admin
-                        </div>
-                      </Link>
-                    )}
                     
                     {/* Botão de logout */}
                     <hr className="my-1" />

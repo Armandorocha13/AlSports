@@ -1,11 +1,13 @@
 'use client'
 
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Filter, X } from 'lucide-react'
-import { categories, sampleProducts } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
-import { useState, useMemo, useEffect } from 'react'
+import { categoriesService } from '@/lib/services/categories-service'
+import { productsService } from '@/lib/services/products-service'
+import { Category, Product } from '@/lib/types'
+import { ArrowLeft, Filter, X } from 'lucide-react'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 interface SubcategoryPageProps {
   params: {
@@ -15,8 +17,55 @@ interface SubcategoryPageProps {
 }
 
 export default function SubcategoryPage({ params }: SubcategoryPageProps) {
-  const category = categories.find(cat => cat.slug === params.slug)
-  
+  const [category, setCategory] = useState<Category | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Estados para controles
+  const [showFilters, setShowFilters] = useState(false)
+  const [sortBy, setSortBy] = useState('recent')
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 })
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [showFeatured, setShowFeatured] = useState(false)
+  const [visibleProducts, setVisibleProducts] = useState(8) // Quantidade inicial de produtos visíveis
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const [categoryData, productsData] = await Promise.all([
+          categoriesService.getCategoryBySlug(params.slug),
+          productsService.getProductsBySubcategory(params.subcategory)
+        ])
+
+        if (!categoryData) {
+          notFound()
+          return
+        }
+
+        setCategory(categoryData)
+        setProducts(productsData)
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+        notFound()
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [params.slug, params.subcategory])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando produtos...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!category) {
     notFound()
   }
@@ -27,23 +76,8 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
     notFound()
   }
 
-  // Estados para controles
-  const [showFilters, setShowFilters] = useState(false)
-  const [sortBy, setSortBy] = useState('recent')
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 })
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [showFeatured, setShowFeatured] = useState(false)
-  const [visibleProducts, setVisibleProducts] = useState(8) // Quantidade inicial de produtos visíveis
-
-  // Filtrar produtos da subcategoria (simulação)
-  const products = sampleProducts.filter(product => 
-    product.category === category.id && product.subcategory === subcategory.id
-  )
-
   // Se não houver produtos específicos, mostrar alguns produtos da categoria
-  const baseProducts = products.length > 0 ? products : sampleProducts.filter(product => 
-    product.category === category.id
-  ).slice(0, 8)
+  const baseProducts = products.length > 0 ? products : []
 
   // Aplicar filtros e ordenação
   const filteredProducts = useMemo(() => {

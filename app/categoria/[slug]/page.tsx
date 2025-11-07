@@ -1,10 +1,12 @@
 'use client'
 
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
+import { categoriesService } from '@/lib/services/categories-service'
+import { Category } from '@/lib/types'
 import { ArrowLeft, Grid3X3 } from 'lucide-react'
-import { categories } from '@/lib/data'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface CategoryPageProps {
   params: {
@@ -13,7 +15,39 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
-  const category = categories.find(cat => cat.slug === params.slug)
+  const [category, setCategory] = useState<Category | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadCategory = async () => {
+      try {
+        setLoading(true)
+        const categoryData = await categoriesService.getCategoryBySlug(params.slug)
+        if (!categoryData) {
+          notFound()
+          return
+        }
+        setCategory(categoryData)
+      } catch (error) {
+        console.error('Erro ao carregar categoria:', error)
+        notFound()
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCategory()
+  }, [params.slug])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando categoria...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!category) {
     notFound()

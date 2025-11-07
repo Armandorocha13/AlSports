@@ -5,7 +5,9 @@ import BannerCarousel from '@/components/BannerCarousel'
 import BottomBannerCarousel from '@/components/BottomBannerCarousel'
 import CategoryCard from '@/components/CategoryCard'
 import ProductCard from '@/components/ProductCard'
-import { categories, getFeaturedProductsLimited } from '@/lib/data'
+import { categoriesService } from '@/lib/services/categories-service'
+import { productsService } from '@/lib/services/products-service'
+import { Category, Product } from '@/lib/types'
 import { RotateCcw, Shield, Truck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -13,8 +15,30 @@ import { useEffect, useRef, useState } from 'react'
 export default function HomePage() {
   const carouselRef = useRef<HTMLDivElement>(null)
   const [isAutoScroll, setIsAutoScroll] = useState(true)
-  // Filtra produtos em destaque limitados a 2 por subcategoria
-  const featuredProducts = getFeaturedProductsLimited()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Carregar dados do Strapi
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const [categoriesData, productsData] = await Promise.all([
+          categoriesService.getAllCategories(),
+          productsService.getFeaturedProductsLimited()
+        ])
+        setCategories(categoriesData)
+        setFeaturedProducts(productsData)
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+        // Em caso de erro, manter arrays vazios para não quebrar a UI
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   // Função para rolar para a esquerda
   const scrollLeft = () => {
@@ -126,51 +150,60 @@ export default function HomePage() {
           </div>
           
           {/* Grid de cards das categorias */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.filter(category => category.slug !== 'tabela-medidas').map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-          
-          {/* Carrossel horizontal para mobile */}
-          <div className="md:hidden">
-            <div 
-              className="relative"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              {/* Seta esquerda */}
-              <button 
-                onClick={scrollLeft}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-full shadow-lg transition-all duration-200"
-                aria-label="Categoria anterior"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left">
-                  <path d="m15 18-6-6 6-6"></path>
-                </svg>
-              </button>
-              
-              {/* Seta direita */}
-              <button 
-                onClick={scrollRight}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-full shadow-lg transition-all duration-200"
-                aria-label="Próxima categoria"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right">
-                  <path d="m9 18 6-6-6-6"></path>
-                </svg>
-              </button>
-              
-              {/* Container do carrossel */}
-              <div ref={carouselRef} className="flex overflow-x-auto gap-0 pb-4 scrollbar-hide snap-x snap-mandatory">
-                {categories.filter(category => category.slug !== 'tabela-medidas').map((category, index) => (
-                  <div key={category.id} className="flex-shrink-0 w-full snap-center px-4">
-                    <CategoryCard category={category} />
-                  </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Carregando categorias...</p>
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {categories.filter(category => category.slug !== 'tabela-medidas').map((category) => (
+                  <CategoryCard key={category.id} category={category} />
                 ))}
               </div>
-            </div>
-          </div>
+              
+              {/* Carrossel horizontal para mobile */}
+              <div className="md:hidden">
+                <div 
+                  className="relative"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {/* Seta esquerda */}
+                  <button 
+                    onClick={scrollLeft}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-full shadow-lg transition-all duration-200"
+                    aria-label="Categoria anterior"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left">
+                      <path d="m15 18-6-6 6-6"></path>
+                    </svg>
+                  </button>
+                  
+                  {/* Seta direita */}
+                  <button 
+                    onClick={scrollRight}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-full shadow-lg transition-all duration-200"
+                    aria-label="Próxima categoria"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right">
+                      <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                  </button>
+                  
+                  {/* Container do carrossel */}
+                  <div ref={carouselRef} className="flex overflow-x-auto gap-0 pb-4 scrollbar-hide snap-x snap-mandatory">
+                    {categories.filter(category => category.slug !== 'tabela-medidas').map((category, index) => (
+                      <div key={category.id} className="flex-shrink-0 w-full snap-center px-4">
+                        <CategoryCard category={category} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -189,11 +222,22 @@ export default function HomePage() {
           </div>
           
           {/* Grid de cards dos produtos em destaque */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Carregando produtos...</p>
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-400">Nenhum produto em destaque no momento.</p>
+            </div>
+          )}
         </div>
       </section>
 

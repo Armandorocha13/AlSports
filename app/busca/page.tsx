@@ -1,30 +1,55 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Search, Filter, X } from 'lucide-react'
-import { sampleProducts } from '@/lib/data'
 import ProductCard from '@/components/ProductCard'
+import { productsService } from '@/lib/services/products-service'
+import { Product } from '@/lib/types'
+import { Filter, Search, X } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
   
   const [searchTerm, setSearchTerm] = useState(query)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('recent')
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 })
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [showFeatured, setShowFeatured] = useState(false)
 
-  // Filtrar produtos baseado na busca
-  const filteredProducts = sampleProducts.filter(product => {
-    // Busca por texto
-    const matchesSearch = searchTerm === '' || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    
+  // Buscar produtos quando o termo de busca mudar
+  useEffect(() => {
+    const searchProducts = async () => {
+      if (!searchTerm.trim()) {
+        setProducts([])
+        return
+      }
+
+      try {
+        setLoading(true)
+        const results = await productsService.searchProducts(searchTerm)
+        setProducts(results)
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Debounce da busca
+    const timeoutId = setTimeout(() => {
+      searchProducts()
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  // Filtrar produtos baseado nos filtros adicionais
+  const filteredProducts = products.filter(product => {
     // Filtro de preço
     const matchesPrice = product.wholesalePrice >= priceRange.min && product.wholesalePrice <= priceRange.max
     
@@ -35,7 +60,7 @@ function SearchContent() {
     const matchesSizes = selectedSizes.length === 0 || 
       (product.sizes && selectedSizes.some(size => product.sizes.includes(size)))
     
-    return matchesSearch && matchesPrice && matchesFeatured && matchesSizes
+    return matchesPrice && matchesFeatured && matchesSizes
   })
 
   // Ordenar produtos
@@ -277,7 +302,12 @@ function SearchContent() {
 
           {/* Resultados */}
           <div className="lg:w-3/4">
-            {filteredProducts.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Buscando produtos...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-12">
                 <Search size={48} className="text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">

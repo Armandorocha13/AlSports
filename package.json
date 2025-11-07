@@ -24,9 +24,8 @@
     "test:registration-redirect": "jest tests/registration/registration-redirect.test.tsx",
     "test:registration-all": "npm run test:registration && npm run test:registration-validation && npm run test:registration-errors && npm run test:registration-redirect",
     "test:cart": "jest tests/cart/cart-context.test.tsx",
-    "test:admin": "jest tests/admin/admin-service.test.ts && jest tests/admin/admin-pages.test.tsx",
     "test:checkout": "jest tests/checkout/checkout.test.tsx",
-    "test:new-features": "npm run test:cart && npm run test:admin && npm run test:checkout",
+    "test:new-features": "npm run test:cart && npm run test:checkout",
     "test:all": "npm run lint && npm run test:coverage",
     "type-check": "tsc --noEmit",
     "build:analyze": "ANALYZE=true npm run build"

@@ -1,13 +1,14 @@
 'use client'
 
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
-import { useState } from 'react'
-import { ArrowLeft, Heart, Share2, Truck, Shield, RotateCcw, Star } from 'lucide-react'
-import { sampleProducts, categories } from '@/lib/data'
-import { Product } from '@/lib/types'
 import ProductCard from '@/components/ProductCard'
+import { categoriesService } from '@/lib/services/categories-service'
+import { productsService } from '@/lib/services/products-service'
+import { Category, Product } from '@/lib/types'
+import { ArrowLeft, Heart, RotateCcw, Share2, Shield, Truck } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface ProductPageProps {
   params: {
@@ -16,10 +17,58 @@ interface ProductPageProps {
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const product = sampleProducts.find(p => p.id === params.id)
+  const [product, setProduct] = useState<Product | null>(null)
+  const [category, setCategory] = useState<Category | null>(null)
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
-  
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      try {
+        setLoading(true)
+        const productData = await productsService.getProductById(params.id)
+        
+        if (!productData) {
+          notFound()
+          return
+        }
+
+        setProduct(productData)
+
+        // Carregar categoria
+        if (productData.category) {
+          const categoryData = await categoriesService.getCategoryBySlug(productData.category)
+          setCategory(categoryData)
+        }
+
+        // Carregar produtos relacionados
+        if (productData.category) {
+          const related = await productsService.getProductsByCategory(productData.category)
+          setRelatedProducts(related.filter(p => p.id !== productData.id).slice(0, 4))
+        }
+      } catch (error) {
+        console.error('Erro ao carregar produto:', error)
+        notFound()
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProduct()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando produto...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!product) {
     notFound()
   }
@@ -54,13 +103,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     return priceRange ? priceRange.price : product.wholesalePrice
   }
 
-  const category = categories.find(cat => cat.id === product.category)
-  const subcategory = category?.subcategories.find(sub => sub.id === product.subcategory)
-
-  // Produtos relacionados (simulação)
-  const relatedProducts = sampleProducts
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4)
+  const subcategory = category?.subcategories.find(sub => sub.slug === product.subcategory)
 
   return (
     <div className="min-h-screen bg-black">
