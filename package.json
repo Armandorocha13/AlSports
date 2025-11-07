@@ -28,7 +28,12 @@
     "test:new-features": "npm run test:cart && npm run test:checkout",
     "test:all": "npm run lint && npm run test:coverage",
     "type-check": "tsc --noEmit",
-    "build:analyze": "ANALYZE=true npm run build"
+    "build:analyze": "ANALYZE=true npm run build",
+    "migrate:products": "npx tsx scripts/migrate-products-to-db.ts",
+    "generate:products-sql": "npx tsx scripts/generate-products-sql.ts",
+    "find:unused-tables": "npx tsx scripts/find-unused-tables.ts",
+    "migrate:images": "npx tsx scripts/migrate-product-images.ts",
+    "generate:images-sql": "npx tsx scripts/generate-product-images-sql.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
@@ -65,10 +70,12 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
+    "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.5",
     "babel-jest": "^29.6.2",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
+    "glob": "^11.0.3",
     "jest": "^29.6.2",
     "jest-environment-jsdom": "^29.6.2",
     "ts-jest": "^29.1.1"
