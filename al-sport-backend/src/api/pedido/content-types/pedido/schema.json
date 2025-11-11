@@ -1,0 +1,79 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pedidos",
+  "info": {
+    "singularName": "pedido",
+    "pluralName": "pedidos",
+    "displayName": "Pedido",
+    "description": "Pedidos realizados no site"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": false
+    }
+  },
+  "attributes": {
+    "NumeroPedido": {
+      "type": "string",
+      "unique": true
+    },
+    "NomeCliente": {
+      "type": "string",
+      "required": true
+    },
+    "Email": {
+      "type": "email",
+      "required": true
+    },
+    "Telefone": {
+      "type": "string",
+      "required": true
+    },
+    "Endereco": {
+      "type": "text",
+      "required": true
+    },
+    "ItensComprados": {
+      "type": "json",
+      "required": true
+    },
+    "ValorProdutos": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "ValorFrete": {
+      "type": "decimal",
+      "required": true,
+      "default": 0,
+      "min": 0
+    },
+    "ValorTotal": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "StatusPedido": {
+      "type": "enumeration",
+      "enum": [
+        "Aguardando Pagamento",
+        "Pagamento Aprovado",
+        "Em Separação",
+        "Enviado",
+        "Concluído",
+        "Cancelado"
+      ],
+      "default": "Aguardando Pagamento",
+      "required": true
+    },
+    "CodigoRastreio": {
+      "type": "string"
+    },
+    "Observacoes": {
+      "type": "text"
+    }
+  }
+}

@@ -26,76 +26,59 @@ const statusConfig = {
   aguardando_pagamento: {
     title: 'Aguardando Pagamento',
     description: 'Seu pedido foi criado e está aguardando confirmação do pagamento.',
-    icon: CreditCard,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
-    borderColor: 'border-yellow-200'
+    icon: Clock,
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-900/20',
+    borderColor: 'border-yellow-400'
   },
-  pagamento_confirmado: {
-    title: 'Pagamento Confirmado',
-    description: 'Pagamento aprovado! Seu pedido está sendo preparado.',
+  pagamento_aprovado: {
+    title: 'Pagamento Aprovado',
+    description: 'Pagamento confirmado! Seu pedido será preparado em breve.',
     icon: CheckCircle,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-200'
+    color: 'text-green-400',
+    bgColor: 'bg-green-900/20',
+    borderColor: 'border-green-400'
   },
-  preparando_pedido: {
-    title: 'Preparando Pedido',
+  em_separacao: {
+    title: 'Em Separação',
     description: 'Seus produtos estão sendo separados e embalados.',
     icon: Package,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    borderColor: 'border-blue-200'
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-900/20',
+    borderColor: 'border-blue-400'
   },
   enviado: {
-    title: 'Pedido Enviado',
+    title: 'Enviado',
     description: 'Seu pedido foi enviado e está a caminho.',
     icon: Truck,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
-    borderColor: 'border-purple-200'
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-900/20',
+    borderColor: 'border-purple-400'
   },
-  em_transito: {
-    title: 'Em Trânsito',
-    description: 'Seu pedido está em trânsito para o endereço de entrega.',
-    icon: Truck,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-100',
-    borderColor: 'border-indigo-200'
-  },
-  entregue: {
-    title: 'Entregue',
+  concluido: {
+    title: 'Concluído',
     description: 'Seu pedido foi entregue com sucesso!',
     icon: CheckCircle,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-200'
+    color: 'text-green-400',
+    bgColor: 'bg-green-900/20',
+    borderColor: 'border-green-400'
   },
   cancelado: {
-    title: 'Pedido Cancelado',
+    title: 'Cancelado',
     description: 'Seu pedido foi cancelado.',
     icon: XCircle,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
-    borderColor: 'border-red-200'
-  },
-  devolvido: {
-    title: 'Devolvido',
-    description: 'Seu pedido foi devolvido.',
-    icon: RotateCcw,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-    borderColor: 'border-orange-200'
+    color: 'text-red-400',
+    bgColor: 'bg-red-900/20',
+    borderColor: 'border-red-400'
   }
 }
 
 const statusOrder: OrderStatus[] = [
   'aguardando_pagamento',
-  'pagamento_confirmado',
-  'preparando_pedido',
+  'pagamento_aprovado',
+  'em_separacao',
   'enviado',
-  'em_transito',
-  'entregue'
+  'concluido'
 ]
 
 export default function OrderTimeline({ 
@@ -174,102 +157,135 @@ export default function OrderTimeline({
     })
   }
 
+  // Renderizar cancelado separadamente se for o status atual
+  const isCancelled = currentStatusState === 'cancelado'
+
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
       <div className="flex items-center mb-6">
-        <MapPin className="h-6 w-6 text-primary-600 mr-2" />
-        <h3 className="text-lg font-semibold text-gray-900">
+        <MapPin className="h-6 w-6 text-yellow-400 mr-2" />
+        <h3 className="text-lg font-semibold text-white">
           Acompanhamento do Pedido
         </h3>
         {realtime && (
-          <div className="ml-auto flex items-center text-sm text-green-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
-            Tempo real
+          <div className="ml-auto flex items-center text-sm text-green-400">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+            tempo real
           </div>
         )}
       </div>
 
-      <div className="space-y-4">
-        {statusOrder.map((status, index) => {
-          const config = statusConfig[status]
-          const Icon = config.icon
-          const isCompleted = isStatusCompleted(status)
-          const isCurrent = isStatusCurrent(status)
-          const statusHistoryItem = getStatusHistory(status)
+      {isCancelled ? (
+        // Mostrar apenas status de cancelado
+        <div className="flex items-start">
+          <div className="flex flex-col items-center mr-4">
+            <div className={`
+              w-12 h-12 rounded-full flex items-center justify-center border-2
+              ${statusConfig.cancelado.bgColor} ${statusConfig.cancelado.borderColor} ${statusConfig.cancelado.color}
+              ring-4 ring-red-900/30
+            `}>
+              <XCircle size={24} />
+            </div>
+          </div>
+          <div className="flex-1">
+            <h4 className="font-medium text-white text-lg">
+              {statusConfig.cancelado.title}
+            </h4>
+            <p className="text-sm mt-1 text-gray-400">
+              {statusConfig.cancelado.description}
+            </p>
+            {getStatusHistory('cancelado') && (
+              <span className="text-sm text-gray-500 mt-2 block">
+                {formatDate(getStatusHistory('cancelado')!.created_at)}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        // Mostrar timeline normal
+        <div className="space-y-4">
+          {statusOrder.map((status, index) => {
+            const config = statusConfig[status]
+            const Icon = config.icon
+            const isCompleted = isStatusCompleted(status)
+            const isCurrent = isStatusCurrent(status)
+            const statusHistoryItem = getStatusHistory(status)
 
-          return (
-            <div key={status} className="flex items-start">
-              {/* Timeline Line */}
-              <div className="flex flex-col items-center mr-4">
-                <div className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2
-                  ${isCompleted 
-                    ? `${config.bgColor} ${config.borderColor} ${config.color}` 
-                    : 'bg-gray-100 border-gray-300 text-gray-400'
-                  }
-                  ${isCurrent ? 'ring-4 ring-primary-200' : ''}
-                `}>
-                  <Icon size={20} />
-                </div>
-                {index < statusOrder.length - 1 && (
+            return (
+              <div key={status} className="flex items-start">
+                {/* Timeline Line */}
+                <div className="flex flex-col items-center mr-4">
                   <div className={`
-                    w-0.5 h-8 mt-2
-                    ${isCompleted ? 'bg-primary-300' : 'bg-gray-200'}
-                  `} />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 pb-8">
-                <div className="flex items-center justify-between">
-                  <h4 className={`
-                    font-medium
-                    ${isCompleted ? 'text-gray-900' : 'text-gray-500'}
+                    w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all
+                    ${isCompleted 
+                      ? `${config.bgColor} ${config.borderColor} ${config.color}` 
+                      : 'bg-gray-800 border-gray-700 text-gray-600'
+                    }
+                    ${isCurrent ? 'ring-4 ring-yellow-400/30 scale-110' : ''}
                   `}>
-                    {config.title}
-                  </h4>
-                  {statusHistoryItem && (
-                    <span className="text-sm text-gray-500">
-                      {formatDate(statusHistoryItem.created_at)}
-                    </span>
+                    <Icon size={24} />
+                  </div>
+                  {index < statusOrder.length - 1 && (
+                    <div className={`
+                      w-0.5 h-12 mt-2 transition-all
+                      ${isCompleted ? 'bg-yellow-400' : 'bg-gray-700'}
+                    `} />
                   )}
                 </div>
-                
-                <p className={`
-                  text-sm mt-1
-                  ${isCompleted ? 'text-gray-600' : 'text-gray-400'}
-                `}>
-                  {config.description}
-                </p>
 
-                {statusHistoryItem?.notes && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
-                    <strong>Observação:</strong> {statusHistoryItem.notes}
+                {/* Content */}
+                <div className="flex-1 pb-8">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`
+                      font-semibold text-base
+                      ${isCompleted ? 'text-white' : 'text-gray-600'}
+                      ${isCurrent ? 'text-yellow-400' : ''}
+                    `}>
+                      {config.title}
+                    </h4>
+                    {statusHistoryItem && (
+                      <span className="text-sm text-gray-500">
+                        {formatDate(statusHistoryItem.created_at)}
+                      </span>
+                    )}
                   </div>
-                )}
+                  
+                  <p className={`
+                    text-sm mt-1
+                    ${isCompleted ? 'text-gray-400' : 'text-gray-600'}
+                  `}>
+                    {config.description}
+                  </p>
 
-                {isCurrent && (
-                  <div className="mt-2 flex items-center text-sm text-primary-600">
-                    <Clock size={16} className="mr-1" />
-                    Status atual
-                  </div>
-                )}
+                  {statusHistoryItem?.notes && (
+                    <div className="mt-2 p-3 bg-gray-800 border border-gray-700 rounded text-sm text-gray-300">
+                      <strong className="text-yellow-400">Observação:</strong> {statusHistoryItem.notes}
+                    </div>
+                  )}
+
+                  {isCurrent && (
+                    <div className="mt-2 flex items-center text-sm text-yellow-400 font-medium">
+                      <Clock size={16} className="mr-1 animate-pulse" />
+                      Status atual
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Informações Adicionais */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
+      <div className="mt-6 pt-6 border-t border-gray-800">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="font-medium text-gray-900">Número do Pedido:</span>
-            <p className="text-gray-600">{orderId}</p>
+            <span className="font-medium text-yellow-400">Número do Pedido:</span>
+            <p className="text-white font-mono mt-1">{orderId}</p>
           </div>
           <div>
-            <span className="font-medium text-gray-900">Status Atual:</span>
-            <p className="text-gray-600">{statusConfig[currentStatusState].title}</p>
+            <span className="font-medium text-yellow-400">Status Atual:</span>
+            <p className="text-white mt-1">{statusConfig[currentStatusState]?.title || 'Aguardando Pagamento'}</p>
           </div>
         </div>
       </div>

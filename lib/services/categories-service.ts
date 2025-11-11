@@ -14,7 +14,7 @@ class CategoriesService {
   async getAllCategories(): Promise<Category[]> {
     try {
       const queryParams = {
-        'populate[subcategories]': '*',
+        'populate[subcategories][populate][ImagemDaSubcategoria]': '*',
         'populate[image]': '*',
         'filters[active][$eq]': true,
         'sort[0]': 'order:asc',
@@ -40,7 +40,7 @@ class CategoriesService {
   async getCategoryBySlug(slug: string): Promise<Category | null> {
     try {
       const queryParams = {
-        'populate[subcategories]': '*',
+        'populate[subcategories][populate][ImagemDaSubcategoria]': '*',
         'populate[image]': '*',
         'filters[slug][$eq]': slug,
         'filters[active][$eq]': true,

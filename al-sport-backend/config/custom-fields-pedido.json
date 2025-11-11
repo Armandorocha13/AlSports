@@ -1,0 +1,191 @@
+{
+  "api::pedido.pedido": {
+    "uid": "api::pedido.pedido",
+    "settings": {
+      "bulkable": true,
+      "filterable": true,
+      "searchable": true,
+      "pageSize": 10,
+      "mainField": "NomeCliente",
+      "defaultSortBy": "createdAt",
+      "defaultSortOrder": "DESC"
+    },
+    "metadatas": {
+      "id": {
+        "edit": {},
+        "list": {
+          "label": "ID",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "NumeroPedido": {
+        "edit": {
+          "label": "Número do Pedido",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Nº Pedido",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "NomeCliente": {
+        "edit": {
+          "label": "Nome do Cliente",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Cliente",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "Email": {
+        "edit": {
+          "label": "Email",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Email",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "Telefone": {
+        "edit": {
+          "label": "Telefone",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Telefone",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "ValorTotal": {
+        "edit": {
+          "label": "Valor Total",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Valor Total",
+          "searchable": false,
+          "sortable": true
+        }
+      },
+      "StatusPedido": {
+        "edit": {
+          "label": "Status do Pedido",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Status",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "Endereco": {
+        "edit": {
+          "label": "Endereço",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "Endereço",
+          "searchable": true,
+          "sortable": false
+        }
+      }
+    },
+    "layouts": {
+      "list": ["NumeroPedido", "NomeCliente", "Email", "ValorTotal", "StatusPedido"],
+      "edit": [
+        [
+          {
+            "name": "NumeroPedido",
+            "size": 6
+          },
+          {
+            "name": "StatusPedido",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "NomeCliente",
+            "size": 6
+          },
+          {
+            "name": "Email",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "Telefone",
+            "size": 6
+          },
+          {
+            "name": "CodigoRastreio",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "Endereco",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "ValorProdutos",
+            "size": 4
+          },
+          {
+            "name": "ValorFrete",
+            "size": 4
+          },
+          {
+            "name": "ValorTotal",
+            "size": 4
+          }
+        ],
+        [
+          {
+            "name": "ItensComprados",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "Observacoes",
+            "size": 12
+          }
+        ]
+      ]
+    }
+  }
+}
+
+

@@ -1,0 +1,77 @@
+{
+  "layouts": {
+    "list": [
+      "NumeroPedido",
+      "NomeCliente",
+      "Email",
+      "ValorTotal",
+      "StatusPedido"
+    ],
+    "edit": [
+      [
+        {
+          "name": "NumeroPedido",
+          "size": 6
+        },
+        {
+          "name": "StatusPedido",
+          "size": 6
+        }
+      ],
+      [
+        {
+          "name": "NomeCliente",
+          "size": 6
+        },
+        {
+          "name": "Email",
+          "size": 6
+        }
+      ],
+      [
+        {
+          "name": "Telefone",
+          "size": 6
+        },
+        {
+          "name": "CodigoRastreio",
+          "size": 6
+        }
+      ],
+      [
+        {
+          "name": "Endereco",
+          "size": 12
+        }
+      ],
+      [
+        {
+          "name": "ValorProdutos",
+          "size": 4
+        },
+        {
+          "name": "ValorFrete",
+          "size": 4
+        },
+        {
+          "name": "ValorTotal",
+          "size": 4
+        }
+      ],
+      [
+        {
+          "name": "ItensComprados",
+          "size": 12
+        }
+      ],
+      [
+        {
+          "name": "Observacoes",
+          "size": 12
+        }
+      ]
+    ]
+  }
+}
+
+

@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_variacoes_variacoes",
+  "info": {
+    "displayName": "variacoes",
+    "description": "Variações do produto (tamanhos, códigos e estoque)"
+  },
+  "options": {},
+  "attributes": {
+    "Tamanho": {
+      "type": "string",
+      "required": true
+    },
+    "Estoque": {
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "min": 0
+    }
+  },
+  "config": {}
+}

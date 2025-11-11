@@ -432,6 +432,58 @@ export function CartProvider({ children }: CartProviderProps) {
         total: orderData.total
       })
       
+      // ============================================
+      // PASSO 5: Sincronizar com Strapi (ADMIN) - NÃO BLOQUEAR
+      // ============================================
+      // Fazer em background, não aguardar resposta
+      setTimeout(async () => {
+        try {
+          console.log('📤 Enviando pedido para Strapi (painel admin)...')
+          
+          const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'
+          
+          // Timeout de 5 segundos para não travar
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000)
+          
+          const response = await fetch(`${strapiUrl}/api/pedidos/sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderData: {
+                orderId: newOrder.order_number,
+                customer: orderData.customer,
+                items: orderData.items,
+                subtotal: orderData.subtotal,
+                shippingCost: orderData.shippingCost,
+                total: orderData.total,
+                status: 'aguardando_pagamento',
+                shipping: orderData.shipping
+              }
+            }),
+            signal: controller.signal
+          })
+
+          clearTimeout(timeoutId)
+
+          if (response.ok) {
+            const result = await response.json()
+            console.log('✅ Pedido sincronizado com Strapi:', result)
+          } else {
+            const errorText = await response.text()
+            console.warn('⚠️ Erro ao sincronizar com Strapi (não crítico):', errorText)
+          }
+        } catch (strapiError: any) {
+          if (strapiError.name === 'AbortError') {
+            console.warn('⚠️ Timeout ao sincronizar com Strapi (continuando normalmente)')
+          } else {
+            console.warn('⚠️ Erro ao sincronizar com Strapi (não crítico):', strapiError)
+          }
+        }
+      }, 100) // Executar em background após 100ms
+      
       return { success: true }
     } catch (error: any) {
       console.error('Erro ao criar pedido:', error)

@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "conteudos_do_sites",
+  "info": {
+    "singularName": "conteudos-do-site",
+    "pluralName": "conteudos-do-sites",
+    "displayName": "Contatos"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "TelefoneWhatsapp": {
+      "type": "string"
+    },
+    "EmailContato": {
+      "type": "string"
+    },
+    "EnderecoFisico": {
+      "type": "string"
+    }
+  }
+}
