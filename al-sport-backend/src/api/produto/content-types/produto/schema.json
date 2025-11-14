@@ -40,7 +40,7 @@
       "relation": "oneToOne",
       "target": "api::subcategoria.subcategoria"
     },
-    "false": {
+    "Destaques": {
       "type": "boolean",
       "default": false
     }

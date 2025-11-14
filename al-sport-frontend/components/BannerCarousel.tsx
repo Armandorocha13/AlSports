@@ -33,19 +33,33 @@ const defaultBanners: AppBanner[] = [
 
 // Componente principal do carrossel de banners
 export default function BannerCarousel({ banners = defaultBanners }: BannerCarouselProps) {
-  // Debug: log dos banners recebidos
-  if (process.env.NODE_ENV === 'development') {
-    console.log('BannerCarousel - Banners recebidos:', banners.length, banners.map(b => ({ id: b.id, image: b.image })))
-  }
+  // Debug: log dos banners recebidos (sempre logar, não só em desenvolvimento)
+  console.log('🎠 BannerCarousel - Banners recebidos:', {
+    count: banners.length,
+    banners: banners.map(b => ({ 
+      id: b.id, 
+      image: b.image,
+      title: b.title,
+      hasImage: b.image && b.image !== '/images/placeholder.jpg'
+    }))
+  })
 
   // Estado para controlar qual banner está sendo exibido atualmente
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  
+  // Handler para erros de imagem
+  const handleImageError = (bannerId: string, imageSrc: string) => {
+    console.error('❌ BannerCarousel - Erro ao carregar imagem:', {
+      bannerId,
+      imageSrc
+    })
+    setImageErrors(prev => new Set(prev).add(bannerId))
+  }
   
   // Se não houver banners, não renderizar nada ou mostrar mensagem
   if (banners.length === 0) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('BannerCarousel - Nenhum banner recebido, usando banners padrão')
-    }
+    console.warn('⚠️ BannerCarousel - Nenhum banner recebido, usando banners padrão')
     // Usar banners padrão se não receber nenhum
     const finalBanners = defaultBanners
     return (
@@ -67,6 +81,8 @@ export default function BannerCarousel({ banners = defaultBanners }: BannerCarou
                 loading={index === 0 ? 'eager' : 'lazy'}
                 quality={85}
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                onError={() => handleImageError(banner.id, banner.image)}
+                unoptimized={banner.image.startsWith('http://') || banner.image.startsWith('https://')}
               />
             </div>
           ))}
@@ -77,31 +93,68 @@ export default function BannerCarousel({ banners = defaultBanners }: BannerCarou
 
   // Efeito para rotação automática dos banners a cada 6 segundos
   useEffect(() => {
-    if (banners.length === 0) return
+    if (banners.length === 0 || banners.length === 1) {
+      console.log('🎠 BannerCarousel - Rotação automática desabilitada (0 ou 1 banner)')
+      return
+    }
     
+    console.log('🎠 BannerCarousel - Iniciando rotação automática a cada 3.5s')
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => 
-        prevIndex === banners.length - 1 ? 0 : prevIndex + 1 // Volta para o primeiro banner após o último
-      )
+      setCurrentIndex((prevIndex) => {
+        const nextIndex = prevIndex === banners.length - 1 ? 0 : prevIndex + 1
+        console.log('🎠 BannerCarousel - Mudando para banner:', nextIndex)
+        return nextIndex
+      })
     }, 3500) // Intervalo de 3.5 segundos
     // Limpa o intervalo quando o componente é desmontado
-    return () => clearInterval(interval)
+    return () => {
+      console.log('🎠 BannerCarousel - Limpando intervalo de rotação')
+      clearInterval(interval)
+    }
   }, [banners.length])
 
   // Função para navegar para o banner anterior
   const goToPrevious = () => {
-    setCurrentIndex(currentIndex === 0 ? banners.length - 1 : currentIndex - 1)
+    const newIndex = currentIndex === 0 ? banners.length - 1 : currentIndex - 1
+    console.log('🎠 BannerCarousel - Navegando para banner anterior:', newIndex)
+    setCurrentIndex(newIndex)
   }
 
   // Função para navegar para o próximo banner
   const goToNext = () => {
-    setCurrentIndex(currentIndex === banners.length - 1 ? 0 : currentIndex + 1)
+    const newIndex = currentIndex === banners.length - 1 ? 0 : currentIndex + 1
+    console.log('🎠 BannerCarousel - Navegando para próximo banner:', newIndex)
+    setCurrentIndex(newIndex)
   }
 
   // Função para ir diretamente para um banner específico (usado pelos dots)
   const goToSlide = (index: number) => {
+    console.log('🎠 BannerCarousel - Indo para banner:', index)
     setCurrentIndex(index)
   }
+  
+  // Log do banner atual
+  useEffect(() => {
+    if (banners.length > 0) {
+      console.log('🎠 BannerCarousel - Banner atual:', {
+        index: currentIndex,
+        banner: banners[currentIndex],
+        total: banners.length
+      })
+    }
+  }, [currentIndex, banners])
+
+  // Log do estado atual
+  console.log('🎠 BannerCarousel - Renderizando:', {
+    totalBanners: banners.length,
+    currentIndex,
+    currentBanner: banners[currentIndex] ? {
+      id: banners[currentIndex].id,
+      image: banners[currentIndex].image,
+      title: banners[currentIndex].title
+    } : null,
+    imageErrors: Array.from(imageErrors)
+  })
 
   return (
     // Container principal do carrossel com altura responsiva e fundo preto
@@ -109,26 +162,46 @@ export default function BannerCarousel({ banners = defaultBanners }: BannerCarou
       {/* Container das imagens dos banners */}
       <div className="relative w-full h-full">
         {/* Mapeia todos os banners e renderiza cada um */}
-        {banners.map((banner, index) => (
+        {banners.map((banner, index) => {
+          const isActive = index === currentIndex
+          const hasError = imageErrors.has(banner.id)
+          
+          console.log(`🎠 BannerCarousel - Renderizando banner ${index}:`, {
+            id: banner.id,
+            isActive,
+            hasError,
+            image: banner.image
+          })
+          
+          return (
           <div
             key={banner.id} // Chave única para o React
             className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentIndex ? 'opacity-100' : 'opacity-0' // Mostra apenas o banner atual
+              isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' // Mostra apenas o banner atual
             }`}
           >
             {/* Componente de imagem otimizado do Next.js */}
-            <Image
-              src={banner.image} // Caminho da imagem
-              alt={banner.title} // Texto alternativo para acessibilidade
-              fill // Preenche o container pai
-              className="object-cover md:object-contain w-full h-full" // Cover para mobile, contain para desktop
-              priority={index === 0} // Prioriza carregamento da primeira imagem
-              loading={index === 0 ? 'eager' : 'lazy'} // Lazy loading para imagens não prioritárias
-              quality={85} // Qualidade otimizada
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Tamanhos responsivos
-            />
+            {imageErrors.has(banner.id) ? (
+              <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white">
+                <p className="text-center p-4">Erro ao carregar imagem</p>
+              </div>
+            ) : (
+              <Image
+                src={banner.image} // Caminho da imagem
+                alt={banner.title} // Texto alternativo para acessibilidade
+                fill // Preenche o container pai
+                className="object-cover md:object-contain w-full h-full" // Cover para mobile, contain para desktop
+                priority={index === 0} // Prioriza carregamento da primeira imagem
+                loading={index === 0 ? 'eager' : 'lazy'} // Lazy loading para imagens não prioritárias
+                quality={85} // Qualidade otimizada
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Tamanhos responsivos
+                onError={() => handleImageError(banner.id, banner.image)}
+                unoptimized={banner.image.startsWith('http://') || banner.image.startsWith('https://')}
+              />
+            )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Botões de navegação - só aparecem se houver mais de um banner */}

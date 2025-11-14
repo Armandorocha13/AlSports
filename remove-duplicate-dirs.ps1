@@ -40,3 +40,4 @@ Write-Host "Diretórios duplicados foram removidos da raiz." -ForegroundColor Gr
 
 
 
+

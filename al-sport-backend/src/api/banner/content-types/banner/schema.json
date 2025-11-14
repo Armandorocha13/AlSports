@@ -4,7 +4,8 @@
   "info": {
     "singularName": "banner",
     "pluralName": "banners",
-    "displayName": "Banner"
+    "displayName": "Banner",
+    "description": "Banners do site para exibição em diferentes locais"
   },
   "options": {
     "draftAndPublish": true
@@ -14,35 +15,15 @@
     "ImagemDesktop": {
       "type": "media",
       "multiple": false,
+      "required": false,
       "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
-    },
-    "ImagemMobile": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
-    },
-    "Link": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
+        "images"
       ]
     },
     "Local": {
       "type": "enumeration",
+      "required": true,
+      "default": "Topo-Home",
       "enum": [
         "Topo-Home",
         "Rodape",

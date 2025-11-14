@@ -62,28 +62,44 @@ export default async function HomePage() {
   // Filtrar categorias (excluir tabela-medidas)
   const displayCategories = categories.filter(category => category.slug !== 'tabela-medidas')
 
+  // Log detalhado dos banners recebidos
+  console.log('🏠 HomePage - Banners recebidos do Strapi:', {
+    total: strapiBanners.length,
+    banners: strapiBanners.map(b => ({
+      id: b.documentId || b.id,
+      local: b.attributes?.Local,
+      publicado: b.publishedAt !== null,
+      hasImagemDesktop: !!b.attributes?.ImagemDesktop,
+      hasImagemMobile: !!b.attributes?.ImagemMobile
+    }))
+  })
+
   // Filtrar banners por local - usar os dados originais do Strapi para filtrar
   const topBanners = strapiBanners
     .filter(banner => {
-      const isTopoHome = banner.attributes?.Local === 'Topo-Home'
+      const local = banner.attributes?.Local
+      const isTopoHome = local === 'Topo-Home'
       const isPublished = banner.publishedAt !== null
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Filtro Topo-Home - Banner:', {
-          id: banner.documentId || banner.id,
-          local: banner.attributes?.Local,
-          publishedAt: banner.publishedAt,
-          isTopoHome,
-          isPublished,
-          passa: isTopoHome && isPublished
-        })
-      }
+      
+      console.log('🏠 HomePage - Filtro Topo-Home - Banner:', {
+        id: banner.documentId || banner.id,
+        local,
+        publishedAt: banner.publishedAt,
+        isTopoHome,
+        isPublished,
+        passa: isTopoHome && isPublished
+      })
+      
       return isTopoHome && isPublished
     })
     .map(transformStrapiBannerToAppBanner)
     .filter(banner => {
       const hasImage = banner.image !== '/images/placeholder.jpg'
-      if (process.env.NODE_ENV === 'development' && !hasImage) {
-        console.warn('Banner filtrado por falta de imagem:', banner.id)
+      if (!hasImage) {
+        console.warn('⚠️ HomePage - Banner filtrado por falta de imagem:', {
+          id: banner.id,
+          image: banner.image
+        })
       }
       return hasImage
     })
@@ -93,26 +109,56 @@ export default async function HomePage() {
       const local = banner.attributes?.Local
       const isRodapeOrPromocional = local === 'Rodape' || local === 'Promocional'
       const isPublished = banner.publishedAt !== null
+      
+      console.log('🏠 HomePage - Filtro Rodape/Promocional - Banner:', {
+        id: banner.documentId || banner.id,
+        local,
+        isRodapeOrPromocional,
+        isPublished,
+        passa: isRodapeOrPromocional && isPublished
+      })
+      
       return isRodapeOrPromocional && isPublished
     })
     .map(transformStrapiBannerToAppBanner)
-    .filter(banner => banner.image !== '/images/placeholder.jpg')
-
-  // Debug: log dos banners finais
-  if (process.env.NODE_ENV === 'development') {
-    console.log('HomePage - Banners finais:', {
-      totalStrapiBanners: strapiBanners.length,
-      topBanners: topBanners.length,
-      bottomBanners: bottomBanners.length,
-      topBannersIds: topBanners.map(b => b.id),
-      bottomBannersIds: bottomBanners.map(b => b.id)
+    .filter(banner => {
+      const hasImage = banner.image !== '/images/placeholder.jpg'
+      if (!hasImage) {
+        console.warn('⚠️ HomePage - Banner filtrado por falta de imagem:', {
+          id: banner.id,
+          image: banner.image
+        })
+      }
+      return hasImage
     })
-  }
+
+  // Debug: log dos banners finais (sempre logar)
+  console.log('🏠 HomePage - Banners finais:', {
+    totalStrapiBanners: strapiBanners.length,
+    topBanners: topBanners.length,
+    bottomBanners: bottomBanners.length,
+    topBannersIds: topBanners.map(b => b.id),
+    bottomBannersIds: bottomBanners.map(b => b.id),
+    topBannersDetails: topBanners.map(b => ({
+      id: b.id,
+      image: b.image,
+      title: b.title,
+      hasImage: b.image !== '/images/placeholder.jpg'
+    }))
+  })
 
   return (
     <div className="min-h-screen dark-theme">
       {/* Carrossel de Banners */}
-      <BannerCarousel banners={topBanners} />
+      {topBanners.length > 0 ? (
+        <BannerCarousel banners={topBanners} />
+      ) : (
+        <div className="w-full h-[300px] md:h-[400px] lg:h-[450px] bg-black flex items-center justify-center">
+          <p className="text-white text-center p-4">
+            Nenhum banner disponível no momento
+          </p>
+        </div>
+      )}
 
       {/* Seção de características da empresa */}
       <section className="hidden md:block py-16 bg-black">

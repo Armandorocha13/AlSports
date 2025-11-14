@@ -49,6 +49,14 @@ export default factories.createCoreController('api::pedido.pedido', ({ strapi })
       const shippingCost = parseFloat(orderData.shippingCost || orderData.shipping?.price) || 0
       const totalAmount = subtotal + shippingCost
 
+      // Mapear itens do pedido para o formato do componente repetível
+      const itensPedido = (orderData.items || []).map((item: any) => ({
+        NomeProduto: item.name || item.nome || 'Produto sem nome',
+        Tamanho: item.size || item.tamanho || '',
+        Quantidade: parseInt(item.quantity || item.quantidade || '1', 10),
+        PrecoUnitario: parseFloat(item.price || item.preco || '0')
+      }))
+
       // Mapear dados do frontend para o schema do Strapi
       const pedidoData: any = {
         data: {
@@ -57,7 +65,7 @@ export default factories.createCoreController('api::pedido.pedido', ({ strapi })
           Email: orderData.customer?.email || 'sem-email@cliente.com',
           Telefone: orderData.customer?.phone || orderData.customer?.telefone || 'Sem telefone',
           Endereco: formatAddress(orderData.customer) || 'Endereço não informado',
-          ItensComprados: orderData.items || [],
+          ItensPedido: itensPedido, // Usar ItensPedido (componente repetível) ao invés de ItensComprados
           ValorProdutos: subtotal,
           ValorFrete: shippingCost,
           ValorTotal: totalAmount,
@@ -72,11 +80,58 @@ export default factories.createCoreController('api::pedido.pedido', ({ strapi })
         numeroPedido: pedidoData.data.NumeroPedido,
         cliente: pedidoData.data.NomeCliente,
         email: pedidoData.data.Email,
-        valorTotal: pedidoData.data.ValorTotal
+        valorTotal: pedidoData.data.ValorTotal,
+        totalItens: itensPedido.length,
+        itens: itensPedido.map((item: any) => ({
+          nome: item.NomeProduto,
+          tamanho: item.Tamanho,
+          quantidade: item.Quantidade,
+          preco: item.PrecoUnitario
+        })),
+        dadosCompletos: JSON.stringify(pedidoData, null, 2)
       })
 
+      // Validar dados antes de criar
+      if (!pedidoData.data.NumeroPedido) {
+        console.error('❌ NumeroPedido é obrigatório')
+        return ctx.badRequest('NumeroPedido é obrigatório')
+      }
+
+      if (!pedidoData.data.NomeCliente) {
+        console.error('❌ NomeCliente é obrigatório')
+        return ctx.badRequest('NomeCliente é obrigatório')
+      }
+
+      if (!pedidoData.data.Email) {
+        console.error('❌ Email é obrigatório')
+        return ctx.badRequest('Email é obrigatório')
+      }
+
       // Criar pedido no Strapi
+      console.log('🔄 Criando pedido no Strapi...')
       const entity = await strapi.entityService.create('api::pedido.pedido', pedidoData)
+
+      console.log('✅ Pedido criado no Strapi:', {
+        id: entity.id,
+        documentId: entity.documentId,
+        numeroPedido: entity.NumeroPedido,
+        publicado: entity.publishedAt !== null
+      })
+
+      // Verificar se foi publicado
+      if (!entity.publishedAt) {
+        console.warn('⚠️ Pedido criado mas não publicado. Tentando publicar...')
+        try {
+          const published = await strapi.entityService.update('api::pedido.pedido', entity.id, {
+            data: {
+              publishedAt: new Date()
+            }
+          })
+          console.log('✅ Pedido publicado:', published.publishedAt)
+        } catch (publishError: any) {
+          console.error('❌ Erro ao publicar pedido:', publishError)
+        }
+      }
 
       return ctx.send({
         success: true,
@@ -85,8 +140,13 @@ export default factories.createCoreController('api::pedido.pedido', ({ strapi })
       })
 
     } catch (error: any) {
-      console.error('❌ Erro ao sincronizar pedido:', error)
-      return ctx.badRequest(`Erro ao sincronizar pedido: ${error.message}`)
+      console.error('❌ Erro ao sincronizar pedido:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        details: error.details || error
+      })
+      return ctx.badRequest(`Erro ao sincronizar pedido: ${error.message || 'Erro desconhecido'}`)
     }
   },
 

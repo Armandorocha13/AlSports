@@ -71,18 +71,62 @@ export default function SubcategoryPage({ params }: SubcategoryPageProps) {
           return
         }
 
-        // Transformar produtos e filtrar por subcategoria (se houver campo de subcategoria)
-        // Por enquanto, vamos mostrar todos os produtos da categoria
+        // Transformar produtos e filtrar APENAS por subcategoria
         const allProducts = transformStrapiProdutosToProducts(strapiProdutos)
         
-        // Filtrar produtos da categoria (se houver relação categoria no produto)
-        const categoryProducts = allProducts.filter(product => 
-          product.category.toLowerCase() === categoryData.name.toLowerCase() ||
-          product.subcategory.toLowerCase() === subcategory.name.toLowerCase()
-        )
+        // Filtrar produtos APENAS da subcategoria específica
+        // Comparar por nome da subcategoria (case-insensitive e normalizado)
+        const subcategoryProducts = allProducts.filter(product => {
+          if (!product.subcategory) {
+            return false // Produtos sem subcategoria não devem aparecer
+          }
+          
+          // Normalizar strings para comparação (remover acentos, espaços extras, etc)
+          const normalizeString = (str: string) => {
+            return str
+              .toLowerCase()
+              .trim()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+              .replace(/\s+/g, ' ') // Normaliza espaços
+          }
+          
+          const productSubcategory = normalizeString(product.subcategory)
+          const targetSubcategory = normalizeString(subcategory.name)
+          
+          // Comparação exata
+          const matches = productSubcategory === targetSubcategory
+          
+          // Log para debug se não corresponder (apenas alguns para não poluir)
+          if (!matches && allProducts.indexOf(product) < 3) {
+            console.log('🔍 Produto não corresponde à subcategoria:', {
+              produtoNome: product.name,
+              produtoSubcategoria: product.subcategory,
+              produtoSubcategoriaNormalizada: productSubcategory,
+              subcategoriaBuscada: subcategory.name,
+              subcategoriaBuscadaNormalizada: targetSubcategory,
+              corresponde: matches
+            })
+          }
+          
+          return matches
+        })
+        
+        console.log('🔍 Filtro de subcategoria:', {
+          subcategoriaBuscada: subcategory.name,
+          subcategoriaSlug: subcategory.slug,
+          totalProdutos: allProducts.length,
+          produtosFiltrados: subcategoryProducts.length,
+          produtosFiltradosDetalhes: subcategoryProducts.map(p => ({
+            nome: p.name,
+            subcategoria: p.subcategory,
+            categoria: p.category
+          }))
+        })
 
         setCategory(categoryData)
-        setProducts(categoryProducts.length > 0 ? categoryProducts : allProducts)
+        // Usar apenas produtos filtrados por subcategoria (não mostrar todos se não houver match)
+        setProducts(subcategoryProducts)
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
         setError('Erro ao carregar dados. Tente novamente mais tarde.')

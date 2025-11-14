@@ -13,8 +13,11 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
       },
     ],
-    domains: ['localhost'],
+    domains: ['localhost', '127.0.0.1'],
     formats: ['image/webp', 'image/avif'],
+    unoptimized: false,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async headers() {
     return [

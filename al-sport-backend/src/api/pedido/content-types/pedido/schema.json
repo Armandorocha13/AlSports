@@ -10,11 +10,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "NumeroPedido": {
       "type": "string",
@@ -36,10 +32,6 @@
       "type": "text",
       "required": true
     },
-    "ItensComprados": {
-      "type": "json",
-      "required": true
-    },
     "ValorProdutos": {
       "type": "decimal",
       "required": true,
@@ -58,6 +50,8 @@
     },
     "StatusPedido": {
       "type": "enumeration",
+      "required": true,
+      "default": "Aguardando Pagamento",
       "enum": [
         "Aguardando Pagamento",
         "Pagamento Aprovado",
@@ -65,15 +59,18 @@
         "Enviado",
         "Concluído",
         "Cancelado"
-      ],
-      "default": "Aguardando Pagamento",
-      "required": true
+      ]
     },
     "CodigoRastreio": {
       "type": "string"
     },
     "Observacoes": {
       "type": "text"
+    },
+    "ItensPedido": {
+      "type": "component",
+      "component": "itens.itens",
+      "repeatable": true
     }
   }
 }

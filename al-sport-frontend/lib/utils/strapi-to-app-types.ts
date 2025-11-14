@@ -43,26 +43,25 @@ export function transformStrapiProdutoToProduct(strapiProduto: StrapiProduto): P
   const imagem1 = strapiProduto.attributes.Imagem1
   let imagemUrl: string = '/images/placeholder.jpg'
   
-  // Debug: log detalhado da imagem
-  if (process.env.NODE_ENV === 'development') {
-    console.log('transformStrapiProdutoToProduct - Imagem1 recebida:', {
-      hasImagem1: !!imagem1,
-      imagem1Type: typeof imagem1,
-      imagem1Value: imagem1,
-      imagem1Keys: imagem1 ? Object.keys(imagem1) : [],
-      imagem1Data: imagem1 ? (imagem1 as any).data : null,
-      imagem1Attributes: imagem1 ? (imagem1 as any).attributes : null,
-      imagem1Url: imagem1 ? (imagem1 as any).url : null
-    })
-  }
+  // Debug: log detalhado da imagem (sempre logar para diagnóstico)
+  console.log('🖼️ transformStrapiProdutoToProduct - Processando Imagem1:', {
+    produtoId: strapiProduto.documentId || strapiProduto.id,
+    produtoNome: strapiProduto.attributes.Nome,
+    hasImagem1: !!imagem1,
+    imagem1Type: typeof imagem1,
+    imagem1IsNull: imagem1 === null,
+    imagem1IsUndefined: imagem1 === undefined,
+    imagem1Keys: imagem1 ? Object.keys(imagem1).slice(0, 10) : [],
+    imagem1Data: imagem1 ? (imagem1 as any).data : null,
+    imagem1Attributes: imagem1 ? (imagem1 as any).attributes : null,
+    imagem1Url: imagem1 ? (imagem1 as any).url : null
+  })
   
   if (imagem1) {
     // Se já é um objeto StrapiMedia (com attributes ou url direto), usar diretamente
     if (imagem1.attributes || imagem1.url) {
       const url = getStrapiMediaUrl(imagem1 as any)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('transformStrapiProdutoToProduct - URL obtida (direto):', url)
-      }
+      console.log('🖼️ URL obtida (direto):', url)
       if (url) {
         imagemUrl = url
       }
@@ -70,50 +69,50 @@ export function transformStrapiProdutoToProduct(strapiProduto: StrapiProduto): P
     // Se está dentro de { data: StrapiMedia }
     else if ((imagem1 as any).data) {
       const url = getStrapiMediaUrl((imagem1 as any).data)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('transformStrapiProdutoToProduct - URL obtida (data):', url)
-      }
+      console.log('🖼️ URL obtida (data):', url)
       if (url) {
         imagemUrl = url
       }
     }
     // Se é null ou undefined, manter placeholder
     else if (imagem1 === null || imagem1 === undefined) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('transformStrapiProdutoToProduct - Imagem1 é null/undefined')
-      }
+      console.warn('⚠️ transformStrapiProdutoToProduct - Imagem1 é null/undefined')
     }
     // Tentar outras estruturas possíveis
     else {
       // Tentar como string direto (URL)
       if (typeof imagem1 === 'string' && imagem1.trim() !== '') {
         imagemUrl = imagem1
-        if (process.env.NODE_ENV === 'development') {
-          console.log('transformStrapiProdutoToProduct - Imagem1 é string:', imagemUrl)
-        }
+        console.log('🖼️ Imagem1 é string:', imagemUrl)
       } else {
         // Tentar getStrapiMediaUrl com o objeto completo
         const url = getStrapiMediaUrl(imagem1 as any)
         if (url) {
           imagemUrl = url
-          if (process.env.NODE_ENV === 'development') {
-            console.log('transformStrapiProdutoToProduct - URL obtida (fallback):', url)
-          }
+          console.log('🖼️ URL obtida (fallback):', url)
         } else {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('transformStrapiProdutoToProduct - Não foi possível obter URL da imagem:', imagem1)
-          }
+          console.warn('⚠️ transformStrapiProdutoToProduct - Não foi possível obter URL da imagem:', {
+            imagem1Type: typeof imagem1,
+            imagem1Keys: Object.keys(imagem1 as any).slice(0, 10),
+            imagem1Value: JSON.stringify(imagem1).substring(0, 200)
+          })
         }
       }
     }
   } else {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('transformStrapiProdutoToProduct - Produto sem Imagem1:', {
-        produtoId: strapiProduto.documentId || strapiProduto.id,
-        produtoNome: strapiProduto.attributes?.Nome
-      })
-    }
+    console.warn('⚠️ transformStrapiProdutoToProduct - Produto sem Imagem1:', {
+      produtoId: strapiProduto.documentId || strapiProduto.id,
+      produtoNome: strapiProduto.attributes?.Nome
+    })
   }
+  
+  // Log final da URL da imagem
+  console.log('🖼️ URL final da imagem:', {
+    produtoId: strapiProduto.documentId || strapiProduto.id,
+    produtoNome: strapiProduto.attributes.Nome,
+    imagemUrl: imagemUrl,
+    temImagem: imagemUrl !== '/images/placeholder.jpg'
+  })
   
   if (process.env.NODE_ENV === 'development') {
     console.log('transformStrapiProdutoToProduct - URL final da imagem:', imagemUrl)
@@ -187,31 +186,50 @@ export function transformStrapiProdutoToProduct(strapiProduto: StrapiProduto): P
   let subcategoriaNome = ''
   const subcategoria = (strapiProduto.attributes as any).subcategoria
   if (subcategoria) {
+    // Tentar diferentes formatos de dados do Strapi
     if (subcategoria.Nome) {
       subcategoriaNome = subcategoria.Nome
     } else if (subcategoria.data?.Nome) {
       subcategoriaNome = subcategoria.data.Nome
+    } else if (subcategoria.data?.attributes?.Nome) {
+      subcategoriaNome = subcategoria.data.attributes.Nome
+    } else if (subcategoria.attributes?.Nome) {
+      subcategoriaNome = subcategoria.attributes.Nome
+    }
+    
+    // Log para debug se não encontrar nome
+    if (!subcategoriaNome && process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ Subcategoria sem nome encontrada:', {
+        produtoId: strapiProduto.documentId || strapiProduto.id,
+        produtoNome: nome,
+        subcategoriaKeys: Object.keys(subcategoria),
+        subcategoriaStructure: JSON.stringify(subcategoria).substring(0, 200)
+      })
     }
   }
 
   // Verificar se o produto está em destaque
-  // Pode vir como "Destaque", "Featured", "EmDestaque", "is_featured", etc.
-  const destaqueValue = strapiProduto.attributes.Destaque
+  // IMPORTANTE: O campo no Strapi é "Destaques" (plural), não "Destaque" (singular)
+  // Pode vir como "Destaques", "Destaque", "Featured", "EmDestaque", "is_featured", etc.
+  const destaquesValue = (strapiProduto.attributes as any).Destaques || strapiProduto.attributes.Destaque
   const isFeatured = 
-    destaqueValue === true ||
-    destaqueValue === 'true' ||
+    destaquesValue === true ||
+    destaquesValue === 'true' ||
+    destaquesValue === 1 ||
     strapiProduto.attributes.Featured === true ||
     strapiProduto.attributes.EmDestaque === true ||
     strapiProduto.attributes.is_featured === true ||
     (strapiProduto.attributes as any).featured === true ||
     false
 
-  // Debug: sempre logar o valor de Destaque (não só em desenvolvimento)
+  // Debug: sempre logar o valor de Destaques (não só em desenvolvimento)
   console.log('🔍 Verificando produto em destaque:', {
     id: strapiProduto.documentId || strapiProduto.id,
     nome: nome,
-    destaqueValue: destaqueValue,
-    destaqueType: typeof destaqueValue,
+    destaquesValue: destaquesValue,
+    destaquesType: typeof destaquesValue,
+    hasDestaques: 'Destaques' in strapiProduto.attributes,
+    hasDestaque: 'Destaque' in strapiProduto.attributes,
     isFeatured: isFeatured,
     allAttributes: Object.keys(strapiProduto.attributes)
   })
@@ -341,29 +359,101 @@ export function transformStrapiCategoriaToCategory(strapiCategoria: StrapiCatego
 
 /**
  * Transforma array de produtos do Strapi
+ * @param strapiProdutos - Array de produtos do Strapi
+ * @param includeDrafts - Se true, inclui produtos não publicados (para debug). Padrão: false
  */
-export function transformStrapiProdutosToProducts(strapiProdutos: StrapiProduto[]): Product[] {
+export function transformStrapiProdutosToProducts(
+  strapiProdutos: StrapiProduto[],
+  includeDrafts: boolean = false
+): Product[] {
   if (!Array.isArray(strapiProdutos)) {
-    console.warn('transformStrapiProdutosToProducts: entrada não é um array', strapiProdutos)
+    console.warn('⚠️ transformStrapiProdutosToProducts: entrada não é um array', strapiProdutos)
     return []
   }
 
-  console.log('🔄 transformStrapiProdutosToProducts - Total de produtos recebidos:', strapiProdutos.length)
+  console.log('🔄 transformStrapiProdutosToProducts - Iniciando transformação:', {
+    totalRecebidos: strapiProdutos.length,
+    includeDrafts
+  })
+  
+  // Contar produtos por status de publicação
+  const produtosPublicados = strapiProdutos.filter(p => p.publishedAt !== null)
+  const produtosNaoPublicados = strapiProdutos.filter(p => p.publishedAt === null)
+  
+  console.log('🔄 transformStrapiProdutosToProducts - Status de publicação:', {
+    total: strapiProdutos.length,
+    publicados: produtosPublicados.length,
+    naoPublicados: produtosNaoPublicados.length
+  })
+
+  if (produtosNaoPublicados.length > 0) {
+    console.warn('⚠️ transformStrapiProdutosToProducts - Produtos não publicados encontrados:', {
+      count: produtosNaoPublicados.length,
+      produtos: produtosNaoPublicados.map(p => ({
+        id: p.documentId || p.id,
+        nome: (p.attributes as any)?.Nome,
+        publishedAt: p.publishedAt
+      }))
+    })
+    
+    if (!includeDrafts) {
+      console.log('ℹ️ transformStrapiProdutosToProducts - Produtos não publicados serão filtrados. Para incluir, passe includeDrafts=true')
+    }
+  }
   
   const produtosTransformados = strapiProdutos
     .filter(produto => {
-      // Filtrar apenas produtos publicados
-      const isPublished = produto.publishedAt !== null
-      if (!isPublished) {
-        console.log('⚠️ Produto não publicado ignorado:', produto.documentId || produto.id, produto.attributes?.Nome)
+      if (produto == null) {
+        return false
       }
-      return produto != null && isPublished
+      
+      // Filtrar apenas produtos publicados (a menos que includeDrafts seja true)
+      if (!includeDrafts) {
+        const isPublished = produto.publishedAt !== null
+        if (!isPublished) {
+          console.log('⚠️ transformStrapiProdutosToProducts - Produto não publicado ignorado:', {
+            id: produto.documentId || produto.id,
+            nome: (produto.attributes as any)?.Nome,
+            publishedAt: produto.publishedAt
+          })
+        }
+        return isPublished
+      }
+      
+      // Se includeDrafts é true, incluir todos os produtos válidos
+      return true
     })
-    .map(transformStrapiProdutoToProduct)
-    .filter(produto => produto.id) // Filtrar produtos inválidos
+    .map(produto => {
+      try {
+        return transformStrapiProdutoToProduct(produto)
+      } catch (error: any) {
+        console.error('❌ transformStrapiProdutosToProducts - Erro ao transformar produto:', {
+          id: produto.documentId || produto.id,
+          nome: (produto.attributes as any)?.Nome,
+          error: error.message
+        })
+        return null
+      }
+    })
+    .filter((produto): produto is Product => produto !== null && produto.id !== '') // Filtrar produtos inválidos
   
-  console.log('✅ transformStrapiProdutosToProducts - Produtos transformados:', produtosTransformados.length)
-  console.log('⭐ Produtos em destaque após transformação:', produtosTransformados.filter(p => p.featured).map(p => ({ id: p.id, nome: p.name })))
+  console.log('✅ transformStrapiProdutosToProducts - Transformação concluída:', {
+    totalTransformados: produtosTransformados.length,
+    produtosEmDestaque: produtosTransformados.filter(p => p.featured).length
+  })
+  
+  if (produtosTransformados.length === 0 && strapiProdutos.length > 0) {
+    console.error('❌ transformStrapiProdutosToProducts - NENHUM PRODUTO FOI TRANSFORMADO!', {
+      totalRecebidos: strapiProdutos.length,
+      publicados: produtosPublicados.length,
+      naoPublicados: produtosNaoPublicados.length,
+      includeDrafts
+    })
+  }
+  
+  console.log('⭐ transformStrapiProdutosToProducts - Produtos em destaque:', produtosTransformados
+    .filter(p => p.featured)
+    .map(p => ({ id: p.id, nome: p.name })))
   
   return produtosTransformados
 }
@@ -492,8 +582,18 @@ export interface AppBanner {
  * Transforma um banner do Strapi para o formato da aplicação
  */
 export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): AppBanner {
+  console.log('🎨 transformStrapiBannerToAppBanner - Iniciando transformação:', {
+    id: strapiBanner.id,
+    documentId: strapiBanner.documentId,
+    hasAttributes: !!strapiBanner.attributes,
+    publishedAt: strapiBanner.publishedAt
+  })
+
   if (!strapiBanner.attributes) {
-    console.warn('Banner sem attributes:', strapiBanner)
+    console.warn('⚠️ transformStrapiBannerToAppBanner - Banner sem attributes:', {
+      id: strapiBanner.documentId || strapiBanner.id,
+      keys: Object.keys(strapiBanner)
+    })
     return {
       id: strapiBanner.documentId || strapiBanner.id?.toString() || '',
       image: '/images/placeholder.jpg',
@@ -504,21 +604,33 @@ export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): Ap
     }
   }
 
-  // Debug: log do banner sendo transformado
-  if (process.env.NODE_ENV === 'development') {
-    console.log('transformStrapiBannerToAppBanner - Banner recebido:', {
-      id: strapiBanner.id,
-      documentId: strapiBanner.documentId,
-      local: strapiBanner.attributes.Local,
-      imagemDesktop: strapiBanner.attributes.ImagemDesktop,
-      imagemMobile: strapiBanner.attributes.ImagemMobile
-    })
-  }
+  // Log detalhado do banner sendo transformado
+  console.log('🎨 transformStrapiBannerToAppBanner - Banner recebido:', {
+    id: strapiBanner.id,
+    documentId: strapiBanner.documentId,
+    local: strapiBanner.attributes.Local,
+    hasImagemDesktop: !!strapiBanner.attributes.ImagemDesktop,
+    hasImagemMobile: !!strapiBanner.attributes.ImagemMobile,
+    imagemDesktopType: typeof strapiBanner.attributes.ImagemDesktop,
+    imagemMobileType: typeof strapiBanner.attributes.ImagemMobile,
+    attributesKeys: Object.keys(strapiBanner.attributes)
+  })
 
   // Obter imagem desktop (prioridade) ou mobile
   let imagemUrl: string = '/images/placeholder.jpg'
   const imagemDesktop = strapiBanner.attributes.ImagemDesktop
   const imagemMobile = strapiBanner.attributes.ImagemMobile
+
+  console.log('🎨 transformStrapiBannerToAppBanner - Processando imagens:', {
+    hasImagemDesktop: !!imagemDesktop,
+    hasImagemMobile: !!imagemMobile,
+    imagemDesktopStructure: imagemDesktop ? {
+      hasData: !!(imagemDesktop as any).data,
+      hasUrl: !!(imagemDesktop as any).url,
+      hasAttributes: !!(imagemDesktop as any).attributes,
+      keys: Object.keys(imagemDesktop as any).slice(0, 10)
+    } : null
+  })
 
   // Tentar obter imagem desktop primeiro
   if (imagemDesktop) {
@@ -526,35 +638,43 @@ export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): Ap
     let mediaData = imagemDesktop
     if ((imagemDesktop as any).data) {
       mediaData = (imagemDesktop as any).data
+      console.log('🎨 transformStrapiBannerToAppBanner - ImagemDesktop tem .data, extraindo')
     }
     
     const url = getStrapiMediaUrl(mediaData as any)
     if (url) {
       imagemUrl = url
-      if (process.env.NODE_ENV === 'development') {
-        console.log('transformStrapiBannerToAppBanner - URL desktop obtida:', url)
-      }
+      console.log('✅ transformStrapiBannerToAppBanner - URL desktop obtida:', url)
+    } else {
+      console.warn('⚠️ transformStrapiBannerToAppBanner - Não foi possível obter URL da imagem desktop')
     }
+  } else {
+    console.warn('⚠️ transformStrapiBannerToAppBanner - Banner não tem ImagemDesktop')
   }
   
   // Se não tiver desktop, tentar mobile
   if (imagemUrl === '/images/placeholder.jpg' && imagemMobile) {
+    console.log('🎨 transformStrapiBannerToAppBanner - Tentando obter imagem mobile')
     let mediaData = imagemMobile
     if ((imagemMobile as any).data) {
       mediaData = (imagemMobile as any).data
+      console.log('🎨 transformStrapiBannerToAppBanner - ImagemMobile tem .data, extraindo')
     }
     
     const url = getStrapiMediaUrl(mediaData as any)
     if (url) {
       imagemUrl = url
-      if (process.env.NODE_ENV === 'development') {
-        console.log('transformStrapiBannerToAppBanner - URL mobile obtida:', url)
-      }
+      console.log('✅ transformStrapiBannerToAppBanner - URL mobile obtida:', url)
+    } else {
+      console.warn('⚠️ transformStrapiBannerToAppBanner - Não foi possível obter URL da imagem mobile')
     }
   }
 
-  if (imagemUrl === '/images/placeholder.jpg' && process.env.NODE_ENV === 'development') {
-    console.warn('transformStrapiBannerToAppBanner - Nenhuma imagem válida encontrada para o banner:', strapiBanner.documentId || strapiBanner.id)
+  if (imagemUrl === '/images/placeholder.jpg') {
+    console.warn('⚠️ transformStrapiBannerToAppBanner - Nenhuma imagem válida encontrada para o banner:', {
+      id: strapiBanner.documentId || strapiBanner.id,
+      local: strapiBanner.attributes.Local
+    })
   }
 
   // Obter link (pode ser string ou media)
@@ -573,6 +693,8 @@ export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): Ap
   let buttonText = 'Ver mais'
   let buttonLink = link
 
+  console.log('🎨 transformStrapiBannerToAppBanner - Local do banner:', local)
+
   // Texto do botão baseado no local
   switch (local) {
     case 'Topo-Home':
@@ -586,9 +708,10 @@ export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): Ap
       break
     default:
       buttonText = 'Ver mais'
+      console.warn('⚠️ transformStrapiBannerToAppBanner - Local desconhecido:', local)
   }
 
-  return {
+  const bannerTransformado = {
     id: strapiBanner.documentId || strapiBanner.id?.toString() || '',
     image: imagemUrl,
     title: `Banner ${local}`,
@@ -596,6 +719,15 @@ export function transformStrapiBannerToAppBanner(strapiBanner: StrapiBanner): Ap
     buttonText: buttonText,
     buttonLink: buttonLink
   }
+
+  console.log('✅ transformStrapiBannerToAppBanner - Banner transformado:', {
+    id: bannerTransformado.id,
+    local,
+    hasImage: bannerTransformado.image !== '/images/placeholder.jpg',
+    imageUrl: bannerTransformado.image
+  })
+
+  return bannerTransformado
 }
 
 /**

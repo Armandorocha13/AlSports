@@ -1,5 +1,18 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
+export interface ItensItens extends Struct.ComponentSchema {
+  collectionName: 'components_itens_itens';
+  info: {
+    displayName: 'Itens';
+  };
+  attributes: {
+    NomeProduto: Schema.Attribute.String;
+    PrecoUnitario: Schema.Attribute.Decimal;
+    Quantidade: Schema.Attribute.Integer;
+    Tamanho: Schema.Attribute.String;
+  };
+}
+
 export interface VariacoesVariacoes extends Struct.ComponentSchema {
   collectionName: 'components_variacoes_variacoes';
   info: {
@@ -23,6 +36,7 @@ export interface VariacoesVariacoes extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
+      'itens.itens': ItensItens;
       'variacoes.variacoes': VariacoesVariacoes;
     }
   }

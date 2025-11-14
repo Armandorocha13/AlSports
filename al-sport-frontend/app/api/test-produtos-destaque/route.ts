@@ -36,7 +36,9 @@ export async function GET() {
       rawStrapi: strapiProdutos.map(p => ({
         id: p.documentId || p.id,
         nome: (p.attributes as any)?.Nome,
-        destaque: (p.attributes as any)?.Destaque,
+        destaques: (p.attributes as any)?.Destaques,
+        destaquesType: typeof (p.attributes as any)?.Destaques,
+        destaque: (p.attributes as any)?.Destaque, // Fallback para singular
         destaqueType: typeof (p.attributes as any)?.Destaque,
         publicado: p.publishedAt !== null,
         allAttributes: Object.keys(p.attributes || {})
@@ -50,6 +52,7 @@ export async function GET() {
     }, { status: 500 })
   }
 }
+
 
 
 

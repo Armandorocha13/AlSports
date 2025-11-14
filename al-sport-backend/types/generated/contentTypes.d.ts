@@ -470,6 +470,7 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiBannerBanner extends Struct.CollectionTypeSchema {
   collectionName: 'banners';
   info: {
+    description: 'Banners do site para exibi\u00E7\u00E3o em diferentes locais';
     displayName: 'Banner';
     pluralName: 'banners';
     singularName: 'banner';
@@ -481,14 +482,12 @@ export interface ApiBannerBanner extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    ImagemDesktop: Schema.Attribute.Media<
-      'images' | 'files' | 'videos' | 'audios'
-    >;
-    ImagemMobile: Schema.Attribute.Media<
-      'images' | 'files' | 'videos' | 'audios'
-    >;
-    Link: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    Local: Schema.Attribute.Enumeration<['Topo-Home', 'Rodape', 'Promocional']>;
+    ImagemDesktop: Schema.Attribute.Media<'images'>;
+    Local: Schema.Attribute.Enumeration<
+      ['Topo-Home', 'Rodape', 'Promocional']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Topo-Home'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -575,11 +574,6 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: false;
-    };
-  };
   attributes: {
     CodigoRastreio: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
@@ -587,7 +581,7 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     Email: Schema.Attribute.Email & Schema.Attribute.Required;
     Endereco: Schema.Attribute.Text & Schema.Attribute.Required;
-    ItensComprados: Schema.Attribute.JSON & Schema.Attribute.Required;
+    ItensPedido: Schema.Attribute.Component<'itens.itens', true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -657,7 +651,7 @@ export interface ApiProdutoProduto extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     Descricao: Schema.Attribute.Blocks;
-    false: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    Destaques: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     Imagem1: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -709,36 +703,6 @@ export interface ApiSubcategoriaSubcategoria
       Schema.Attribute.Private;
     Nome: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiVariacaoVariacao extends Struct.CollectionTypeSchema {
-  collectionName: 'variacaos';
-  info: {
-    displayName: 'Variacao';
-    pluralName: 'variacaos';
-    singularName: 'variacao';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    Codigo: Schema.Attribute.String;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    Estoque: Schema.Attribute.Integer;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::variacao.variacao'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    Tamanho: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1262,7 +1226,6 @@ declare module '@strapi/strapi' {
       'api::pedido.pedido': ApiPedidoPedido;
       'api::produto.produto': ApiProdutoProduto;
       'api::subcategoria.subcategoria': ApiSubcategoriaSubcategoria;
-      'api::variacao.variacao': ApiVariacaoVariacao;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

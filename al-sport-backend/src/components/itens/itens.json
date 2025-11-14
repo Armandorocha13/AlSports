@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_itens_itens",
+  "info": {
+    "displayName": "Itens"
+  },
+  "options": {},
+  "attributes": {
+    "NomeProduto": {
+      "type": "string"
+    },
+    "Tamanho": {
+      "type": "string"
+    },
+    "Quantidade": {
+      "type": "integer"
+    },
+    "PrecoUnitario": {
+      "type": "decimal"
+    }
+  },
+  "config": {}
+}

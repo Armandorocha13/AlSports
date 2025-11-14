@@ -23,6 +23,8 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   if (!isOpen || !product) return null
 
@@ -143,25 +145,66 @@ export default function ProductViewModal({ product, isOpen, onClose }: ProductVi
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Imagem do Produto */}
               <div className="space-y-4">
-                <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-800">
-                  {product.image && product.image !== '/images/placeholder.jpg' ? (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        console.error('Erro ao carregar imagem do produto:', product.image)
-                        console.error('Erro:', e)
-                        // Trocar para placeholder em caso de erro
-                        const target = e.target as HTMLImageElement
-                        target.src = '/images/placeholder.jpg'
-                      }}
-                      unoptimized={product.image.startsWith('http://localhost:1337')}
-                    />
+                <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-gray-800" style={{ minHeight: '400px' }}>
+                  {product.image && product.image !== '/images/placeholder.jpg' && !imageError ? (
+                    <>
+                      {/* Usar tag img nativa para melhor compatibilidade com URLs externas */}
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('❌ Erro ao carregar imagem:', {
+                            imageUrl: product.image,
+                            productId: product.id,
+                            productName: product.name,
+                            error: e
+                          })
+                          setImageError(true)
+                        }}
+                        onLoad={() => {
+                          console.log('✅ Imagem carregada e renderizada:', {
+                            imageUrl: product.image,
+                            productId: product.id,
+                            productName: product.name,
+                            width: (e.target as HTMLImageElement).naturalWidth,
+                            height: (e.target as HTMLImageElement).naturalHeight
+                          })
+                          setImageLoaded(true)
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      {/* Loading indicator */}
+                      {!imageLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
+                          <div className="text-gray-500 animate-pulse">Carregando imagem...</div>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-500">
-                      <span>Imagem não disponível</span>
+                      <div className="text-center">
+                        <span className="block mb-2">Imagem não disponível</span>
+                        <span className="text-xs text-gray-600">
+                          URL: {product.image || 'N/A'}
+                        </span>
+                        {imageError && (
+                          <button
+                            onClick={() => {
+                              setImageError(false)
+                              setImageLoaded(false)
+                            }}
+                            className="mt-2 text-yellow-400 hover:text-yellow-300 text-sm underline"
+                          >
+                            Tentar novamente
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                   
